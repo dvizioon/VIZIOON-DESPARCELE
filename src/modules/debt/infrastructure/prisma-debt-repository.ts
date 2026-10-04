@@ -2,7 +2,7 @@ import { prisma } from "@/shared/infrastructure/prisma";
 import { mapInstallment } from "@/modules/installment/infrastructure/prisma-installment-repository";
 import { centsToDecimalString, toCents } from "@/shared/utils/money";
 import type { CreateDebtRecordInput, DebtRepository } from "../domain/debt-repository";
-import type { Debt, DebtWithInstallments } from "../domain/debt";
+import type { Debt, DebtHideMode, DebtWithInstallments } from "../domain/debt";
 
 export class PrismaDebtRepository implements DebtRepository {
   async create(input: CreateDebtRecordInput): Promise<DebtWithInstallments> {
@@ -62,6 +62,29 @@ export class PrismaDebtRepository implements DebtRepository {
     });
   }
 
+  async setVisibility(
+    id: string,
+    hideMode: DebtHideMode,
+    hiddenUserIds: string[],
+  ): Promise<void> {
+    await prisma.$transaction(async (tx) => {
+      await tx.debtHiddenFrom.deleteMany({ where: { debtId: id } });
+      await tx.debt.update({
+        where: { id },
+        data: {
+          hideMode,
+          ...(hideMode === "SELECTED"
+            ? {
+                hiddenFrom: {
+                  create: hiddenUserIds.map((userId) => ({ userId })),
+                },
+              }
+            : {}),
+        },
+      });
+    });
+  }
+
   async updateTotalAmount(id: string, totalAmountCents: number): Promise<void> {
     await prisma.debt.update({
       where: { id },
@@ -77,6 +100,7 @@ export class PrismaDebtRepository implements DebtRepository {
 const debtInclude = {
   owner: true,
   createdBy: true,
+  hiddenFrom: true,
   installments: {
     include: { paidBy: true },
     orderBy: { number: "asc" as const },
@@ -90,11 +114,13 @@ function mapDebt(row: {
   totalAmount: { toString(): string };
   installmentCount: number;
   isLoan: boolean;
+  hideMode: DebtHideMode;
   ownerId: string;
   createdById: string;
   createdAt: Date;
   owner: { name: string };
   createdBy: { name: string };
+  hiddenFrom: { userId: string }[];
   installments: Parameters<typeof mapInstallment>[0][];
 }): DebtWithInstallments {
   const debt: Debt = {
@@ -104,6 +130,8 @@ function mapDebt(row: {
     totalAmountCents: toCents(row.totalAmount.toString()),
     installmentCount: row.installmentCount,
     isLoan: row.isLoan,
+    hideMode: row.hideMode,
+    hiddenUserIds: row.hiddenFrom.map((item) => item.userId),
     ownerId: row.ownerId,
     ownerName: row.owner.name,
     createdById: row.createdById,

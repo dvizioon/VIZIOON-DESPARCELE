@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { DebtSettingsModal } from "@/components/debt/debt-settings-modal";
 import { CreateDebtModal } from "@/components/forms/create-debt-modal";
 import { firstName } from "@/modules/auth/domain/user";
 import { toDebtCard } from "@/modules/debt/application/get-dashboard";
@@ -7,7 +8,7 @@ import { listDebts } from "@/modules/debt/application/list-debts";
 import type { DebtOwnerFilter } from "@/modules/debt/domain/debt";
 import { PrismaDebtRepository } from "@/modules/debt/infrastructure/prisma-debt-repository";
 import { requireWorkspaceAccess } from "@/modules/workspace/application/require-workspace-access";
-import { canEditContent } from "@/modules/workspace/domain/workspace";
+import { canEditContent, isAdmin } from "@/modules/workspace/domain/workspace";
 import { PrismaWorkspaceRepository } from "@/modules/workspace/infrastructure/prisma-workspace-repository";
 import { requireUser } from "@/shared/auth/session";
 import { addMonths, formatDate, toDateInputValue } from "@/shared/utils/date";
@@ -48,8 +49,14 @@ export default async function DebtsPage({ params, searchParams }: DebtsPageProps
 
   const { workspace, members } = access.value;
   const shared = workspace.type === "SHARED";
+  const admin = isAdmin(access.value.member);
+  const canEdit = canEditContent(access.value.member);
   const other = members.find((member) => member.userId !== user.id);
   const theirsLabel = other && members.length === 2 ? firstName(other.userName) : "Outras";
+  const memberOptions = members.map((item) => ({
+    userId: item.userId,
+    userName: item.userName,
+  }));
   const cards = result.value
     .map(toDebtCard)
     .filter((debt) => {
@@ -68,7 +75,7 @@ export default async function DebtsPage({ params, searchParams }: DebtsPageProps
     <Reveal className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3" data-reveal>
         <h2 className="font-display text-3xl">Dívidas</h2>
-        {canEditContent(access.value.member) ? (
+        {canEdit ? (
           <CreateDebtModal
             currentUserId={user.id}
             defaultDueDate={toDateInputValue(addMonths(new Date(), 1))}
@@ -130,10 +137,24 @@ export default async function DebtsPage({ params, searchParams }: DebtsPageProps
 
             return (
               <li data-reveal key={debt.id}>
-                <Link
-                  className="sheet block"
-                  href={`/w/${workspaceId}/debts/${debt.id}`}
-                >
+                <div className="sheet relative">
+                  {canEdit ? (
+                    <div className="absolute right-3 top-3 z-10">
+                      <DebtSettingsModal
+                        canManageVisibility={admin}
+                        currentUserId={user.id}
+                        debtId={debt.id}
+                        debtName={debt.name}
+                        hideMode={debt.hideMode}
+                        hiddenUserIds={debt.hiddenUserIds}
+                        isLoan={debt.isLoan}
+                        members={memberOptions}
+                        shared={shared}
+                        workspaceId={workspaceId}
+                      />
+                    </div>
+                  ) : null}
+                  <Link className="block pr-10" href={`/w/${workspaceId}/debts/${debt.id}`}>
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="font-display text-2xl">{debt.name}</p>
@@ -145,6 +166,11 @@ export default async function DebtsPage({ params, searchParams }: DebtsPageProps
                         {debt.isLoan ? (
                           <DebtBadge icon="tabler:building-bank" tone="pine">
                             Empréstimo
+                          </DebtBadge>
+                        ) : null}
+                        {admin && debt.hideMode !== "NONE" ? (
+                          <DebtBadge icon="tabler:eye-off" tone="plain">
+                            {debt.hideMode === "ALL" ? "Oculta" : "Oculta parcial"}
                           </DebtBadge>
                         ) : null}
                         {debt.nextDueDate ? (
@@ -197,7 +223,8 @@ export default async function DebtsPage({ params, searchParams }: DebtsPageProps
                     </div>
                     <p className="mt-1.5 text-[11px] text-ink/45">{progress}% do total</p>
                   </div>
-                </Link>
+                  </Link>
+                </div>
               </li>
             );
           })}

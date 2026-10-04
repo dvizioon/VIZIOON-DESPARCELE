@@ -197,6 +197,8 @@ export function toDebtCard(debt: DebtWithInstallments) {
     id: debt.id,
     name: debt.name,
     isLoan: debt.isLoan,
+    hideMode: debt.hideMode,
+    hiddenUserIds: debt.hiddenUserIds,
     ownerName: debt.ownerName,
     createdByName: debt.createdByName,
     remainingCents: remainingAmountCents(debt.installments),

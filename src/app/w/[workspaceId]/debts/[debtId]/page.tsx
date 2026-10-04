@@ -7,6 +7,7 @@ import { InstallmentsBatchModal } from "@/components/debt/installments-batch-mod
 import { Reveal } from "@/components/motion/reveal";
 import { AppIcon } from "@/components/ui/icon";
 import { MonthBadge } from "@/components/ui/month-badge";
+import { isDebtHidden, isDebtVisibleTo } from "@/modules/debt/domain/debt";
 import { PrismaDebtRepository } from "@/modules/debt/infrastructure/prisma-debt-repository";
 import {
   remainingAmountCents,
@@ -42,6 +43,11 @@ export default async function DebtDetailPage({ params }: DebtDetailPageProps) {
     notFound();
   }
 
+  const admin = isAdmin(access.value.member);
+  if (!isDebtVisibleTo(debt, user.id, admin)) {
+    notFound();
+  }
+
   const notes = await new PrismaNoteRepository().listByDebt(debtId);
   const shared = access.value.workspace.type === "SHARED";
   const canEdit = canEditContent(access.value.member);
@@ -49,6 +55,10 @@ export default async function DebtDetailPage({ params }: DebtDetailPageProps) {
   const remainingCount = remainingInstallments(debt.installments);
   const paidCount = debt.installmentCount - remainingCount;
   const progress = Math.round((paidCount / debt.installmentCount) * 100);
+  const members = access.value.members.map((item) => ({
+    userId: item.userId,
+    userName: item.userName,
+  }));
 
   return (
     <Reveal className="space-y-5">
@@ -60,19 +70,33 @@ export default async function DebtDetailPage({ params }: DebtDetailPageProps) {
           <h2 className="min-w-0 truncate font-display text-3xl sm:text-4xl">{debt.name}</h2>
           {canEdit ? (
             <DebtSettingsModal
+              canManageVisibility={admin}
+              currentUserId={user.id}
               debtId={debtId}
               debtName={debt.name}
+              hideMode={debt.hideMode}
+              hiddenUserIds={debt.hiddenUserIds}
               isLoan={debt.isLoan}
+              members={members}
+              shared={shared}
               workspaceId={workspaceId}
             />
           ) : null}
         </div>
-        {debt.isLoan ? (
-          <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-pine-soft px-2.5 py-1 text-xs font-medium text-pine-dark">
-            <AppIcon name="tabler:building-bank" className="size-3.5" />
-            Empréstimo · parcela paga no vencimento
-          </p>
-        ) : null}
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {debt.isLoan ? (
+            <p className="inline-flex items-center gap-1.5 rounded-full bg-pine-soft px-2.5 py-1 text-xs font-medium text-pine-dark">
+              <AppIcon name="tabler:building-bank" className="size-3.5" />
+              Empréstimo · parcela paga no vencimento
+            </p>
+          ) : null}
+          {admin && isDebtHidden(debt) ? (
+            <p className="inline-flex items-center gap-1.5 rounded-full bg-ink/5 px-2.5 py-1 text-xs font-medium text-ink/70">
+              <AppIcon name="tabler:eye-off" className="size-3.5" />
+              {debt.hideMode === "ALL" ? "Oculta para o restante" : "Oculta para algumas pessoas"}
+            </p>
+          ) : null}
+        </div>
         <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Metric label="Total" value={formatBRL(debt.totalAmountCents)} />
           <Metric label="Ainda falta" value={formatBRL(remaining)} />

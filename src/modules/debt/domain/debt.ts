@@ -1,5 +1,7 @@
 import type { Installment } from "@/modules/installment/domain/installment";
 
+export type DebtHideMode = "NONE" | "ALL" | "SELECTED";
+
 export interface Debt {
   id: string;
   workspaceId: string;
@@ -7,6 +9,8 @@ export interface Debt {
   totalAmountCents: number;
   installmentCount: number;
   isLoan: boolean;
+  hideMode: DebtHideMode;
+  hiddenUserIds: string[];
   ownerId: string;
   ownerName: string;
   createdById: string;
@@ -34,4 +38,27 @@ export function matchesOwnerFilter(
   }
 
   return true;
+}
+
+/** Admin vê tudo. ALL: só admin. SELECTED: some se o user estiver na lista. */
+export function isDebtVisibleTo(
+  debt: Pick<Debt, "hideMode" | "hiddenUserIds">,
+  userId: string,
+  actorIsAdmin: boolean,
+): boolean {
+  if (debt.hideMode === "NONE") {
+    return true;
+  }
+
+  if (debt.hideMode === "ALL") {
+    return actorIsAdmin;
+  }
+
+  return !debt.hiddenUserIds.includes(userId);
+}
+
+export function isDebtHidden(
+  debt: Pick<Debt, "hideMode" | "hiddenUserIds">,
+): boolean {
+  return debt.hideMode !== "NONE";
 }

@@ -256,6 +256,32 @@ export async function setDebtLoanAction(
   return { error: null, ok: true };
 }
 
+export async function setDebtVisibilityAction(
+  workspaceId: string,
+  debtId: string,
+  formData: FormData,
+): Promise<ActionState> {
+  const user = await requireUser();
+  const { debts, workspaces } = getRepositories();
+  const { setDebtVisibility } = await import("@/modules/debt/application/set-debt-visibility");
+
+  const result = await setDebtVisibility(
+    debtId,
+    user.id,
+    String(formData.get("hideMode") ?? "NONE"),
+    formData.getAll("hiddenUserId").map((value) => String(value)).filter(Boolean),
+    debts,
+    workspaces,
+  );
+
+  if (!result.ok) {
+    return { error: result.error.message };
+  }
+
+  await revalidateDebtPaths(workspaceId, debtId);
+  return { error: null, ok: true };
+}
+
 export async function batchUpdateInstallmentsAction(
   workspaceId: string,
   debtId: string,

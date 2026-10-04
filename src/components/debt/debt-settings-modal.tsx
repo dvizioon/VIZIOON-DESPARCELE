@@ -1,24 +1,47 @@
 "use client";
 
 import { useState } from "react";
-import { deleteDebtAction, renameDebtAction, setDebtLoanAction } from "@/app/actions/debt";
+import {
+  deleteDebtAction,
+  renameDebtAction,
+  setDebtLoanAction,
+  setDebtVisibilityAction,
+} from "@/app/actions/debt";
 import { FormError } from "@/components/forms/auth-forms";
 import { useDialogMotion } from "@/components/motion/use-dialog-motion";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { AppIcon } from "@/components/ui/icon";
 import { HiddenScroll } from "@/components/ui/hidden-scroll";
 import { Portal } from "@/components/ui/portal";
+import type { DebtHideMode } from "@/modules/debt/domain/debt";
+
+type MemberOption = {
+  userId: string;
+  userName: string;
+};
 
 export function DebtSettingsModal({
   workspaceId,
   debtId,
   debtName,
   isLoan,
+  hideMode = "NONE",
+  hiddenUserIds = [],
+  canManageVisibility = false,
+  shared = false,
+  currentUserId,
+  members = [],
 }: {
   workspaceId: string;
   debtId: string;
   debtName: string;
   isLoan: boolean;
+  hideMode?: DebtHideMode;
+  hiddenUserIds?: string[];
+  canManageVisibility?: boolean;
+  shared?: boolean;
+  currentUserId?: string;
+  members?: MemberOption[];
 }) {
   const [open, setOpen] = useState(false);
 
@@ -26,7 +49,11 @@ export function DebtSettingsModal({
     <>
       <button
         className="rounded-full p-2 text-ink/50 transition hover:bg-white hover:text-ink"
-        onClick={() => setOpen(true)}
+        onClick={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          setOpen(true);
+        }}
         type="button"
       >
         <AppIcon name="tabler:settings" className="size-5" />
@@ -34,9 +61,15 @@ export function DebtSettingsModal({
       </button>
       {open ? (
         <DebtSettingsDialog
+          canManageVisibility={canManageVisibility}
+          currentUserId={currentUserId}
           debtId={debtId}
           debtName={debtName}
+          hideMode={hideMode}
+          hiddenUserIds={hiddenUserIds}
           isLoan={isLoan}
+          members={members}
+          shared={shared}
           workspaceId={workspaceId}
           onClose={() => setOpen(false)}
         />
@@ -50,24 +83,59 @@ function DebtSettingsDialog({
   debtId,
   debtName,
   isLoan,
+  hideMode,
+  hiddenUserIds,
+  canManageVisibility,
+  shared,
+  currentUserId,
+  members,
   onClose,
 }: {
   workspaceId: string;
   debtId: string;
   debtName: string;
   isLoan: boolean;
+  hideMode: DebtHideMode;
+  hiddenUserIds: string[];
+  canManageVisibility: boolean;
+  shared: boolean;
+  currentUserId?: string;
+  members: MemberOption[];
   onClose: () => void;
 }) {
   const [name, setName] = useState(debtName);
   const [loan, setLoan] = useState(isLoan);
+  const [mode, setMode] = useState<DebtHideMode>(hideMode);
+  const [selected, setSelected] = useState<string[]>(hiddenUserIds);
   const [confirm, setConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [pending, setPending] = useState(false);
   const [loanPending, setLoanPending] = useState(false);
+  const [hidePending, setHidePending] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  useDialogMotion(onClose, pending || loanPending || deleting || confirm);
+  const busy = pending || loanPending || hidePending || deleting || confirm;
+  useDialogMotion(onClose, busy);
+
+  const otherMembers = members.filter((item) => item.userId !== currentUserId);
+
+  async function saveVisibility(nextMode: DebtHideMode, nextSelected: string[]) {
+    setHidePending(true);
+    setError(null);
+    const formData = new FormData();
+    formData.set("hideMode", nextMode);
+    for (const userId of nextSelected) {
+      formData.append("hiddenUserId", userId);
+    }
+    const result = await setDebtVisibilityAction(workspaceId, debtId, formData);
+    setHidePending(false);
+    if (result.error) {
+      setMode(hideMode);
+      setSelected(hiddenUserIds);
+      setError(result.error);
+    }
+  }
 
   return (
     <Portal>
@@ -75,7 +143,7 @@ function DebtSettingsDialog({
         <div
           className="dialog-overlay absolute inset-0 bg-ink/45 backdrop-blur-sm"
           onClick={() => {
-            if (!confirm && !pending && !loanPending && !deleting) {
+            if (!busy) {
               onClose();
             }
           }}
@@ -169,6 +237,91 @@ function DebtSettingsDialog({
                 </span>
               </label>
             </div>
+
+            {canManageVisibility && shared ? (
+              <div className="mt-6 space-y-3 border-t border-line pt-5">
+                <div>
+                  <p className="text-sm font-medium text-ink">Ocultar no workspace</p>
+                  <p className="mt-0.5 text-xs text-ink/55">
+                    Para quem estiver oculto, a dívida some da lista e do índice, como se não existisse.
+                    Admin continua vendo.
+                  </p>
+                </div>
+
+                <div className="grid gap-2">
+                  {(
+                    [
+                      { value: "NONE", label: "Visível para todos", hint: "Padrão do workspace" },
+                      {
+                        value: "ALL",
+                        label: "Oculta para o restante",
+                        hint: "Só administradores veem",
+                      },
+                      {
+                        value: "SELECTED",
+                        label: "Oculta para pessoas",
+                        hint: "Escolha quem não vê",
+                      },
+                    ] as const
+                  ).map((option) => (
+                    <label
+                      className="flex cursor-pointer items-start gap-3 rounded-2xl border border-line bg-white/60 px-3 py-3"
+                      key={option.value}
+                    >
+                      <input
+                        checked={mode === option.value}
+                        className="mt-1 size-4 accent-[var(--pine)]"
+                        disabled={hidePending}
+                        name="hideMode"
+                        onChange={() => {
+                          setMode(option.value);
+                          void saveVisibility(option.value, selected);
+                        }}
+                        type="radio"
+                        value={option.value}
+                      />
+                      <span>
+                        <span className="block text-sm font-medium text-ink">{option.label}</span>
+                        <span className="mt-0.5 block text-xs text-ink/55">{option.hint}</span>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+
+                {mode === "SELECTED" ? (
+                  <div className="space-y-2 rounded-2xl border border-line bg-paper/50 px-3 py-3">
+                    {otherMembers.length === 0 ? (
+                      <p className="text-xs text-ink/55">Não há outras pessoas neste workspace.</p>
+                    ) : (
+                      otherMembers.map((member) => {
+                        const checked = selected.includes(member.userId);
+                        return (
+                          <label
+                            className="flex cursor-pointer items-center gap-3 py-1"
+                            key={member.userId}
+                          >
+                            <input
+                              checked={checked}
+                              className="size-4 accent-[var(--pine)]"
+                              disabled={hidePending}
+                              onChange={() => {
+                                const next = checked
+                                  ? selected.filter((id) => id !== member.userId)
+                                  : [...selected, member.userId];
+                                setSelected(next);
+                                void saveVisibility("SELECTED", next);
+                              }}
+                              type="checkbox"
+                            />
+                            <span className="text-sm text-ink">{member.userName}</span>
+                          </label>
+                        );
+                      })
+                    )}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
 
             <div className="mt-8 space-y-3 border-t border-line pt-5">
               <p className="text-sm text-ink/60">
