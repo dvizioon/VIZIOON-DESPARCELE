@@ -9,7 +9,7 @@ import { AppIcon } from "@/components/ui/icon";
 import { MonthBadge } from "@/components/ui/month-badge";
 import { HiddenScroll } from "@/components/ui/hidden-scroll";
 import { Portal } from "@/components/ui/portal";
-import { formatDateFull } from "@/shared/utils/date";
+import { formatDateFull, parseDateInput } from "@/shared/utils/date";
 import { formatBRL } from "@/shared/utils/money";
 
 export type BatchInstallmentRow = {
@@ -134,6 +134,7 @@ function BatchDialog({
             <ul className="mb-5 max-h-56 space-y-1 overflow-y-auto rounded-2xl border border-line bg-white/50 p-2">
               {installments.map((item) => {
                 const checked = selected.has(item.id);
+                const due = parseDateInput(item.dueDate);
                 return (
                   <li key={item.id}>
                     <label className="flex cursor-pointer items-center gap-3 rounded-xl px-2 py-2 hover:bg-white">
@@ -146,13 +147,13 @@ function BatchDialog({
                       <span className="min-w-0 flex-1">
                         <span className="flex flex-wrap items-center gap-2 text-sm font-medium">
                           Parcela {item.number}
-                          <MonthBadge date={new Date(item.dueDate)} />
+                          <MonthBadge date={due} />
                           {item.status === "PAID" ? (
                             <span className="text-xs text-moss">paga</span>
                           ) : null}
                         </span>
                         <span className="mt-0.5 block text-xs text-ink/55">
-                          {formatDateFull(new Date(item.dueDate))} · {formatBRL(item.amountCents)}
+                          {formatDateFull(due)} · {formatBRL(item.amountCents)}
                         </span>
                       </span>
                     </label>

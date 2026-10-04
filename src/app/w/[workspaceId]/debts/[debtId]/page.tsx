@@ -17,7 +17,7 @@ import { requireWorkspaceAccess } from "@/modules/workspace/application/require-
 import { canEditContent, isAdmin } from "@/modules/workspace/domain/workspace";
 import { PrismaWorkspaceRepository } from "@/modules/workspace/infrastructure/prisma-workspace-repository";
 import { requireUser } from "@/shared/auth/session";
-import { formatDateFull } from "@/shared/utils/date";
+import { formatDateFull, toCalendarInputValue } from "@/shared/utils/date";
 import { formatBRL } from "@/shared/utils/money";
 
 type DebtDetailPageProps = {
@@ -118,7 +118,7 @@ export default async function DebtDetailPage({ params }: DebtDetailPageProps) {
                 id: item.id,
                 number: item.number,
                 amountCents: item.amountCents,
-                dueDate: item.dueDate.toISOString(),
+                dueDate: toCalendarInputValue(item.dueDate),
                 status: item.status,
               }))}
               workspaceId={workspaceId}

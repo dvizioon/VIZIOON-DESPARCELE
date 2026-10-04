@@ -7,7 +7,7 @@ import { FormError } from "@/components/forms/auth-forms";
 import { NoteEditor } from "@/components/notes/note-editor";
 import { SearchSelect } from "@/components/ui/search-select";
 import { generateInstallments } from "@/modules/installment/domain/generate-installments";
-import { addMonths, parseDateInput } from "@/shared/utils/date";
+import { addMonths, parseDateInput, toCalendarInputValue } from "@/shared/utils/date";
 import { formatBRL, parseBRLInput } from "@/shared/utils/money";
 
 const initial: ActionState = { error: null };
@@ -26,13 +26,6 @@ type PreviewRow = {
 
 function centsToInput(cents: number): string {
   return (cents / 100).toFixed(2).replace(".", ",");
-}
-
-function toDateInput(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
 }
 
 export function DebtCreateForm({
@@ -89,7 +82,7 @@ export function DebtCreateForm({
       const rows = generateInstallments(totalCents, count, due).map((item) => ({
         number: item.number,
         amountInput: centsToInput(item.amountCents),
-        dueDate: toDateInput(item.dueDate),
+        dueDate: toCalendarInputValue(item.dueDate),
       }));
       setPreview(rows);
       setStep("preview");
@@ -112,7 +105,7 @@ export function DebtCreateForm({
         for (let i = index + 1; i < next.length; i += 1) {
           next[i] = {
             ...next[i]!,
-            dueDate: toDateInput(addMonths(base, i - index)),
+            dueDate: toCalendarInputValue(addMonths(base, i - index)),
           };
         }
       } catch {

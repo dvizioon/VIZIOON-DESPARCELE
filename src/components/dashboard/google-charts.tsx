@@ -28,7 +28,6 @@ export function RemainingPieChart({ slices }: { slices: DashboardView["slices"] 
 
   return (
     <Chart
-      chartLanguage="pt"
       chartType="PieChart"
       data={data}
       height="280px"
@@ -58,7 +57,6 @@ export function PaidVersusDueChart({
 
   return (
     <Chart
-      chartLanguage="pt"
       chartType="PieChart"
       data={[
         ["Status", "Valor"],
@@ -95,7 +93,6 @@ export function ScoreBarChart({ scores }: { scores: DashboardView["scores"] }) {
 
   return (
     <Chart
-      chartLanguage="pt"
       chartType="BarChart"
       data={data}
       height="240px"
