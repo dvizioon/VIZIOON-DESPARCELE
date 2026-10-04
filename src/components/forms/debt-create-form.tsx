@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useMemo, useState } from "react";
+import { useActionState, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { createDebtAction } from "@/app/actions/debt";
 import type { ActionState } from "@/app/actions/auth";
 import { FormError } from "@/components/forms/auth-forms";
@@ -41,12 +42,14 @@ export function DebtCreateForm({
   defaultDueDate: string;
   shared: boolean;
 }) {
+  const router = useRouter();
   const action = createDebtAction.bind(null, workspaceId);
   const [state, formAction, pending] = useActionState(action, initial);
   const [ownerId, setOwnerId] = useState(currentUserId);
   const [note, setNote] = useState("");
   const [step, setStep] = useState<"setup" | "preview">("setup");
   const [localError, setLocalError] = useState<string | null>(null);
+  const [navigating, setNavigating] = useState(false);
 
   const [name, setName] = useState("");
   const [totalAmount, setTotalAmount] = useState("");
@@ -54,6 +57,18 @@ export function DebtCreateForm({
   const [firstDueDate, setFirstDueDate] = useState(defaultDueDate);
   const [isLoan, setIsLoan] = useState(false);
   const [preview, setPreview] = useState<PreviewRow[]>([]);
+
+  const busy = pending || navigating;
+
+  useEffect(() => {
+    if (!state.ok || !state.debtId || navigating) {
+      return;
+    }
+
+    setNavigating(true);
+    router.push(`/w/${workspaceId}/debts/${state.debtId}`);
+    router.refresh();
+  }, [state.ok, state.debtId, navigating, router, workspaceId]);
 
   const previewTotalCents = useMemo(() => {
     return preview.reduce((sum, row) => {
@@ -93,7 +108,7 @@ export function DebtCreateForm({
 
   function updateAmount(index: number, value: string) {
     setPreview((rows) =>
-      rows.map((row, i) => (i === index ? { ...row, amountInput: value } : row)),
+      rows.map((row, i) => (i >= index ? { ...row, amountInput: value } : row)),
     );
   }
 
@@ -142,7 +157,7 @@ export function DebtCreateForm({
             <p className="text-sm text-ink/50">Preview</p>
             <h3 className="font-display text-2xl">{name}</h3>
             <p className="mt-1 text-sm text-ink/60">
-              Mexeu em uma parcela? As outras ficam. O total vira a soma.
+              Mudou valor ou data? As parcelas de baixo acompanham. O total vira a soma.
             </p>
           </div>
           <div className="text-right">
@@ -160,12 +175,14 @@ export function DebtCreateForm({
               <span className="text-sm font-medium text-ink/70">#{row.number}</span>
               <input
                 className="field py-2 text-sm"
+                disabled={busy}
                 onChange={(event) => updateDueDate(index, event.target.value)}
                 type="date"
                 value={row.dueDate}
               />
               <input
                 className="field py-2 text-right text-sm"
+                disabled={busy}
                 onChange={(event) => updateAmount(index, event.target.value)}
                 value={row.amountInput}
               />
@@ -178,14 +195,14 @@ export function DebtCreateForm({
         <div className="flex flex-col gap-2 sm:flex-row">
           <button
             className="btn-ghost w-full"
-            disabled={pending}
+            disabled={busy}
             onClick={() => setStep("setup")}
             type="button"
           >
             Voltar
           </button>
-          <button className="btn-primary w-full" disabled={pending} type="submit">
-            {pending ? "Salvando..." : "Confirmar e gerar"}
+          <button className="btn-primary w-full" disabled={busy} type="submit">
+            {navigating ? "Abrindo..." : pending ? "Salvando..." : "Confirmar e gerar"}
           </button>
         </div>
       </form>

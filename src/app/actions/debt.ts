@@ -83,7 +83,11 @@ export async function createDebtAction(
     );
   }
 
-  redirect(`/w/${workspaceId}/debts/${result.value.id}`);
+  revalidatePath(`/w/${workspaceId}`);
+  revalidatePath(`/w/${workspaceId}/debts`);
+  revalidatePath(`/w/${workspaceId}/debts/${result.value.id}`);
+  // Sem redirect aqui: useActionState + redirect deixa "Salvando..." preso.
+  return { error: null, ok: true, debtId: result.value.id };
 }
 
 export async function markPaidAction(
