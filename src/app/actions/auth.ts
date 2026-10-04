@@ -52,7 +52,7 @@ export async function registerAction(
   const { users, admin } = getRepositories();
   const settings = await admin.getSystemSettings();
   if (!settings.allowPublicSignup) {
-    return { error: "O cadastro publico esta fechado. Fale com um administrador." };
+    return { error: "Neste momento nao e possivel criar conta." };
   }
 
   const result = await registerUser(

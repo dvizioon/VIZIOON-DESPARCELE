@@ -152,11 +152,11 @@ export function RegisterForm({ closed = false }: RegisterFormProps) {
     return (
       <AuthCard
         kicker="Cadastro"
-        title="Cadastro fechado"
-        subtitle="Por enquanto só entram contas que já existem. Se você precisa de acesso, fale com quem administra o Desparcele."
+        title="Contas novas pausadas"
+        subtitle="Por enquanto não dá para criar conta. Se você já tem uma, pode entrar."
       >
         <Link className="btn-primary w-full" href="/login">
-          Ir para o login
+          Entrar
         </Link>
       </AuthCard>
     );

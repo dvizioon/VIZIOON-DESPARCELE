@@ -18,9 +18,7 @@ export default async function AdminSettingsPage() {
       <div data-reveal>
         <p className="text-xs uppercase tracking-wide text-ink/45">Plataforma</p>
         <h2 className="font-display text-3xl sm:text-4xl">Configurações</h2>
-        <p className="mt-2 max-w-xl text-sm text-ink/60">
-          Cadastro público, SMTP e modelos de e-mail da plataforma.
-        </p>
+        <p className="mt-2 max-w-xl text-sm text-ink/60">Cadastro, e-mail e fila de envio.</p>
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">
@@ -30,8 +28,8 @@ export default async function AdminSettingsPage() {
           title="Cadastro"
           text={
             settings.allowPublicSignup
-              ? "Auto-cadastro aberto — qualquer um cria conta em /register."
-              : "Auto-cadastro fechado — só entram contas que já existem."
+              ? "Novas contas permitidas."
+              : "Novas contas bloqueadas."
           }
         />
         <SettingsCard
