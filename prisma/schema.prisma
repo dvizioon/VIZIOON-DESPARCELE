@@ -223,3 +223,10 @@ model EmailOutbox {
   @@index([status, createdAt])
   @@index([purpose])
 }
+
+/// Configuração global da plataforma (linha única id = "default").
+model SystemConfig {
+  id                 String   @id @default("default")
+  allowPublicSignup  Boolean  @default(true)
+  updatedAt          DateTime @updatedAt
+}

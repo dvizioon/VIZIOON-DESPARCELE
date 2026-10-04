@@ -1,9 +1,17 @@
 import type { SystemRole } from "@/modules/auth/domain/user";
-import type { PlatformOverview, PlatformUser, PlatformWorkspace, SmtpSummary } from "./platform";
+import type {
+  PlatformOverview,
+  PlatformUser,
+  PlatformWorkspace,
+  SmtpSummary,
+  SystemSettings,
+} from "./platform";
 
 export interface AdminRepository {
   overview(): Promise<PlatformOverview>;
   smtpSummary(): Promise<SmtpSummary>;
+  getSystemSettings(): Promise<SystemSettings>;
+  setAllowPublicSignup(enabled: boolean): Promise<SystemSettings>;
   listUsers(): Promise<PlatformUser[]>;
   findUser(id: string): Promise<PlatformUser | null>;
   countActiveAdmins(): Promise<number>;

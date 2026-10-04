@@ -7,7 +7,11 @@ import { getRepositories } from "@/shared/infrastructure/container";
 export default async function AdminSettingsPage() {
   await requireSystemAdmin();
   const { admin } = getRepositories();
-  const [overview, smtp] = await Promise.all([admin.overview(), admin.smtpSummary()]);
+  const [overview, smtp, settings] = await Promise.all([
+    admin.overview(),
+    admin.smtpSummary(),
+    admin.getSystemSettings(),
+  ]);
 
   return (
     <Reveal className="space-y-5">
@@ -15,11 +19,21 @@ export default async function AdminSettingsPage() {
         <p className="text-xs uppercase tracking-wide text-ink/45">Plataforma</p>
         <h2 className="font-display text-3xl sm:text-4xl">Configurações</h2>
         <p className="mt-2 max-w-xl text-sm text-ink/60">
-          Entra em cada card para ajustar o envio de e-mail da plataforma.
+          Cadastro público, SMTP e modelos de e-mail da plataforma.
         </p>
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">
+        <SettingsCard
+          href="/admin/configuracoes/cadastro"
+          icon="tabler:user-plus"
+          title="Cadastro"
+          text={
+            settings.allowPublicSignup
+              ? "Auto-cadastro aberto — qualquer um cria conta em /register."
+              : "Auto-cadastro fechado — só entram contas que já existem."
+          }
+        />
         <SettingsCard
           href="/admin/configuracoes/smtp"
           icon="tabler:server"

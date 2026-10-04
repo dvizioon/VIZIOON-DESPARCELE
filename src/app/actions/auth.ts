@@ -49,7 +49,12 @@ export async function registerAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const { users } = getRepositories();
+  const { users, admin } = getRepositories();
+  const settings = await admin.getSystemSettings();
+  if (!settings.allowPublicSignup) {
+    return { error: "O cadastro publico esta fechado. Fale com um administrador." };
+  }
+
   const result = await registerUser(
     {
       name: String(formData.get("name") ?? ""),

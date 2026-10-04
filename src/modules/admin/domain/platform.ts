@@ -56,3 +56,8 @@ export type SmtpSummary = {
   defaultName: string | null;
   defaultHost: string | null;
 };
+
+export type SystemSettings = {
+  allowPublicSignup: boolean;
+  updatedAt: Date | null;
+};

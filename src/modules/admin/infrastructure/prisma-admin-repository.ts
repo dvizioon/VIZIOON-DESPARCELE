@@ -2,7 +2,13 @@ import { prisma } from "@/shared/infrastructure/prisma";
 import type { SystemRole } from "@/modules/auth/domain/user";
 import { isSeedMasterAdmin } from "@/modules/auth/domain/user";
 import type { AdminRepository } from "../domain/admin-repository";
-import type { PlatformOverview, PlatformUser, PlatformWorkspace, SmtpSummary } from "../domain/platform";
+import type {
+  PlatformOverview,
+  PlatformUser,
+  PlatformWorkspace,
+  SmtpSummary,
+  SystemSettings,
+} from "../domain/platform";
 
 export class PrismaAdminRepository implements AdminRepository {
   async overview(): Promise<PlatformOverview> {
@@ -75,6 +81,32 @@ export class PrismaAdminRepository implements AdminRepository {
       count,
       defaultName: fallback?.name ?? null,
       defaultHost: fallback?.host ?? null,
+    };
+  }
+
+  async getSystemSettings(): Promise<SystemSettings> {
+    const row = await prisma.systemConfig.upsert({
+      where: { id: "default" },
+      create: { id: "default", allowPublicSignup: true },
+      update: {},
+    });
+
+    return {
+      allowPublicSignup: row.allowPublicSignup,
+      updatedAt: row.updatedAt,
+    };
+  }
+
+  async setAllowPublicSignup(enabled: boolean): Promise<SystemSettings> {
+    const row = await prisma.systemConfig.upsert({
+      where: { id: "default" },
+      create: { id: "default", allowPublicSignup: enabled },
+      update: { allowPublicSignup: enabled },
+    });
+
+    return {
+      allowPublicSignup: row.allowPublicSignup,
+      updatedAt: row.updatedAt,
     };
   }
 

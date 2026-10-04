@@ -78,10 +78,12 @@ export function LoginForm({
   callbackUrl,
   restored,
   disabledAccount,
+  allowSignup = true,
 }: {
   callbackUrl: string;
   restored?: boolean;
   disabledAccount?: boolean;
+  allowSignup?: boolean;
 }) {
   const [state, action, pending] = useActionState(loginAction, initial);
 
@@ -127,18 +129,34 @@ export function LoginForm({
           {pending ? "Entrando..." : "Entrar"}
         </button>
       </form>
-      <p className="mt-6 text-center text-sm text-ink/60">
-        Novo por aqui?{" "}
-        <Link className="font-semibold text-pine" href="/register">
-          Criar conta
-        </Link>
-      </p>
+      {allowSignup ? (
+        <p className="mt-6 text-center text-sm text-ink/60">
+          Novo por aqui?{" "}
+          <Link className="font-semibold text-pine" href="/register">
+            Criar conta
+          </Link>
+        </p>
+      ) : null}
     </AuthCard>
   );
 }
 
-export function RegisterForm() {
+export function RegisterForm({ closed }: { closed?: boolean }) {
   const [state, action, pending] = useActionState(registerAction, initial);
+
+  if (closed) {
+    return (
+      <AuthCard
+        kicker="Cadastro"
+        title="Cadastro fechado"
+        subtitle="Por enquanto só entram contas que já existem. Se você precisa de acesso, fale com quem administra o Desparcele."
+      >
+        <Link className="btn-primary w-full" href="/login">
+          Ir para o login
+        </Link>
+      </AuthCard>
+    );
+  }
 
   return (
     <AuthCard

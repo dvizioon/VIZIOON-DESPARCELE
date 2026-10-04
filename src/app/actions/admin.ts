@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { setAllowPublicSignup } from "@/modules/admin/application/set-allow-public-signup";
 import { setUserDisabled } from "@/modules/admin/application/set-user-disabled";
 import { setUserPassword } from "@/modules/admin/application/set-user-password";
 import { setUserRole } from "@/modules/admin/application/set-user-role";
@@ -12,6 +13,26 @@ function refreshUsers() {
   revalidatePath("/admin");
   revalidatePath("/admin/usuarios");
   revalidatePath("/admin/espacos");
+}
+
+function refreshSignupSettings() {
+  revalidatePath("/admin");
+  revalidatePath("/admin/configuracoes");
+  revalidatePath("/admin/configuracoes/cadastro");
+  revalidatePath("/login");
+  revalidatePath("/register");
+}
+
+export async function setAllowPublicSignupAction(enabled: boolean): Promise<ActionState> {
+  await requireSystemAdmin();
+  const result = await setAllowPublicSignup(enabled, getRepositories().admin);
+
+  if (!result.ok) {
+    return { error: result.error.message };
+  }
+
+  refreshSignupSettings();
+  return { error: null, ok: true };
 }
 
 export async function setUserDisabledAction(formData: FormData): Promise<ActionState> {
