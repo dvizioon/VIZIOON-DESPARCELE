@@ -124,8 +124,9 @@ export default async function DebtsPage({ params, searchParams }: DebtsPageProps
           {cards.map((debt) => {
             const paidCount = debt.installmentCount - debt.remainingCount;
             const progress = Math.round((paidCount / debt.installmentCount) * 100);
-            const overdue =
-              Boolean(debt.nextDueDate) && new Date(debt.nextDueDate).setHours(0, 0, 0, 0) < new Date().setHours(0, 0, 0, 0);
+            const overdue = debt.nextDueDate
+              ? new Date(debt.nextDueDate).setHours(0, 0, 0, 0) < new Date().setHours(0, 0, 0, 0)
+              : false;
 
             return (
               <li data-reveal key={debt.id}>
