@@ -62,7 +62,7 @@ function BatchDialog({
   const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [amount, setAmount] = useState("");
-  const [dueDate, setDueDate] = useState("");
+  const [dueDay, setDueDay] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -109,7 +109,7 @@ function BatchDialog({
               <p className="text-sm text-ink/50">Dívida</p>
               <h2 className="font-display text-3xl">Parcelas</h2>
               <p className="mt-1 text-sm text-ink/60">
-                Selecione e aplique valor e/ou vencimento em lote.
+                Selecione e aplique valor e/ou o dia do vencimento. O mês de cada parcela fica.
               </p>
             </div>
             <button
@@ -176,7 +176,7 @@ function BatchDialog({
                 setInfo(result.message ?? "Atualizado.");
                 setSelected(new Set());
                 setAmount("");
-                setDueDate("");
+                setDueDay("");
                 router.refresh();
               }}
               className="space-y-3 border-t border-line pt-4"
@@ -193,18 +193,21 @@ function BatchDialog({
                   />
                 </label>
                 <label className="block space-y-1.5">
-                  <span className="text-sm text-ink/70">1º vencimento (opcional)</span>
+                  <span className="text-sm text-ink/70">Dia do vencimento (opcional)</span>
                   <input
                     className="field"
-                    name="dueDate"
-                    onChange={(event) => setDueDate(event.target.value)}
-                    type="date"
-                    value={dueDate}
+                    max={31}
+                    min={1}
+                    name="dueDay"
+                    onChange={(event) => setDueDay(event.target.value)}
+                    placeholder="10"
+                    type="number"
+                    value={dueDay}
                   />
                 </label>
               </div>
               <p className="text-xs text-ink/55">
-                Com data: a primeira selecionada (menor número) usa essa data; as seguintes avançam 1 mês.
+                Ex.: dia 10 nas parcelas 2–13. A 1ª pode continuar no dia 14.
               </p>
               {error ? <FormError message={error} /> : null}
               {info ? <p className="text-sm text-moss">{info}</p> : null}

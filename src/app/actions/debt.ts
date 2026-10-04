@@ -273,27 +273,30 @@ export async function batchUpdateInstallmentsAction(
     .filter(Boolean);
 
   const amountRaw = String(formData.get("amount") ?? "").trim();
-  const dueRaw = String(formData.get("dueDate") ?? "").trim();
+  const dayRaw = String(formData.get("dueDay") ?? "").trim();
 
   let amountCents: number | undefined;
-  let firstDueDate: Date | undefined;
+  let dueDay: number | undefined;
 
   try {
     if (amountRaw) {
       amountCents = parseBRLInput(amountRaw);
     }
-    if (dueRaw) {
-      firstDueDate = parseDateInput(dueRaw);
+    if (dayRaw) {
+      dueDay = Number(dayRaw);
+      if (!Number.isInteger(dueDay)) {
+        throw new Error("invalid day");
+      }
     }
   } catch {
-    return { error: "Valor ou data invalidos" };
+    return { error: "Valor ou dia invalidos" };
   }
 
   const result = await batchUpdateInstallments(
     debtId,
     user.id,
     ids,
-    { amountCents, firstDueDate },
+    { amountCents, dueDay },
     debts,
     installments,
     workspaces,

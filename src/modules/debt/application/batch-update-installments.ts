@@ -1,5 +1,5 @@
 import type { InstallmentRepository } from "@/modules/installment/domain/installment-repository";
-import { addMonths } from "@/shared/utils/date";
+import { withDayOfMonth } from "@/shared/utils/date";
 import { canEditContent } from "@/modules/workspace/domain/workspace";
 import type { WorkspaceRepository } from "@/modules/workspace/domain/workspace-repository";
 import { fail, ok, type Result } from "@/shared/types/result";
@@ -9,7 +9,7 @@ export async function batchUpdateInstallments(
   debtId: string,
   actorId: string,
   installmentIds: string[],
-  patch: { amountCents?: number; firstDueDate?: Date },
+  patch: { amountCents?: number; dueDay?: number },
   debts: DebtRepository,
   installments: InstallmentRepository,
   workspaces: WorkspaceRepository,
@@ -18,12 +18,16 @@ export async function batchUpdateInstallments(
     return fail("EMPTY", "Selecione pelo menos uma parcela");
   }
 
-  if (patch.amountCents == null && !patch.firstDueDate) {
-    return fail("EMPTY_PATCH", "Informe valor e/ou data");
+  if (patch.amountCents == null && patch.dueDay == null) {
+    return fail("EMPTY_PATCH", "Informe valor e/ou dia do vencimento");
   }
 
   if (patch.amountCents != null && patch.amountCents < 1) {
     return fail("INVALID_AMOUNT", "Valor minimo de R$ 0,01");
+  }
+
+  if (patch.dueDay != null && (!Number.isInteger(patch.dueDay) || patch.dueDay < 1 || patch.dueDay > 31)) {
+    return fail("INVALID_DAY", "Dia do vencimento entre 1 e 31");
   }
 
   const debt = await debts.findById(debtId);
@@ -50,11 +54,11 @@ export async function batchUpdateInstallments(
     );
   }
 
-  if (patch.firstDueDate) {
+  if (patch.dueDay != null) {
     await installments.updateDueDates(
-      selected.map((item, index) => ({
+      selected.map((item) => ({
         id: item.id,
-        dueDate: addMonths(patch.firstDueDate!, index),
+        dueDate: withDayOfMonth(item.dueDate, patch.dueDay!),
       })),
     );
   }

@@ -9,6 +9,13 @@ export function addMonths(date: Date, months: number): Date {
   return next;
 }
 
+/** Troca só o dia, mantendo mês/ano (ajusta se o mês não tiver esse dia). */
+export function withDayOfMonth(date: Date, day: number): Date {
+  const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+  const safeDay = Math.min(Math.max(1, day), lastDay);
+  return new Date(date.getFullYear(), date.getMonth(), safeDay);
+}
+
 export function startOfMonth(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), 1);
 }
