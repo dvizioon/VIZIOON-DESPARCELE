@@ -1,13 +1,6 @@
 import { NextResponse } from "next/server";
 import { tickLoanCron } from "@/modules/cron/application/tick-loan-cron";
 
-/**
- * Disparo externo opcional (Coolify / crontab):
- * Authorization: Bearer $CRON_SECRET
- *
- * Enfileira dias devidos e processa a fila se o cron estiver ativo no admin.
- * Query ?force=1 processa mesmo desativado.
- */
 export async function POST(request: Request) {
   const secret = process.env.CRON_SECRET?.trim();
   if (!secret) {

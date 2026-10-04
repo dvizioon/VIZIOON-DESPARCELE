@@ -5,7 +5,6 @@ export type AutoPayLoanResult = {
   installmentIds: string[];
 };
 
-/** Marca como paga toda parcela PENDING de empréstimo com vencimento até o fim do dia. */
 export async function autoPayDueLoanInstallments(now = new Date()): Promise<AutoPayLoanResult> {
   const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
 

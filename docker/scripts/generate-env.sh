@@ -76,7 +76,6 @@ apply_container_paths() {
   local app_env="${2:-production}"
   set_key LOCAL_STORAGE_PATH "/app/storage" "$outfile"
   set_key HOSTNAME "0.0.0.0" "$outfile"
-  # Imagem Next standalone sempre roda em production; APP_ENV marca o deploy.
   set_key NODE_ENV "production" "$outfile"
   set_key APP_ENV "$app_env" "$outfile"
 }

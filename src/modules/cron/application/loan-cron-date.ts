@@ -1,4 +1,3 @@
-/** YYYY-MM-DD no fuso do processo. */
 export function toRunDate(date: Date): string {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, "0");

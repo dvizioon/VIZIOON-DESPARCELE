@@ -6,7 +6,6 @@ export interface Debt {
   name: string;
   totalAmountCents: number;
   installmentCount: number;
-  /** Empréstimo: parcela vence e o cron marca como paga (desconto na conta). */
   isLoan: boolean;
   ownerId: string;
   ownerName: string;

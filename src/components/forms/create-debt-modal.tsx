@@ -201,7 +201,7 @@ function DebtDialog({
             <span>
               <span className="block text-sm font-medium text-ink">Empréstimo</span>
               <span className="mt-0.5 block text-xs text-ink/55">
-                Desconta na conta todo mês — no vencimento a parcela fica paga sozinha.
+                Desconta na conta todo mês. No vencimento a parcela fica paga sozinha.
               </span>
             </span>
           </label>

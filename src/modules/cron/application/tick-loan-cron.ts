@@ -23,7 +23,6 @@ async function getLoanCronConfig() {
   };
 }
 
-/** Garante tarefas PENDING/DONE para dias já “vencidos” no horário configurado. */
 export async function enqueueDueLoanCronTasks(now = new Date()): Promise<number> {
   const { hour } = await getLoanCronConfig();
   let enqueued = 0;
@@ -46,7 +45,7 @@ export async function enqueueDueLoanCronTasks(now = new Date()): Promise<number>
       });
       enqueued += 1;
     } catch {
-      // unique type+runDate — já existe
+      // já existe
     }
   }
 
@@ -88,7 +87,6 @@ async function processOneTask(taskId: string, asOf: Date) {
   }
 }
 
-/** Processa fila PENDING (mais antigas primeiro). */
 export async function processPendingLoanCronTasks(options?: {
   force?: boolean;
   limit?: number;
@@ -153,7 +151,6 @@ export async function retryCronTask(taskId: string): Promise<{ paidCount: number
   return { paidCount };
 }
 
-/** Tick do worker: enfileira dias devidos e processa se o cron estiver ativo. */
 export async function tickLoanCron(options?: { forceProcess?: boolean }): Promise<TickLoanCronResult> {
   const enqueued = await enqueueDueLoanCronTasks();
   const { processed, paidTotal, skipped } = await processPendingLoanCronTasks({
