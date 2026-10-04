@@ -1,4 +1,5 @@
 import { generateInstallments } from "@/modules/installment/domain/generate-installments";
+import type { InstallmentDraft } from "@/modules/installment/domain/installment";
 import { addMonths, withDayOfMonth } from "@/shared/utils/date";
 import { canEditContent } from "@/modules/workspace/domain/workspace";
 import type { WorkspaceRepository } from "@/modules/workspace/domain/workspace-repository";
@@ -16,10 +17,13 @@ export interface CreateDebtInput {
   remindersEnabled?: boolean;
   recurringAmountCents?: number;
   recurringDay?: number;
+  /** Quantas cobranças já pagas ao cadastrar recorrente (0–120). */
+  alreadyPaidCount?: number;
   ownerId: string;
   firstDueDate: Date;
   installmentAmountsCents?: number[];
   installmentDueDates?: Date[];
+  installmentPaidFlags?: boolean[];
   totalAmountCents?: number;
 }
 
@@ -119,13 +123,61 @@ async function createRecurringDebt(
     return fail("INVALID_DAY", "Dia do vencimento entre 1 e 31");
   }
 
-  const firstDue = withDayOfMonth(input.firstDueDate, day);
+  const nextDue = withDayOfMonth(input.firstDueDate, day);
+  const alreadyPaid = Math.min(120, Math.max(0, Math.floor(input.alreadyPaidCount ?? 0)));
+
+  let installments: InstallmentDraft[];
+
+  if (input.installmentAmountsCents && input.installmentAmountsCents.length > 0) {
+    if (input.installmentAmountsCents.some((value) => value < 1)) {
+      return fail("INVALID_AMOUNT", "Cada parcela precisa de pelo menos R$ 0,01");
+    }
+    if (
+      input.installmentDueDates &&
+      input.installmentDueDates.length !== input.installmentAmountsCents.length
+    ) {
+      return fail("INVALID_DATES", "Quantidade de datas nao bate com as parcelas");
+    }
+
+    installments = input.installmentAmountsCents.map((cents, index) => {
+      const paid = Boolean(input.installmentPaidFlags?.[index]);
+      const dueDate =
+        input.installmentDueDates?.[index] ??
+        addMonths(nextDue, index - (input.installmentAmountsCents!.length - 1));
+      return {
+        number: index + 1,
+        amountCents: cents,
+        dueDate,
+        status: paid ? ("PAID" as const) : ("PENDING" as const),
+        paidAt: paid ? dueDate : null,
+        paidByUserId: paid ? input.actorId : null,
+      };
+    });
+  } else {
+    installments = buildRecurringInstallments({
+      amountCents,
+      nextDue,
+      alreadyPaid,
+      actorId: input.actorId,
+    });
+  }
+
+  if (installments.length < 1 || installments.length > 121) {
+    return fail("INVALID_COUNT", "Gere entre 1 e 121 cobranças");
+  }
+
+  const pending = installments.filter((item) => item.status !== "PAID");
+  if (pending.length < 1) {
+    return fail("INVALID_COUNT", "Deixe ao menos a próxima cobrança em aberto");
+  }
+
+  const totalAmountCents = installments.reduce((sum, item) => sum + item.amountCents, 0);
 
   const debt = await debts.create({
     workspaceId: input.workspaceId,
     name,
-    totalAmountCents: amountCents,
-    installmentCount: 1,
+    totalAmountCents,
+    installmentCount: installments.length,
     kind: "RECURRING",
     autoPay: Boolean(input.autoPay),
     remindersEnabled: Boolean(input.remindersEnabled),
@@ -133,14 +185,39 @@ async function createRecurringDebt(
     recurringDay: day,
     ownerId: input.ownerId,
     createdById: input.actorId,
-    installments: [
-      {
-        number: 1,
-        amountCents,
-        dueDate: firstDue,
-      },
-    ],
+    installments,
   });
 
   return ok(debt);
+}
+
+export function buildRecurringInstallments(input: {
+  amountCents: number;
+  nextDue: Date;
+  alreadyPaid: number;
+  actorId: string;
+}): InstallmentDraft[] {
+  const paid = Math.min(120, Math.max(0, Math.floor(input.alreadyPaid)));
+  const rows: InstallmentDraft[] = [];
+
+  for (let i = 0; i < paid; i += 1) {
+    const dueDate = addMonths(input.nextDue, -(paid - i));
+    rows.push({
+      number: i + 1,
+      amountCents: input.amountCents,
+      dueDate,
+      status: "PAID",
+      paidAt: dueDate,
+      paidByUserId: input.actorId,
+    });
+  }
+
+  rows.push({
+    number: paid + 1,
+    amountCents: input.amountCents,
+    dueDate: input.nextDue,
+    status: "PENDING",
+  });
+
+  return rows;
 }

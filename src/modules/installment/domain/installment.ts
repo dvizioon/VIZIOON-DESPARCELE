@@ -20,6 +20,10 @@ export interface InstallmentDraft {
   number: number;
   amountCents: number;
   dueDate: Date;
+  /** Ao criar (ex.: recorrente já paga), grava como PAID. */
+  status?: InstallmentStatus;
+  paidAt?: Date | null;
+  paidByUserId?: string | null;
 }
 
 export function remainingInstallments(items: Pick<Installment, "status">[]): number {

@@ -22,6 +22,7 @@ export async function createDebtAction(
   let firstDueDate: Date;
   let installmentAmountsCents: number[] | undefined;
   let installmentDueDates: Date[] | undefined;
+  let installmentPaidFlags: boolean[] | undefined;
   let totalAmountCents: number | undefined;
 
   try {
@@ -39,6 +40,10 @@ export async function createDebtAction(
     const datesRaw = String(formData.get("installmentDueDates") ?? "").trim();
     if (datesRaw) {
       installmentDueDates = datesRaw.split(",").map((part) => parseDateInput(part));
+    }
+    const paidRaw = String(formData.get("installmentPaidFlags") ?? "").trim();
+    if (paidRaw) {
+      installmentPaidFlags = paidRaw.split(",").map((part) => part === "1");
     }
     const totalRaw = String(formData.get("totalAmount") ?? "").trim();
     if (totalRaw) {
@@ -60,6 +65,8 @@ export async function createDebtAction(
     }
   }
 
+  const alreadyPaidCount = Number(formData.get("alreadyPaidCount") ?? 0);
+
   const result = await createDebt(
     {
       workspaceId,
@@ -72,10 +79,12 @@ export async function createDebtAction(
       remindersEnabled: String(formData.get("remindersEnabled") ?? "") === "1",
       recurringAmountCents,
       recurringDay: Number(formData.get("recurringDay") ?? 0) || undefined,
+      alreadyPaidCount: Number.isFinite(alreadyPaidCount) ? alreadyPaidCount : 0,
       ownerId: String(formData.get("ownerId") ?? user.id),
       firstDueDate,
       installmentAmountsCents,
       installmentDueDates,
+      installmentPaidFlags,
     },
     debts,
     workspaces,

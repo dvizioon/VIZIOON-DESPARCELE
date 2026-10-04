@@ -24,6 +24,7 @@ type PreviewRow = {
   number: number;
   amountInput: string;
   dueDate: string;
+  paid: boolean;
 };
 
 function centsToInput(cents: number): string {
@@ -56,6 +57,7 @@ export function DebtCreateForm({
   const [name, setName] = useState("");
   const [totalAmount, setTotalAmount] = useState("");
   const [installmentCount, setInstallmentCount] = useState("");
+  const [alreadyPaidCount, setAlreadyPaidCount] = useState("0");
   const [firstDueDate, setFirstDueDate] = useState(defaultDueDate);
   const [autoPay, setAutoPay] = useState(false);
   const [remindersEnabled, setRemindersEnabled] = useState(false);
@@ -86,6 +88,19 @@ export function DebtCreateForm({
     }, 0);
   }, [preview]);
 
+  const previewOpenCents = useMemo(() => {
+    return preview.reduce((sum, row) => {
+      if (row.paid) {
+        return sum;
+      }
+      try {
+        return sum + parseBRLInput(row.amountInput);
+      } catch {
+        return sum;
+      }
+    }, 0);
+  }, [preview]);
+
   function buildPreview() {
     setLocalError(null);
     try {
@@ -101,14 +116,29 @@ export function DebtCreateForm({
           setLocalError("Dia do vencimento entre 1 e 31");
           return;
         }
-        const due = parseDateInput(firstDueDate);
-        setPreview([
-          {
-            number: 1,
-            amountInput: centsToInput(amountCents),
-            dueDate: toCalendarInputValue(due),
-          },
-        ]);
+        const paid = Number(alreadyPaidCount);
+        if (!Number.isInteger(paid) || paid < 0 || paid > 120) {
+          setLocalError("Já pagas entre 0 e 120");
+          return;
+        }
+        const nextDue = parseDateInput(firstDueDate);
+        const amountInput = centsToInput(amountCents);
+        const rows: PreviewRow[] = [];
+        for (let i = 0; i < paid; i += 1) {
+          rows.push({
+            number: i + 1,
+            amountInput,
+            dueDate: toCalendarInputValue(addMonths(nextDue, -(paid - i))),
+            paid: true,
+          });
+        }
+        rows.push({
+          number: paid + 1,
+          amountInput,
+          dueDate: toCalendarInputValue(nextDue),
+          paid: false,
+        });
+        setPreview(rows);
         setStep("preview");
         return;
       }
@@ -124,6 +154,7 @@ export function DebtCreateForm({
         number: item.number,
         amountInput: centsToInput(item.amountCents),
         dueDate: toCalendarInputValue(item.dueDate),
+        paid: false,
       }));
       setPreview(rows);
       setStep("preview");
@@ -169,27 +200,37 @@ export function DebtCreateForm({
     })
     .join(",");
 
+  const paidHidden = preview.map((row) => (row.paid ? "1" : "0")).join(",");
+  const nextOpenDue =
+    preview.find((row) => !row.paid)?.dueDate ?? preview[0]?.dueDate ?? firstDueDate;
+
   if (step === "preview") {
     return (
       <form action={formAction} className="space-y-4">
         <input name="kind" type="hidden" value={kind} />
         <input name="name" type="hidden" value={name} />
         <input name="installmentCount" type="hidden" value={String(preview.length)} />
-        <input name="firstDueDate" type="hidden" value={preview[0]?.dueDate ?? firstDueDate} />
+        <input name="firstDueDate" type="hidden" value={nextOpenDue} />
         <input name="ownerId" type="hidden" value={shared ? ownerId : currentUserId} />
         <input name="autoPay" type="hidden" value={autoPay ? "1" : "0"} />
         <input name="remindersEnabled" type="hidden" value={remindersEnabled ? "1" : "0"} />
         <input name="note" type="hidden" value={note} />
         <input name="installmentAmounts" type="hidden" value={amountsHidden} />
         <input name="installmentDueDates" type="hidden" value={preview.map((r) => r.dueDate).join(",")} />
+        <input name="installmentPaidFlags" type="hidden" value={paidHidden} />
         {kind === "RECURRING" ? (
           <>
             <input
               name="recurringAmount"
               type="hidden"
-              value={preview[0]?.amountInput ?? totalAmount}
+              value={preview.find((row) => !row.paid)?.amountInput ?? totalAmount}
             />
             <input name="recurringDay" type="hidden" value={recurringDay} />
+            <input
+              name="alreadyPaidCount"
+              type="hidden"
+              value={String(preview.filter((row) => row.paid).length)}
+            />
           </>
         ) : null}
 
@@ -201,23 +242,43 @@ export function DebtCreateForm({
             <h3 className="font-display text-2xl">{name}</h3>
             <p className="mt-1 text-sm text-ink/60">
               {kind === "RECURRING"
-                ? "Primeira cobrança do mês. As próximas o cron cria automaticamente."
+                ? "As já pagas entram no histórico; a próxima fica em aberto. O cron segue gerando depois."
                 : "Mudou valor ou data? As parcelas de baixo acompanham. O total vira a soma."}
             </p>
           </div>
           <div className="text-right">
-            <p className="text-sm text-ink/50">{kind === "RECURRING" ? "Mensal" : "Total"}</p>
-            <p className="font-display text-2xl">{formatBRL(previewTotalCents)}</p>
+            <p className="text-sm text-ink/50">
+              {kind === "RECURRING" ? "Em aberto" : "Total"}
+            </p>
+            <p className="font-display text-2xl">
+              {formatBRL(kind === "RECURRING" ? previewOpenCents : previewTotalCents)}
+            </p>
+            {kind === "RECURRING" && preview.some((row) => row.paid) ? (
+              <p className="mt-1 text-xs text-ink/45">
+                {preview.filter((row) => row.paid).length} já paga
+                {preview.filter((row) => row.paid).length === 1 ? "" : "s"} ·{" "}
+                {formatBRL(previewTotalCents)} no total
+              </p>
+            ) : null}
           </div>
         </div>
 
         <ul className="max-h-72 space-y-2 overflow-y-auto rounded-2xl border border-line bg-white/50 p-3">
           {preview.map((row, index) => (
             <li
-              className="grid grid-cols-[auto_1fr_7rem] items-center gap-2 rounded-xl px-1 py-1.5 sm:grid-cols-[4rem_1fr_8rem]"
+              className="grid grid-cols-[auto_auto_1fr_7rem] items-center gap-2 rounded-xl px-1 py-1.5 sm:grid-cols-[4rem_auto_1fr_8rem]"
               key={row.number}
             >
               <span className="text-sm font-medium text-ink/70">#{row.number}</span>
+              {row.paid ? (
+                <span className="rounded-full bg-pine-soft px-2 py-0.5 text-[11px] font-medium text-pine-dark">
+                  Paga
+                </span>
+              ) : (
+                <span className="rounded-full bg-line/60 px-2 py-0.5 text-[11px] font-medium text-ink/55">
+                  Aberta
+                </span>
+              )}
               <input
                 className="field py-2 text-sm"
                 disabled={busy}
@@ -315,12 +376,23 @@ export function DebtCreateForm({
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="block space-y-1.5">
-            <span className="text-sm text-ink/70">Valor mensal</span>
+            <span className="text-sm text-ink/70">Valor da parcela</span>
             <input
               className="field"
               onChange={(event) => setTotalAmount(event.target.value)}
               placeholder="500,00"
               value={totalAmount}
+            />
+          </label>
+          <label className="block space-y-1.5">
+            <span className="text-sm text-ink/70">Já pagas</span>
+            <input
+              className="field"
+              max={120}
+              min={0}
+              onChange={(event) => setAlreadyPaidCount(event.target.value)}
+              type="number"
+              value={alreadyPaidCount}
             />
           </label>
           <label className="block space-y-1.5">
@@ -334,20 +406,29 @@ export function DebtCreateForm({
               value={recurringDay}
             />
           </label>
+          <label className="block space-y-1.5">
+            <span className="text-sm text-ink/70">Próximo vencimento</span>
+            <input
+              className="field"
+              onChange={(event) => setFirstDueDate(event.target.value)}
+              type="date"
+              value={firstDueDate}
+            />
+          </label>
         </div>
       )}
 
-      <label className="block space-y-1.5">
-        <span className="text-sm text-ink/70">
-          {kind === "RECURRING" ? "Primeiro vencimento" : "Primeiro vencimento"}
-        </span>
-        <input
-          className="field"
-          onChange={(event) => setFirstDueDate(event.target.value)}
-          type="date"
-          value={firstDueDate}
-        />
-      </label>
+      {kind === "INSTALLMENT" ? (
+        <label className="block space-y-1.5">
+          <span className="text-sm text-ink/70">Primeiro vencimento</span>
+          <input
+            className="field"
+            onChange={(event) => setFirstDueDate(event.target.value)}
+            type="date"
+            value={firstDueDate}
+          />
+        </label>
+      ) : null}
 
       {shared ? (
         <label className="block space-y-1.5">
@@ -408,12 +489,12 @@ export function DebtCreateForm({
       </label>
       <p className="text-xs text-ink/55">
         {kind === "RECURRING"
-          ? "Todo mês o sistema cria a mesma cobrança até você pausar a recorrência."
+          ? "Se já pagou algumas, informe quantas: elas entram como pagas nos meses anteriores e a próxima fica aberta."
           : "No próximo passo você vê as parcelas, ajusta valores e o total acompanha a soma."}
       </p>
       {(localError || state.error) ? <FormError message={localError ?? state.error!} /> : null}
       <button className="btn-primary w-full" onClick={buildPreview} type="button">
-        {kind === "RECURRING" ? "Ver primeira cobrança" : "Ver parcelas"}
+        {kind === "RECURRING" ? "Ver cobranças" : "Ver parcelas"}
       </button>
     </div>
   );
