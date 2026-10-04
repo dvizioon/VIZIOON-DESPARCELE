@@ -48,6 +48,28 @@ export function WorkspaceDashboard({ data }: { data: DashboardView }) {
   }, [data, ownerFilter, timeFilter]);
 
   const filteredDue = visibleSlices.reduce((sum, item) => sum + item.remainingCents, 0);
+  const filteredMonthDue = useMemo(() => {
+    const now = new Date();
+    return data.upcoming
+      .filter((item) => {
+        if (!matchesOwner(item.ownerId, data.currentUserId, ownerFilter)) {
+          return false;
+        }
+        const due = new Date(item.dueDate);
+        return due.getMonth() === now.getMonth() && due.getFullYear() === now.getFullYear();
+      })
+      .reduce((sum, item) => sum + item.amountCents, 0);
+  }, [data, ownerFilter]);
+  const filteredMonthCount = useMemo(() => {
+    const now = new Date();
+    return data.upcoming.filter((item) => {
+      if (!matchesOwner(item.ownerId, data.currentUserId, ownerFilter)) {
+        return false;
+      }
+      const due = new Date(item.dueDate);
+      return due.getMonth() === now.getMonth() && due.getFullYear() === now.getFullYear();
+    }).length;
+  }, [data, ownerFilter]);
   const suggestionVisible =
     data.suggestion &&
     visibleSlices.some((item) => item.id === data.suggestion?.debtId);
@@ -63,12 +85,18 @@ export function WorkspaceDashboard({ data }: { data: DashboardView }) {
           value={<CountUpMoney cents={ownerFilter === "all" ? data.totalDueCents : filteredDue} />}
           hint={`${data.openDebtCount} em aberto`}
         />
-        <StatCard
-          icon="tabler:calendar-month"
-          label="Este mês"
-          value={<CountUpMoney cents={data.monthDueCents} />}
-          hint={`${data.monthCount} parcelas`}
-        />
+        <Link className="sheet block transition hover:border-pine/30" data-reveal href={`/w/${data.workspaceId}/mes`}>
+          <p className="flex items-center gap-2 text-sm text-ink/55">
+            <AppIcon name="tabler:calendar-month" className="size-4" />
+            Este mês
+          </p>
+          <p className="mt-3 font-display text-3xl">
+            <CountUpMoney cents={filteredMonthDue} />
+          </p>
+          <p className="mt-1 text-sm text-ink/50">
+            {filteredMonthCount} parcelas · ver totais
+          </p>
+        </Link>
         <StatCard
           icon="tabler:alert-circle"
           label="Atrasado"
