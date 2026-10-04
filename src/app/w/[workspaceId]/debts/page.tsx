@@ -142,6 +142,11 @@ export default async function DebtsPage({ params, searchParams }: DebtsPageProps
                         cadastro de {debt.createdByName}
                       </p>
                       <div className="mt-3 flex flex-wrap gap-1.5">
+                        {debt.isLoan ? (
+                          <DebtBadge icon="tabler:building-bank" tone="pine">
+                            Empréstimo
+                          </DebtBadge>
+                        ) : null}
                         {debt.nextDueDate ? (
                           <>
                             <DebtBadge icon="tabler:cash" tone="pine">

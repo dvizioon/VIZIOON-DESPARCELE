@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { deleteDebtAction, renameDebtAction } from "@/app/actions/debt";
+import { deleteDebtAction, renameDebtAction, setDebtLoanAction } from "@/app/actions/debt";
 import { FormError } from "@/components/forms/auth-forms";
 import { useDialogMotion } from "@/components/motion/use-dialog-motion";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -13,10 +13,12 @@ export function DebtSettingsModal({
   workspaceId,
   debtId,
   debtName,
+  isLoan,
 }: {
   workspaceId: string;
   debtId: string;
   debtName: string;
+  isLoan: boolean;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -34,6 +36,7 @@ export function DebtSettingsModal({
         <DebtSettingsDialog
           debtId={debtId}
           debtName={debtName}
+          isLoan={isLoan}
           workspaceId={workspaceId}
           onClose={() => setOpen(false)}
         />
@@ -46,21 +49,25 @@ function DebtSettingsDialog({
   workspaceId,
   debtId,
   debtName,
+  isLoan,
   onClose,
 }: {
   workspaceId: string;
   debtId: string;
   debtName: string;
+  isLoan: boolean;
   onClose: () => void;
 }) {
   const [name, setName] = useState(debtName);
+  const [loan, setLoan] = useState(isLoan);
   const [confirm, setConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [pending, setPending] = useState(false);
+  const [loanPending, setLoanPending] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  useDialogMotion(onClose, pending || deleting || confirm);
+  useDialogMotion(onClose, pending || loanPending || deleting || confirm);
 
   return (
     <Portal>
@@ -68,14 +75,14 @@ function DebtSettingsDialog({
         <div
           className="dialog-overlay absolute inset-0 bg-ink/45 backdrop-blur-sm"
           onClick={() => {
-            if (!confirm && !pending && !deleting) {
+            if (!confirm && !pending && !loanPending && !deleting) {
               onClose();
             }
           }}
         />
         <section
           aria-modal="true"
-          className="dialog-panel relative z-10 flex h-[min(36rem,92vh)] w-full max-w-lg flex-col overflow-hidden rounded-3xl border border-line bg-card shadow-sheet"
+          className="dialog-panel relative z-10 flex h-[min(40rem,92vh)] w-full max-w-lg flex-col overflow-hidden rounded-3xl border border-line bg-card shadow-sheet"
           role="dialog"
         >
           <div className="flex shrink-0 items-start justify-between gap-3 px-5 pb-3 pt-5 sm:px-6">
@@ -130,6 +137,38 @@ function DebtSettingsDialog({
                 {pending ? "Salvando..." : "Salvar nome"}
               </button>
             </form>
+
+            <div className="mt-6 space-y-3 border-t border-line pt-5">
+              <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-line bg-white/60 px-3 py-3">
+                <input
+                  checked={loan}
+                  className="mt-1 size-4 accent-[var(--pine)]"
+                  disabled={loanPending}
+                  onChange={(event) => {
+                    const next = event.target.checked;
+                    setLoan(next);
+                    setLoanPending(true);
+                    setError(null);
+                    const formData = new FormData();
+                    formData.set("isLoan", next ? "1" : "0");
+                    void setDebtLoanAction(workspaceId, debtId, formData).then((result) => {
+                      setLoanPending(false);
+                      if (result.error) {
+                        setLoan(!next);
+                        setError(result.error);
+                      }
+                    });
+                  }}
+                  type="checkbox"
+                />
+                <span>
+                  <span className="block text-sm font-medium text-ink">Empréstimo</span>
+                  <span className="mt-0.5 block text-xs text-ink/55">
+                    No vencimento a parcela é marcada como paga sozinha.
+                  </span>
+                </span>
+              </label>
+            </div>
 
             <div className="mt-8 space-y-3 border-t border-line pt-5">
               <p className="text-sm text-ink/60">

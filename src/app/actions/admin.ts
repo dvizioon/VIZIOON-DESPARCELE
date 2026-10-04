@@ -6,6 +6,8 @@ import { setAllowPublicSignup } from "@/modules/admin/application/set-allow-publ
 import { setUserDisabled } from "@/modules/admin/application/set-user-disabled";
 import { setUserPassword } from "@/modules/admin/application/set-user-password";
 import { setUserRole } from "@/modules/admin/application/set-user-role";
+import { setLoanCronEnabled, setLoanCronHour } from "@/modules/cron/application/set-loan-cron-settings";
+import { retryCronTask, tickLoanCron } from "@/modules/cron/application/tick-loan-cron";
 import { requireSystemAdmin } from "@/shared/auth/session";
 import { getRepositories } from "@/shared/infrastructure/container";
 import type { ActionState } from "./auth";
@@ -112,4 +114,64 @@ export async function setUserPasswordAction(
 
   refreshUsers();
   return { error: null, ok: true };
+}
+
+function refreshCronSettings() {
+  revalidatePath("/admin");
+  revalidatePath("/admin/configuracoes");
+  revalidatePath("/admin/configuracoes/cron");
+}
+
+export async function setLoanCronEnabledAction(enabled: boolean): Promise<ActionState> {
+  await requireSystemAdmin();
+  const result = await setLoanCronEnabled(enabled);
+  if (!result.ok) {
+    return { error: result.error.message };
+  }
+  refreshCronSettings();
+  return { error: null, ok: true };
+}
+
+export async function setLoanCronHourAction(hour: number): Promise<ActionState> {
+  await requireSystemAdmin();
+  const result = await setLoanCronHour(hour);
+  if (!result.ok) {
+    return { error: result.error.message };
+  }
+  refreshCronSettings();
+  return { error: null, ok: true };
+}
+
+export async function processLoanCronNowAction(): Promise<ActionState> {
+  await requireSystemAdmin();
+  try {
+    const result = await tickLoanCron({ forceProcess: true });
+    refreshCronSettings();
+    return {
+      error: null,
+      ok: true,
+      message: `+${result.enqueued} na fila · ${result.processed} processada(s) · ${result.paidTotal} parcela(s)`,
+    };
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Falha ao processar fila",
+    };
+  }
+}
+
+export async function retryCronTaskAction(taskId: string): Promise<ActionState> {
+  await requireSystemAdmin();
+  try {
+    const result = await retryCronTask(taskId);
+    refreshCronSettings();
+    return {
+      error: null,
+      ok: true,
+      message: `${result.paidCount} parcela(s) nesta tarefa`,
+    };
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Falha ao reprocessar",
+    };
+  }
 }

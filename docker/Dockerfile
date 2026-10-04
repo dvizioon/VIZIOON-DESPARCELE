@@ -1,3 +1,5 @@
+# Build sempre baixa deps (npm ci) e gera standalone.
+# APP_ENV (development|production) só marca o ambiente do deploy; runtime usa NODE_ENV=production.
 FROM node:22-bookworm-slim AS build
 WORKDIR /app
 RUN apt-get update \

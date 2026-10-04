@@ -12,6 +12,7 @@ export class PrismaDebtRepository implements DebtRepository {
         name: input.name,
         totalAmount: centsToDecimalString(input.totalAmountCents),
         installmentCount: input.installmentCount,
+        isLoan: input.isLoan,
         ownerId: input.ownerId,
         createdById: input.createdById,
         installments: {
@@ -54,6 +55,13 @@ export class PrismaDebtRepository implements DebtRepository {
     });
   }
 
+  async setLoan(id: string, isLoan: boolean): Promise<void> {
+    await prisma.debt.update({
+      where: { id },
+      data: { isLoan },
+    });
+  }
+
   async deleteById(id: string): Promise<void> {
     await prisma.debt.delete({ where: { id } });
   }
@@ -74,6 +82,7 @@ function mapDebt(row: {
   name: string;
   totalAmount: { toString(): string };
   installmentCount: number;
+  isLoan: boolean;
   ownerId: string;
   createdById: string;
   createdAt: Date;
@@ -87,6 +96,7 @@ function mapDebt(row: {
     name: row.name,
     totalAmountCents: toCents(row.totalAmount.toString()),
     installmentCount: row.installmentCount,
+    isLoan: row.isLoan,
     ownerId: row.ownerId,
     ownerName: row.owner.name,
     createdById: row.createdById,

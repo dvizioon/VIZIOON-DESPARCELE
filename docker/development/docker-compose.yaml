@@ -5,7 +5,7 @@ services:
       dockerfile: docker/Dockerfile
       args:
         APP_PORT: ${PORT:-7250}
-        APP_ENV: ${APP_ENV:-production}
+        APP_ENV: ${APP_ENV:-development}
     container_name: desparcele
     restart: unless-stopped
     env_file:
@@ -13,7 +13,7 @@ services:
     environment:
       PORT: ${PORT:-7250}
       HOSTNAME: ${HOSTNAME:-0.0.0.0}
-      APP_ENV: ${APP_ENV:-production}
+      APP_ENV: ${APP_ENV:-development}
       NODE_ENV: production
       DB_HOST: ${DB_HOST}
       DB_PORT: ${DB_PORT}

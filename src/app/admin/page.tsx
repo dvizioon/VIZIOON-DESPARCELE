@@ -70,7 +70,7 @@ export default async function AdminOverviewPage() {
           href="/admin/configuracoes"
           icon="tabler:settings"
           title="Configurações"
-          text="Cadastro público, SMTP, modelos de e-mail e fila."
+          text="Cadastro, SMTP, e-mail, fila e cron."
         />
         <QuickCard
           href="/admin/configuracoes/smtp"

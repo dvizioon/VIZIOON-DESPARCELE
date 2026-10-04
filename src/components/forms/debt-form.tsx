@@ -69,6 +69,15 @@ export function DebtForm({
       ) : (
         <input type="hidden" name="ownerId" value={currentUserId} />
       )}
+      <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-line bg-white/60 px-3 py-3">
+        <input className="mt-1 size-4 accent-[var(--pine)]" name="isLoan" type="checkbox" value="1" />
+        <span>
+          <span className="block text-sm font-medium text-ink">Empréstimo</span>
+          <span className="mt-0.5 block text-xs text-ink/55">
+            Desconta na conta todo mês — no vencimento a parcela fica paga sozinha.
+          </span>
+        </span>
+      </label>
       <label className="block space-y-1.5">
         <span className="text-sm text-ink/70">Nota</span>
         <input name="note" type="hidden" value={note} />

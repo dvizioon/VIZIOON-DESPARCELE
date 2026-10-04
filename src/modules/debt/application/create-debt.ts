@@ -11,6 +11,7 @@ export interface CreateDebtInput {
   name: string;
   totalAmountCents: number;
   installmentCount: number;
+  isLoan?: boolean;
   ownerId: string;
   firstDueDate: Date;
 }
@@ -54,6 +55,7 @@ export async function createDebt(
     name,
     totalAmountCents: input.totalAmountCents,
     installmentCount: input.installmentCount,
+    isLoan: Boolean(input.isLoan),
     ownerId: input.ownerId,
     createdById: input.actorId,
     installments,

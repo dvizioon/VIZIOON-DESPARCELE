@@ -57,9 +57,20 @@ export default async function DebtDetailPage({ params }: DebtDetailPageProps) {
         <div className="mt-1 flex min-w-0 items-center gap-1">
           <h2 className="min-w-0 truncate font-display text-3xl sm:text-4xl">{debt.name}</h2>
           {canEdit ? (
-            <DebtSettingsModal debtId={debtId} debtName={debt.name} workspaceId={workspaceId} />
+            <DebtSettingsModal
+              debtId={debtId}
+              debtName={debt.name}
+              isLoan={debt.isLoan}
+              workspaceId={workspaceId}
+            />
           ) : null}
         </div>
+        {debt.isLoan ? (
+          <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-pine-soft px-2.5 py-1 text-xs font-medium text-pine-dark">
+            <AppIcon name="tabler:building-bank" className="size-3.5" />
+            Empréstimo · parcela paga no vencimento
+          </p>
+        ) : null}
         <div className="mt-5 grid gap-4 sm:grid-cols-3">
           <Metric label="Ainda falta" value={formatBRL(remaining)} />
           <Metric label="Parcelas" value={`${remainingCount} de ${debt.installmentCount}`} />

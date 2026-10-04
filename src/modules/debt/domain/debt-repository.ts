@@ -6,6 +6,7 @@ export interface CreateDebtRecordInput {
   name: string;
   totalAmountCents: number;
   installmentCount: number;
+  isLoan: boolean;
   ownerId: string;
   createdById: string;
   installments: InstallmentDraft[];
@@ -16,5 +17,6 @@ export interface DebtRepository {
   findById(id: string): Promise<DebtWithInstallments | null>;
   listByWorkspace(workspaceId: string): Promise<DebtWithInstallments[]>;
   rename(id: string, name: string): Promise<void>;
+  setLoan(id: string, isLoan: boolean): Promise<void>;
   deleteById(id: string): Promise<void>;
 }

@@ -13,6 +13,7 @@ import { getRepositories } from "@/shared/infrastructure/container";
 export type ActionState = {
   error: string | null;
   ok?: boolean;
+  message?: string;
 };
 
 export async function loginAction(

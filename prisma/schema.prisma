@@ -39,6 +39,17 @@ enum InstallmentStatus {
   PAID
 }
 
+enum CronTaskType {
+  LOAN_AUTO_PAY
+}
+
+enum CronTaskStatus {
+  PENDING
+  RUNNING
+  DONE
+  FAILED
+}
+
 model User {
   id           String     @id @default(cuid())
   name         String
@@ -109,6 +120,8 @@ model Debt {
   name             String
   totalAmount      Decimal  @db.Decimal(12, 2)
   installmentCount Int
+  /// Empréstimo descontado na conta: no vencimento o cron marca a parcela como paga.
+  isLoan           Boolean  @default(false)
   ownerId          String
   createdById      String
   createdAt        DateTime @default(now())
@@ -122,6 +135,7 @@ model Debt {
 
   @@index([workspaceId])
   @@index([ownerId])
+  @@index([isLoan])
 }
 
 model DebtNote {
@@ -228,5 +242,29 @@ model EmailOutbox {
 model SystemConfig {
   id                 String   @id @default("default")
   allowPublicSignup  Boolean  @default(true)
+  /// Cron de empréstimo: cria tarefas e processa a fila quando ativo.
+  loanCronEnabled    Boolean  @default(true)
+  /// Hora local do servidor (0–23) em que a tarefa do dia entra na fila.
+  loanCronHour       Int      @default(6)
   updatedAt          DateTime @updatedAt
+}
+
+/// Fila de tarefas do cron (acumula PENDING se o processador estiver desligado).
+model CronTask {
+  id           String         @id @default(cuid())
+  type         CronTaskType
+  status       CronTaskStatus @default(PENDING)
+  /// Dia civil da tarefa (YYYY-MM-DD), único por tipo.
+  runDate      String
+  scheduledFor DateTime
+  startedAt    DateTime?
+  finishedAt   DateTime?
+  paidCount    Int?
+  message      String?
+  error        String?
+  createdAt    DateTime       @default(now())
+
+  @@unique([type, runDate])
+  @@index([status, scheduledFor])
+  @@index([type, createdAt])
 }

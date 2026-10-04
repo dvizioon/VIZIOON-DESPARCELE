@@ -36,6 +36,7 @@ export async function createDebtAction(
       name: String(formData.get("name") ?? ""),
       totalAmountCents,
       installmentCount: Number(formData.get("installmentCount") ?? 0),
+      isLoan: String(formData.get("isLoan") ?? "") === "1",
       ownerId: String(formData.get("ownerId") ?? user.id),
       firstDueDate,
     },
@@ -197,6 +198,31 @@ export async function renameDebtAction(
     debtId,
     user.id,
     String(formData.get("name") ?? ""),
+    debts,
+    workspaces,
+  );
+
+  if (!result.ok) {
+    return { error: result.error.message };
+  }
+
+  await revalidateDebtPaths(workspaceId, debtId);
+  return { error: null, ok: true };
+}
+
+export async function setDebtLoanAction(
+  workspaceId: string,
+  debtId: string,
+  formData: FormData,
+): Promise<ActionState> {
+  const user = await requireUser();
+  const { debts, workspaces } = getRepositories();
+  const { setDebtLoan } = await import("@/modules/debt/application/set-debt-loan");
+
+  const result = await setDebtLoan(
+    debtId,
+    user.id,
+    String(formData.get("isLoan") ?? "") === "1",
     debts,
     workspaces,
   );

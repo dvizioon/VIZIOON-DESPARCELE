@@ -18,7 +18,7 @@ export default async function AdminSettingsPage() {
       <div data-reveal>
         <p className="text-xs uppercase tracking-wide text-ink/45">Plataforma</p>
         <h2 className="font-display text-3xl sm:text-4xl">Configurações</h2>
-        <p className="mt-2 max-w-xl text-sm text-ink/60">Cadastro, e-mail e fila de envio.</p>
+        <p className="mt-2 max-w-xl text-sm text-ink/60">Cadastro, e-mail, fila e cron.</p>
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">
@@ -59,6 +59,12 @@ export default async function AdminSettingsPage() {
               ? `${overview.mail.pending} na fila · ${overview.mail.failed} falhou`
               : `${overview.mail.pending} na fila · ${overview.mail.sent} enviados`
           }
+        />
+        <SettingsCard
+          href="/admin/configuracoes/cron"
+          icon="tabler:clock"
+          title="Cron"
+          text="Empréstimo: ligar/desligar, horário e fila de tarefas."
         />
       </div>
     </Reveal>
