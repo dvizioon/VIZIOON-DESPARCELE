@@ -78,6 +78,7 @@ apply_container_paths() {
   set_key HOSTNAME "0.0.0.0" "$outfile"
   set_key NODE_ENV "production" "$outfile"
   set_key APP_ENV "$app_env" "$outfile"
+  set_key TZ "America/Sao_Paulo" "$outfile"
 }
 
 merge_overlay_defaults() {

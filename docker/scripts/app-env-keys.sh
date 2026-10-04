@@ -6,6 +6,7 @@
 APP_ENV_KEYS=(
   APP_ENV
   NODE_ENV
+  TZ
   DB_HOST
   DB_PORT
   DB_NAME
