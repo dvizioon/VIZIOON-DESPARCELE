@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { InstallmentActions } from "@/components/forms/installment-actions";
+import { InstallmentAmountEditor } from "@/components/forms/installment-amount-editor";
 import { NoteComposer } from "@/components/notes/note-composer";
 import { NoteList } from "@/components/notes/note-list";
 import { DebtSettingsModal } from "@/components/debt/debt-settings-modal";
@@ -71,7 +72,8 @@ export default async function DebtDetailPage({ params }: DebtDetailPageProps) {
             Empréstimo · parcela paga no vencimento
           </p>
         ) : null}
-        <div className="mt-5 grid gap-4 sm:grid-cols-3">
+        <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Metric label="Total" value={formatBRL(debt.totalAmountCents)} />
           <Metric label="Ainda falta" value={formatBRL(remaining)} />
           <Metric label="Parcelas" value={`${remainingCount} de ${debt.installmentCount}`} />
           <Metric label="Progresso" value={`${progress}%`} />
@@ -128,7 +130,16 @@ export default async function DebtDetailPage({ params }: DebtDetailPageProps) {
                     </p>
                   ) : null}
                 </div>
-                <p className="font-display text-2xl">{formatBRL(item.amountCents)}</p>
+                {canEdit ? (
+                  <InstallmentAmountEditor
+                    amountCents={item.amountCents}
+                    debtId={debtId}
+                    installmentId={item.id}
+                    workspaceId={workspaceId}
+                  />
+                ) : (
+                  <p className="font-display text-2xl">{formatBRL(item.amountCents)}</p>
+                )}
               </div>
 
               {canEdit ? (

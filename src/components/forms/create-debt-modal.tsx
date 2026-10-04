@@ -168,6 +168,13 @@ function DebtDialog({
             </label>
           </div>
           <label className="block space-y-1.5">
+            <span className="text-sm text-ink/70">Valor da 1ª parcela (opcional)</span>
+            <input className="field" name="firstAmount" placeholder="425,00" />
+            <span className="mt-1 block text-xs text-ink/55">
+              Se preencher, as outras fecham o total. Vazio = divide igual.
+            </span>
+          </label>
+          <label className="block space-y-1.5">
             <span className="text-sm text-ink/70">Primeiro vencimento</span>
             <input
               className="field"

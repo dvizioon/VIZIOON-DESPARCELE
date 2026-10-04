@@ -1,5 +1,5 @@
 import { prisma } from "@/shared/infrastructure/prisma";
-import { toCents } from "@/shared/utils/money";
+import { centsToDecimalString, toCents } from "@/shared/utils/money";
 import type {
   InstallmentRepository,
   MarkInstallmentPaidInput,
@@ -54,6 +54,21 @@ export class PrismaInstallmentRepository implements InstallmentRepository {
     });
 
     return mapInstallment(row);
+  }
+
+  async updateAmounts(updates: Array<{ id: string; amountCents: number }>): Promise<void> {
+    if (updates.length === 0) {
+      return;
+    }
+
+    await prisma.$transaction(
+      updates.map((item) =>
+        prisma.installment.update({
+          where: { id: item.id },
+          data: { amount: centsToDecimalString(item.amountCents) },
+        }),
+      ),
+    );
   }
 }
 

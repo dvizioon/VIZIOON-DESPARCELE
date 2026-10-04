@@ -18,5 +18,6 @@ export interface DebtRepository {
   listByWorkspace(workspaceId: string): Promise<DebtWithInstallments[]>;
   rename(id: string, name: string): Promise<void>;
   setLoan(id: string, isLoan: boolean): Promise<void>;
+  updateTotalAmount(id: string, totalAmountCents: number): Promise<void>;
   deleteById(id: string): Promise<void>;
 }

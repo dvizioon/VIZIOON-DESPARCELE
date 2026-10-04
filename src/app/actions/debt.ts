@@ -21,10 +21,15 @@ export async function createDebtAction(
 
   let totalAmountCents = 0;
   let firstDueDate: Date;
+  let firstAmountCents: number | undefined;
 
   try {
     totalAmountCents = parseBRLInput(String(formData.get("totalAmount") ?? ""));
     firstDueDate = parseDateInput(String(formData.get("firstDueDate") ?? ""));
+    const firstRaw = String(formData.get("firstAmount") ?? "").trim();
+    if (firstRaw) {
+      firstAmountCents = parseBRLInput(firstRaw);
+    }
   } catch {
     return { error: "Valor ou data invalidos" };
   }
@@ -39,6 +44,7 @@ export async function createDebtAction(
       isLoan: String(formData.get("isLoan") ?? "") === "1",
       ownerId: String(formData.get("ownerId") ?? user.id),
       firstDueDate,
+      firstAmountCents,
     },
     debts,
     workspaces,
@@ -224,6 +230,42 @@ export async function setDebtLoanAction(
     user.id,
     String(formData.get("isLoan") ?? "") === "1",
     debts,
+    workspaces,
+  );
+
+  if (!result.ok) {
+    return { error: result.error.message };
+  }
+
+  await revalidateDebtPaths(workspaceId, debtId);
+  return { error: null, ok: true };
+}
+
+export async function setInstallmentAmountAction(
+  workspaceId: string,
+  debtId: string,
+  installmentId: string,
+  formData: FormData,
+): Promise<ActionState> {
+  const user = await requireUser();
+  const { debts, installments, workspaces } = getRepositories();
+  const { setInstallmentAmount } = await import(
+    "@/modules/debt/application/set-installment-amount"
+  );
+
+  let amountCents = 0;
+  try {
+    amountCents = parseBRLInput(String(formData.get("amount") ?? ""));
+  } catch {
+    return { error: "Valor da parcela invalido" };
+  }
+
+  const result = await setInstallmentAmount(
+    installmentId,
+    user.id,
+    amountCents,
+    debts,
+    installments,
     workspaces,
   );
 

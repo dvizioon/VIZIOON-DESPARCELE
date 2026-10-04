@@ -62,6 +62,13 @@ export class PrismaDebtRepository implements DebtRepository {
     });
   }
 
+  async updateTotalAmount(id: string, totalAmountCents: number): Promise<void> {
+    await prisma.debt.update({
+      where: { id },
+      data: { totalAmount: centsToDecimalString(totalAmountCents) },
+    });
+  }
+
   async deleteById(id: string): Promise<void> {
     await prisma.debt.delete({ where: { id } });
   }

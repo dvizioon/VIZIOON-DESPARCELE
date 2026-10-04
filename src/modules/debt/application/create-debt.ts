@@ -14,6 +14,7 @@ export interface CreateDebtInput {
   isLoan?: boolean;
   ownerId: string;
   firstDueDate: Date;
+  firstAmountCents?: number;
 }
 
 export async function createDebt(
@@ -44,10 +45,20 @@ export async function createDebt(
     return fail("INVALID_COUNT", "Parcelas entre 1 e 360");
   }
 
+  if (
+    input.firstAmountCents != null &&
+    (input.firstAmountCents < 1 ||
+      input.firstAmountCents >= input.totalAmountCents ||
+      (input.installmentCount === 1 && input.firstAmountCents !== input.totalAmountCents))
+  ) {
+    return fail("INVALID_FIRST", "Valor da 1a parcela precisa ser menor que o total");
+  }
+
   const installments = generateInstallments(
     input.totalAmountCents,
     input.installmentCount,
     input.firstDueDate,
+    input.firstAmountCents,
   );
 
   const debt = await debts.create({
