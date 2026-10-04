@@ -1,3 +1,4 @@
+import { AdminCreateUserForm } from "@/components/admin/admin-create-user-form";
 import { AdminUserActions } from "@/components/admin/admin-user-actions";
 import { Reveal } from "@/components/motion/reveal";
 import { AppIcon } from "@/components/ui/icon";
@@ -16,9 +17,11 @@ export default async function AdminUsersPage() {
         <p className="text-xs uppercase tracking-wide text-ink/45">Contas</p>
         <h2 className="font-display text-3xl sm:text-4xl">Usuários</h2>
         <p className="mt-2 max-w-xl text-sm text-ink/60">
-          Cada conta tem papel User ou Admin. Dá para desativar e trocar a senha daqui.
+          Cria contas, define papel, desativa e troca senha.
         </p>
       </div>
+
+      <AdminCreateUserForm />
 
       {users.length === 0 ? (
         <div className="sheet flex items-center gap-3 text-ink/60" data-reveal>

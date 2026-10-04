@@ -1,9 +1,10 @@
-import type { User } from "./user";
+import type { SystemRole, User } from "./user";
 
 export interface CreateUserInput {
   name: string;
   email: string;
   passwordHash: string;
+  systemRole?: SystemRole;
 }
 
 export interface UserRepository {

@@ -14,7 +14,14 @@ export class PrismaUserRepository implements UserRepository {
   }
 
   async create(input: CreateUserInput): Promise<User> {
-    const row = await prisma.user.create({ data: input });
+    const row = await prisma.user.create({
+      data: {
+        name: input.name,
+        email: input.email,
+        passwordHash: input.passwordHash,
+        systemRole: input.systemRole ?? "MEMBER",
+      },
+    });
     return mapUser(row);
   }
 

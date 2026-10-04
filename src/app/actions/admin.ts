@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { createUserByAdmin } from "@/modules/admin/application/create-user";
 import { setAllowPublicSignup } from "@/modules/admin/application/set-allow-public-signup";
 import { setUserDisabled } from "@/modules/admin/application/set-user-disabled";
 import { setUserPassword } from "@/modules/admin/application/set-user-password";
@@ -13,6 +14,30 @@ function refreshUsers() {
   revalidatePath("/admin");
   revalidatePath("/admin/usuarios");
   revalidatePath("/admin/espacos");
+}
+
+export async function createUserAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  await requireSystemAdmin();
+  const result = await createUserByAdmin(
+    {
+      name: String(formData.get("name") ?? ""),
+      email: String(formData.get("email") ?? ""),
+      password: String(formData.get("password") ?? ""),
+      confirmPassword: String(formData.get("confirmPassword") ?? ""),
+      role: String(formData.get("role") ?? "MEMBER"),
+    },
+    getRepositories().users,
+  );
+
+  if (!result.ok) {
+    return { error: result.error.message };
+  }
+
+  refreshUsers();
+  return { error: null, ok: true };
 }
 
 function refreshSignupSettings() {

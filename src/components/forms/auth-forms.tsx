@@ -141,26 +141,8 @@ export function LoginForm({
   );
 }
 
-export type RegisterFormProps = {
-  closed?: boolean;
-};
-
-export function RegisterForm({ closed = false }: RegisterFormProps) {
+export function RegisterForm() {
   const [state, action, pending] = useActionState(registerAction, initial);
-
-  if (closed) {
-    return (
-      <AuthCard
-        kicker="Cadastro"
-        title="Contas novas pausadas"
-        subtitle="Por enquanto não dá para criar conta. Se você já tem uma, pode entrar."
-      >
-        <Link className="btn-primary w-full" href="/login">
-          Entrar
-        </Link>
-      </AuthCard>
-    );
-  }
 
   return (
     <AuthCard
