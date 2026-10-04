@@ -1,3 +1,4 @@
+import { debtHiddenMessage } from "@/modules/debt/application/require-visible-debt";
 import type { DebtRepository } from "@/modules/debt/domain/debt-repository";
 import type { FileStorage } from "@/shared/storage/file-storage";
 import { isReceiptMimeType } from "@/shared/storage/file-storage";
@@ -43,6 +44,11 @@ export async function markInstallmentPaid(
   const member = await workspaces.findMember(debt.workspaceId, command.actorId);
   if (!member || !canEditContent(member)) {
     return fail("FORBIDDEN", "Seu papel so permite visualizar");
+  }
+
+  const hidden = debtHiddenMessage(debt, command.actorId, member);
+  if (hidden) {
+    return fail("NOT_FOUND", hidden);
   }
 
   let receiptUrl: string | null = null;

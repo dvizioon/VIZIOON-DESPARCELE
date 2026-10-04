@@ -1,3 +1,4 @@
+import { debtHiddenMessage } from "@/modules/debt/application/require-visible-debt";
 import type { DebtRepository } from "@/modules/debt/domain/debt-repository";
 import { canEditContent } from "@/modules/workspace/domain/workspace";
 import type { WorkspaceRepository } from "@/modules/workspace/domain/workspace-repository";
@@ -31,6 +32,11 @@ export async function createDebtNote(
   const member = await workspaces.findMember(debt.workspaceId, actorId);
   if (!member || !canEditContent(member)) {
     return fail("FORBIDDEN", "Seu papel so permite visualizar");
+  }
+
+  const hidden = debtHiddenMessage(debt, actorId, member);
+  if (hidden) {
+    return fail("NOT_FOUND", hidden);
   }
 
   const content = sanitizeNoteHtml(html);

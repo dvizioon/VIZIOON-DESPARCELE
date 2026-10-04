@@ -1,3 +1,4 @@
+import { debtHiddenMessage } from "@/modules/debt/application/require-visible-debt";
 import type { DebtRepository } from "@/modules/debt/domain/debt-repository";
 import { isAdmin } from "@/modules/workspace/domain/workspace";
 import type { WorkspaceRepository } from "@/modules/workspace/domain/workspace-repository";
@@ -26,6 +27,11 @@ export async function deleteDebtNote(
   const member = await workspaces.findMember(debt.workspaceId, actorId);
   if (!member) {
     return fail("FORBIDDEN", "Voce nao faz parte deste espaco");
+  }
+
+  const hidden = debtHiddenMessage(debt, actorId, member);
+  if (hidden) {
+    return fail("NOT_FOUND", hidden);
   }
 
   if (note.authorId !== actorId && !isAdmin(member)) {

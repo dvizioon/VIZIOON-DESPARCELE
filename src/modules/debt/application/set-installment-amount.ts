@@ -3,6 +3,7 @@ import { canEditContent } from "@/modules/workspace/domain/workspace";
 import type { WorkspaceRepository } from "@/modules/workspace/domain/workspace-repository";
 import { fail, ok, type Result } from "@/shared/types/result";
 import type { DebtRepository } from "../domain/debt-repository";
+import { debtHiddenMessage } from "./require-visible-debt";
 
 export async function setInstallmentAmount(
   installmentId: string,
@@ -29,6 +30,11 @@ export async function setInstallmentAmount(
   const actor = await workspaces.findMember(debt.workspaceId, actorId);
   if (!actor || !canEditContent(actor)) {
     return fail("FORBIDDEN", "Seu papel so permite visualizar");
+  }
+
+  const hidden = debtHiddenMessage(debt, actorId, actor);
+  if (hidden) {
+    return fail("NOT_FOUND", hidden);
   }
 
   const totalAmountCents = debt.installments.reduce((sum, item) => {
