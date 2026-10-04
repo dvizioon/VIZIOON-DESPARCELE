@@ -60,10 +60,14 @@ export function AuthStory({ variant }: { variant: AuthStoryVariant }) {
 
       if (reduce) {
         gsap.set(scenes, { opacity: 0, clearProps: "transform,filter" });
-        gsap.set(scenes[0], { opacity: 1 });
+        if (scenes[0]) {
+          gsap.set(scenes[0], { opacity: 1 });
+        }
         gsap.set(bits, { opacity: 1, clearProps: "transform,filter" });
-        gsap.set(fills, { width: (index, target) => (target as HTMLElement).dataset.fill ?? "100%" });
-        gsap.set(dots[0], { width: 28, opacity: 1 });
+        gsap.set(fills, { width: (_index, target) => (target as HTMLElement).dataset.fill ?? "100%" });
+        if (dots[0]) {
+          gsap.set(dots[0], { width: 28, opacity: 1 });
+        }
         return;
       }
 
