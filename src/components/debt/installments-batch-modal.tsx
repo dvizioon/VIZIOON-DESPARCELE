@@ -6,6 +6,7 @@ import { batchUpdateInstallmentsAction } from "@/app/actions/debt";
 import { FormError } from "@/components/forms/auth-forms";
 import { useDialogMotion } from "@/components/motion/use-dialog-motion";
 import { AppIcon } from "@/components/ui/icon";
+import { MonthBadge } from "@/components/ui/month-badge";
 import { HiddenScroll } from "@/components/ui/hidden-scroll";
 import { Portal } from "@/components/ui/portal";
 import { formatDateFull } from "@/shared/utils/date";
@@ -143,13 +144,14 @@ function BatchDialog({
                         type="checkbox"
                       />
                       <span className="min-w-0 flex-1">
-                        <span className="block text-sm font-medium">
+                        <span className="flex flex-wrap items-center gap-2 text-sm font-medium">
                           Parcela {item.number}
+                          <MonthBadge date={new Date(item.dueDate)} />
                           {item.status === "PAID" ? (
-                            <span className="ml-2 text-xs text-moss">paga</span>
+                            <span className="text-xs text-moss">paga</span>
                           ) : null}
                         </span>
-                        <span className="block text-xs text-ink/55">
+                        <span className="mt-0.5 block text-xs text-ink/55">
                           {formatDateFull(new Date(item.dueDate))} · {formatBRL(item.amountCents)}
                         </span>
                       </span>

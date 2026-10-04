@@ -6,6 +6,7 @@ import { DebtSettingsModal } from "@/components/debt/debt-settings-modal";
 import { InstallmentsBatchModal } from "@/components/debt/installments-batch-modal";
 import { Reveal } from "@/components/motion/reveal";
 import { AppIcon } from "@/components/ui/icon";
+import { MonthBadge } from "@/components/ui/month-badge";
 import { PrismaDebtRepository } from "@/modules/debt/infrastructure/prisma-debt-repository";
 import {
   remainingAmountCents,
@@ -133,12 +134,13 @@ export default async function DebtDetailPage({ params }: DebtDetailPageProps) {
               <li className="sheet" key={item.id}>
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <p className="flex items-center gap-2 font-medium">
+                    <p className="flex flex-wrap items-center gap-2 font-medium">
                       <AppIcon
                         name={paid ? "tabler:circle-check" : "tabler:clock"}
                         className={paid ? "size-5 text-moss" : "size-5 text-clay"}
                       />
                       Parcela {item.number}
+                      <MonthBadge date={item.dueDate} />
                     </p>
                     <p className="mt-1 text-sm text-ink/55">Vence {formatDateFull(item.dueDate)}</p>
                     {paid ? (

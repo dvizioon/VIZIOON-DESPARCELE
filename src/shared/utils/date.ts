@@ -43,6 +43,11 @@ export function formatDateFull(date: Date): string {
   }).format(date);
 }
 
+/** Badge do mês de vencimento, ex. 08 */
+export function formatMonthBadge(date: Date): string {
+  return String(date.getMonth() + 1).padStart(2, "0");
+}
+
 export function toDateInputValue(date: Date): string {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
