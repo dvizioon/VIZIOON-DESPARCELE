@@ -29,11 +29,22 @@ const allowedDevOrigins = Array.from(
 const nextConfig: NextConfig = {
   output: "standalone",
   allowedDevOrigins,
-  serverExternalPackages: ["@prisma/client", "prisma"],
+  // nodemailer usa fs/stream/crypto — não pode ir pro bundle do instrumentation/webpack
+  serverExternalPackages: ["@prisma/client", "prisma", "nodemailer"],
   experimental: {
     serverActions: {
       bodySizeLimit: "6mb",
     },
+  },
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      const previous = config.externals;
+      config.externals = [
+        ...(Array.isArray(previous) ? previous : previous ? [previous] : []),
+        "nodemailer",
+      ];
+    }
+    return config;
   },
 };
 

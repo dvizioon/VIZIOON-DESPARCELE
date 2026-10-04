@@ -26,6 +26,7 @@ export interface DebtRepository {
   setRemindersEnabled(id: string, enabled: boolean): Promise<void>;
   setRecurringPaused(id: string, paused: boolean): Promise<void>;
   setVisibility(id: string, hideMode: DebtHideMode, hiddenUserIds: string[]): Promise<void>;
+  reorder(workspaceId: string, orderedIds: string[]): Promise<void>;
   appendInstallment(
     debtId: string,
     draft: InstallmentDraft,

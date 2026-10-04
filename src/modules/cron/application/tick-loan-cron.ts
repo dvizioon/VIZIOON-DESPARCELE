@@ -1,8 +1,6 @@
 import { autoPayDueLoanInstallments } from "@/modules/debt/application/auto-pay-loan-installments";
 import { generateRecurringInstallments } from "@/modules/debt/application/generate-recurring-installments";
-import { sendInstallmentReminders } from "@/modules/debt/application/send-installment-reminders";
 import { PrismaDebtRepository } from "@/modules/debt/infrastructure/prisma-debt-repository";
-import { PrismaMailRepository } from "@/modules/mail/infrastructure/prisma-mail-repository";
 import { prisma } from "@/shared/infrastructure/prisma";
 import type { CronTaskType } from "@prisma/client";
 import { daysBack, scheduledAt, toRunDate } from "./loan-cron-date";
@@ -127,6 +125,13 @@ async function processOneTask(
           ? `${created} parcela(s) recorrente(s) gerada(s)`
           : "Nenhuma parcela recorrente nova";
     } else {
+      // import dinâmico: evita puxar nodemailer no grafo do instrumentation/webpack
+      const { sendInstallmentReminders } = await import(
+        "@/modules/debt/application/send-installment-reminders"
+      );
+      const { PrismaMailRepository } = await import(
+        "@/modules/mail/infrastructure/prisma-mail-repository"
+      );
       const result = await sendInstallmentReminders(
         new PrismaMailRepository(),
         daysBefore,

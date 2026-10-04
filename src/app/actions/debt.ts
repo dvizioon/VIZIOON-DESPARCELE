@@ -251,6 +251,24 @@ export async function renameDebtAction(
   return { error: null, ok: true };
 }
 
+export async function reorderDebtsAction(
+  workspaceId: string,
+  orderedIds: string[],
+): Promise<ActionState> {
+  const user = await requireUser();
+  const { debts, workspaces } = getRepositories();
+  const { reorderDebts } = await import("@/modules/debt/application/reorder-debts");
+
+  const result = await reorderDebts(workspaceId, user.id, orderedIds, debts, workspaces);
+  if (!result.ok) {
+    return { error: result.error.message };
+  }
+
+  revalidatePath(`/w/${workspaceId}`);
+  revalidatePath(`/w/${workspaceId}/debts`);
+  return { error: null, ok: true };
+}
+
 export async function setDebtLoanAction(
   workspaceId: string,
   debtId: string,

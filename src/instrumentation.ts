@@ -3,6 +3,6 @@ export async function register() {
     return;
   }
 
-  const { startLoanAutoPayCron } = await import("@/shared/cron/loan-auto-pay-cron");
-  startLoanAutoPayCron();
+  const { startNodeInstrumentation } = await import("./instrumentation.node");
+  startNodeInstrumentation();
 }

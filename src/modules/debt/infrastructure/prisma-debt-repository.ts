@@ -21,6 +21,7 @@ export class PrismaDebtRepository implements DebtRepository {
             ? centsToDecimalString(input.recurringAmountCents)
             : null,
         recurringDay: input.recurringDay ?? null,
+        sortOrder: await nextSortOrder(input.workspaceId),
         ownerId: input.ownerId,
         createdById: input.createdById,
         installments: {
@@ -50,7 +51,7 @@ export class PrismaDebtRepository implements DebtRepository {
     const rows = await prisma.debt.findMany({
       where: { workspaceId },
       include: debtInclude,
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
     });
 
     return rows.map(mapDebt);
@@ -122,6 +123,21 @@ export class PrismaDebtRepository implements DebtRepository {
     });
   }
 
+  async reorder(workspaceId: string, orderedIds: string[]): Promise<void> {
+    if (orderedIds.length === 0) {
+      return;
+    }
+
+    await prisma.$transaction(
+      orderedIds.map((id, index) =>
+        prisma.debt.updateMany({
+          where: { id, workspaceId },
+          data: { sortOrder: index },
+        }),
+      ),
+    );
+  }
+
   async appendInstallment(
     debtId: string,
     draft: InstallmentDraft,
@@ -179,6 +195,14 @@ const debtInclude = {
   },
 };
 
+async function nextSortOrder(workspaceId: string): Promise<number> {
+  const top = await prisma.debt.aggregate({
+    where: { workspaceId },
+    _max: { sortOrder: true },
+  });
+  return (top._max.sortOrder ?? -1) + 1;
+}
+
 function mapDebt(row: {
   id: string;
   workspaceId: string;
@@ -192,6 +216,7 @@ function mapDebt(row: {
   recurringDay: number | null;
   recurringPausedAt: Date | null;
   hideMode: DebtHideMode;
+  sortOrder: number;
   ownerId: string;
   createdById: string;
   createdAt: Date;
@@ -215,6 +240,7 @@ function mapDebt(row: {
     recurringDay: row.recurringDay,
     recurringPausedAt: row.recurringPausedAt,
     hideMode: row.hideMode,
+    sortOrder: row.sortOrder,
     hiddenUserIds: row.hiddenFrom.map((item) => item.userId),
     ownerId: row.ownerId,
     ownerName: row.owner.name,

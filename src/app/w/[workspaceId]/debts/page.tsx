@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { DebtSettingsModal } from "@/components/debt/debt-settings-modal";
+import { DebtsBoard } from "@/components/debt/debts-board";
 import { CreateDebtModal } from "@/components/forms/create-debt-modal";
 import { firstName } from "@/modules/auth/domain/user";
 import { toDebtCard } from "@/modules/debt/application/get-dashboard";
@@ -11,9 +11,7 @@ import { requireWorkspaceAccess } from "@/modules/workspace/application/require-
 import { canEditContent, isAdmin } from "@/modules/workspace/domain/workspace";
 import { PrismaWorkspaceRepository } from "@/modules/workspace/infrastructure/prisma-workspace-repository";
 import { requireUser } from "@/shared/auth/session";
-import { addMonths, formatDate, toDateInputValue } from "@/shared/utils/date";
-import { formatBRL } from "@/shared/utils/money";
-import { AppIcon } from "@/components/ui/icon";
+import { addMonths, toDateInputValue } from "@/shared/utils/date";
 import { FilterPills } from "@/components/motion/filter-pills";
 import { Reveal } from "@/components/motion/reveal";
 
@@ -57,19 +55,22 @@ export default async function DebtsPage({ params, searchParams }: DebtsPageProps
     userId: item.userId,
     userName: item.userName,
   }));
+
   const cards = result.value
-    .map(toDebtCard)
+    .map((debt) => toDebtCard(debt))
     .filter((debt) => {
       if (statusFilter === "open") {
         return debt.remainingCount > 0;
       }
-
       if (statusFilter === "done") {
         return debt.remainingCount === 0;
       }
-
       return true;
-    });
+    })
+    .map((debt) => ({
+      ...debt,
+      nextDueDate: debt.nextDueDate ? debt.nextDueDate.toISOString() : null,
+    }));
 
   return (
     <Reveal className="space-y-5">
@@ -121,123 +122,17 @@ export default async function DebtsPage({ params, searchParams }: DebtsPageProps
         </FilterPills>
       </div>
 
-      {cards.length === 0 ? (
-        <div className="sheet flex items-center gap-3 text-ink/60" data-reveal>
-          <AppIcon name="tabler:notes-off" className="size-5" />
-          Nenhuma dívida neste filtro
-        </div>
-      ) : (
-        <ul className="grid gap-3">
-          {cards.map((debt) => {
-            const paidCount = debt.installmentCount - debt.remainingCount;
-            const progress = Math.round((paidCount / debt.installmentCount) * 100);
-            const overdue = debt.nextDueDate
-              ? new Date(debt.nextDueDate).setHours(0, 0, 0, 0) < new Date().setHours(0, 0, 0, 0)
-              : false;
-
-            return (
-              <li data-reveal key={debt.id}>
-                <div className="sheet relative">
-                  {canEdit ? (
-                    <div className="absolute right-3 top-3 z-10">
-                      <DebtSettingsModal
-                        autoPay={debt.autoPay}
-                        canManageVisibility={admin}
-                        currentUserId={user.id}
-                        debtId={debt.id}
-                        debtName={debt.name}
-                        hideMode={debt.hideMode}
-                        hiddenUserIds={debt.hiddenUserIds}
-                        kind={debt.kind}
-                        members={memberOptions}
-                        recurringPaused={debt.recurringPaused}
-                        remindersEnabled={debt.remindersEnabled}
-                        shared={shared}
-                        workspaceId={workspaceId}
-                      />
-                    </div>
-                  ) : null}
-                  <Link className="block pr-10" href={`/w/${workspaceId}/debts/${debt.id}`}>
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="font-display text-2xl">{debt.name}</p>
-                      <p className="mt-1 text-sm text-ink/55">
-                        {shared ? `${debt.ownerName} · ` : ""}
-                        cadastro de {debt.createdByName}
-                      </p>
-                      <div className="mt-3 flex flex-wrap gap-1.5">
-                        {debt.kind === "RECURRING" ? (
-                          <DebtBadge icon="tabler:repeat" tone="pine">
-                            {debt.recurringPaused ? "Recorrente pausada" : "Recorrente"}
-                          </DebtBadge>
-                        ) : null}
-                        {debt.autoPay ? (
-                          <DebtBadge icon="tabler:building-bank" tone="pine">
-                            Baixa auto
-                          </DebtBadge>
-                        ) : null}
-                        {admin && debt.hideMode !== "NONE" ? (
-                          <DebtBadge icon="tabler:eye-off" tone="plain">
-                            {debt.hideMode === "ALL" ? "Oculta" : "Oculta parcial"}
-                          </DebtBadge>
-                        ) : null}
-                        {debt.nextDueDate ? (
-                          <>
-                            <DebtBadge icon="tabler:cash" tone="pine">
-                              Vai pagar {formatBRL(debt.nextAmountCents)}
-                            </DebtBadge>
-                            <DebtBadge icon="tabler:calendar-due" tone={overdue ? "clay" : "plain"}>
-                              {overdue ? "Atrasada " : ""}
-                              {formatDate(debt.nextDueDate)}
-                            </DebtBadge>
-                          </>
-                        ) : (
-                          <DebtBadge icon="tabler:circle-check" tone="pine">
-                            Tudo pago
-                          </DebtBadge>
-                        )}
-                        <DebtBadge icon="tabler:layers-subtract" tone="plain">
-                          {paidCount}/{debt.installmentCount} paga{paidCount === 1 ? "" : "s"}
-                        </DebtBadge>
-                      </div>
-                    </div>
-                    <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
-                      <AmountTag
-                        hint={`${debt.installmentCount}x de ${formatBRL(
-                          Math.round(debt.totalAmountCents / Math.max(debt.installmentCount, 1)),
-                        )}`}
-                        label="Total"
-                        muted
-                        value={formatBRL(debt.totalAmountCents)}
-                      />
-                      <AmountTag
-                        highlight
-                        hint={
-                          debt.remainingCents === 0
-                            ? "Tudo pago"
-                            : `${debt.remainingCount} em aberto`
-                        }
-                        label={debt.remainingCents === 0 ? "Quitada" : "Restante"}
-                        value={formatBRL(debt.remainingCents)}
-                      />
-                    </div>
-                  </div>
-                  <div className="mt-4">
-                    <div className="usage-track relative h-3 overflow-hidden rounded-full">
-                      <div
-                        className="progress-fill h-full rounded-full bg-gradient-to-r from-pine via-[#148576] to-moss"
-                        style={{ width: `${progress}%` }}
-                      />
-                    </div>
-                    <p className="mt-1.5 text-[11px] text-ink/45">{progress}% do total</p>
-                  </div>
-                  </Link>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      )}
+      <div data-reveal>
+        <DebtsBoard
+          canEdit={canEdit}
+          currentUserId={user.id}
+          debts={cards}
+          isAdmin={admin}
+          members={memberOptions}
+          shared={shared}
+          workspaceId={workspaceId}
+        />
+      </div>
     </Reveal>
   );
 }
@@ -275,57 +170,5 @@ function FilterLink({
     >
       {children}
     </Link>
-  );
-}
-
-function AmountTag({
-  label,
-  value,
-  hint,
-  highlight = false,
-  muted = false,
-}: {
-  label: string;
-  value: string;
-  hint: string;
-  highlight?: boolean;
-  muted?: boolean;
-}) {
-  const tone = highlight
-    ? "bg-pine-soft ring-pine/15 text-pine-dark"
-    : muted
-      ? "bg-paper ring-line/80 text-ink/80"
-      : "bg-white ring-line";
-
-  return (
-    <div className={`min-w-[7.5rem] rounded-2xl px-3 py-2 ring-1 ${tone}`}>
-      <p className="text-[11px] uppercase tracking-wide text-ink/45">{label}</p>
-      <p className="font-display text-xl leading-none">{value}</p>
-      <p className="mt-1 text-[11px] text-ink/40">{hint}</p>
-    </div>
-  );
-}
-
-function DebtBadge({
-  icon,
-  children,
-  tone = "plain",
-}: {
-  icon: string;
-  children: React.ReactNode;
-  tone?: "plain" | "pine" | "clay";
-}) {
-  const toneClass =
-    tone === "pine"
-      ? "bg-pine-soft text-pine-dark"
-      : tone === "clay"
-        ? "bg-clay/10 text-clay"
-        : "bg-white text-ink/70 ring-1 ring-line";
-
-  return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${toneClass}`}>
-      <AppIcon name={icon} className="size-3.5 shrink-0" />
-      {children}
-    </span>
   );
 }

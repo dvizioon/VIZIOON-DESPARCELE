@@ -16,6 +16,7 @@ export interface Debt {
   recurringDay: number | null;
   recurringPausedAt: Date | null;
   hideMode: DebtHideMode;
+  sortOrder: number;
   hiddenUserIds: string[];
   ownerId: string;
   ownerName: string;

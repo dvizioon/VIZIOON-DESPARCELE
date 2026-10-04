@@ -194,8 +194,24 @@ export function buildDashboard(
   };
 }
 
-export function toDebtCard(debt: DebtWithInstallments) {
+export function toDebtCard(debt: DebtWithInstallments, now = new Date()) {
   const next = nextPendingInstallment(debt.installments);
+  const monthStart = startOfMonth(now);
+  const monthEnd = endOfMonth(now);
+
+  const paidThisMonth = debt.installments.filter(
+    (item) =>
+      item.status === "PAID" &&
+      item.paidAt != null &&
+      item.paidAt >= monthStart &&
+      item.paidAt <= monthEnd,
+  );
+  const dueThisMonth = debt.installments.filter(
+    (item) =>
+      item.status === "PENDING" &&
+      item.dueDate >= monthStart &&
+      item.dueDate <= monthEnd,
+  );
 
   return {
     id: debt.id,
@@ -206,6 +222,7 @@ export function toDebtCard(debt: DebtWithInstallments) {
     recurringPaused: debt.recurringPausedAt != null,
     hideMode: debt.hideMode,
     hiddenUserIds: debt.hiddenUserIds,
+    sortOrder: debt.sortOrder,
     ownerName: debt.ownerName,
     createdByName: debt.createdByName,
     remainingCents: remainingAmountCents(debt.installments),
@@ -215,5 +232,14 @@ export function toDebtCard(debt: DebtWithInstallments) {
     nextAmountCents: next?.amountCents ?? 0,
     nextDueDate: next?.dueDate ?? null,
     nextNumber: next?.number ?? null,
+    paidThisMonthCount: paidThisMonth.length,
+    paidThisMonthCents: paidThisMonth.reduce((sum, item) => sum + item.amountCents, 0),
+    dueThisMonthCount: dueThisMonth.length,
+    dueThisMonthCents: dueThisMonth.reduce((sum, item) => sum + item.amountCents, 0),
   };
 }
+
+/** Card da lista; `nextDueDate` pode ser ISO string após serialização RSC → client. */
+export type DebtCardView = Omit<ReturnType<typeof toDebtCard>, "nextDueDate"> & {
+  nextDueDate: Date | string | null;
+};

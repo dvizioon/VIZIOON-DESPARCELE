@@ -141,6 +141,7 @@ model Debt {
   recurringDay       Int?
   recurringPausedAt  DateTime?
   hideMode           DebtHideMode @default(NONE)
+  sortOrder          Int          @default(0)
   ownerId            String
   createdById        String
   createdAt          DateTime     @default(now())
@@ -154,6 +155,7 @@ model Debt {
   hiddenFrom   DebtHiddenFrom[]
 
   @@index([workspaceId])
+  @@index([workspaceId, sortOrder])
   @@index([ownerId])
   @@index([autoPay])
   @@index([kind])
