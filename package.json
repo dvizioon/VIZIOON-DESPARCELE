@@ -32,6 +32,7 @@
     "react-dom": "^19.0.0",
     "react-google-charts": "^5.2.1",
     "tinymce": "^8.9.1",
+    "tinymce-i18n": "^26.9.28",
     "zod": "^3.24.2"
   },
   "devDependencies": {

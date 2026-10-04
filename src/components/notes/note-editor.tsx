@@ -54,6 +54,8 @@ export function NoteEditor({
       height,
       min_height: height,
       max_height: Math.max(height + 240, 640),
+      language: "pt-BR",
+      language_url: "/tinymce/langs/pt-BR.js",
       menubar: "file edit view insert format tools table help",
       branding: false,
       promotion: false,
