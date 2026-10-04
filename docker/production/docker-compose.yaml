@@ -1,0 +1,38 @@
+services:
+  app:
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile
+      args:
+        APP_PORT: ${PORT:-7250}
+        APP_ENV: ${APP_ENV:-production}
+    container_name: desparcele
+    restart: unless-stopped
+    env_file:
+      - ../../.env
+    environment:
+      PORT: ${PORT:-7250}
+      HOSTNAME: ${HOSTNAME:-0.0.0.0}
+      APP_ENV: ${APP_ENV:-production}
+      NODE_ENV: production
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASS: ${DB_PASS}
+      DB_DIALECT: ${DB_DIALECT:-postgres}
+      AUTH_SECRET: ${AUTH_SECRET}
+      AUTH_URL: ${AUTH_URL}
+      AUTH_TRUST_HOST: ${AUTH_TRUST_HOST:-true}
+      SEED_MASTER_EMAIL: ${SEED_MASTER_EMAIL:-}
+      SEED_MASTER_PASSWORD: ${SEED_MASTER_PASSWORD:-}
+      SEED_MASTER_NAME: ${SEED_MASTER_NAME:-Admin}
+      LOCAL_STORAGE_PATH: /app/storage
+      S3_ENABLED: ${S3_ENABLED:-false}
+    ports:
+      - "${PORT:-7250}:${PORT:-7250}"
+    volumes:
+      - desparcele_storage:/app/storage
+
+volumes:
+  desparcele_storage:

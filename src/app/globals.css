@@ -1,0 +1,438 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+html {
+  scrollbar-width: thin;
+  scrollbar-color: #0c6b5c #efe6d8;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #0c6b5c #efe6d8;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: #efe6d8;
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #148576 0%, #0c6b5c 100%);
+  border: 2px solid #efe6d8;
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: #08483e;
+}
+
+*::-webkit-scrollbar-corner {
+  background: #efe6d8;
+}
+
+body {
+  @apply bg-paper text-ink antialiased;
+  background-image:
+    radial-gradient(circle at 12% 8%, rgba(12, 107, 92, 0.08), transparent 32%),
+    radial-gradient(circle at 88% 0%, rgba(192, 86, 33, 0.08), transparent 28%);
+}
+
+.field {
+  @apply w-full rounded-2xl border border-line bg-white px-4 py-3 text-ink outline-none transition focus:border-pine;
+}
+
+.btn-primary {
+  @apply inline-flex items-center justify-center gap-2 rounded-full bg-pine px-5 py-3 text-sm font-semibold text-white transition duration-300 hover:bg-pine-dark active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60;
+}
+
+.btn-ghost {
+  @apply inline-flex items-center justify-center gap-2 rounded-full border border-line bg-white px-5 py-3 text-sm font-medium text-ink transition duration-300 hover:border-pine hover:text-pine active:scale-[0.98] disabled:opacity-60;
+}
+
+.sheet {
+  @apply rounded-3xl border border-line bg-card p-4 shadow-sheet transition duration-300 sm:p-5;
+}
+
+@media (hover: hover) {
+  .sheet:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 22px 44px -24px rgba(26, 22, 18, 0.34);
+  }
+
+  .sheet-lift:hover {
+    transform: translateY(-2px);
+  }
+}
+
+.choice {
+  @apply cursor-pointer;
+}
+
+.choice-card {
+  @apply flex min-h-14 items-center justify-center rounded-2xl border border-line bg-white text-sm font-medium;
+}
+
+.nav-link {
+  @apply inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm text-ink/70 transition duration-300 hover:text-ink;
+}
+
+.nav-link-active {
+  @apply bg-white text-ink shadow-sm;
+}
+
+.prose-note p {
+  @apply mb-2 last:mb-0;
+}
+
+.prose-note ul {
+  @apply mb-2 list-disc pl-5;
+}
+
+.prose-note ol {
+  @apply mb-2 list-decimal pl-5;
+}
+
+.prose-note a {
+  @apply font-medium text-pine underline;
+}
+
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.usage-track {
+  box-shadow:
+    inset 0 1px 2px rgba(26, 22, 18, 0.08),
+    0 0 0 1px rgba(228, 216, 200, 0.7);
+  background-image: repeating-linear-gradient(
+    90deg,
+    rgba(26, 22, 18, 0.045) 0,
+    rgba(26, 22, 18, 0.045) 1px,
+    transparent 1px,
+    transparent 12.5%
+  );
+}
+
+.usage-fill {
+  box-shadow:
+    0 0 16px rgba(12, 107, 92, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.usage-knob {
+  box-shadow: 0 6px 14px -8px rgba(12, 107, 92, 0.7);
+}
+
+@keyframes scroll-hint-down {
+  0%,
+  100% {
+    transform: translate(-50%, 0);
+  }
+  50% {
+    transform: translate(-50%, 4px);
+  }
+}
+
+.scroll-hint-down {
+  animation: scroll-hint-down 1.4s ease-in-out infinite;
+}
+
+@keyframes dialog-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes dialog-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.dialog-overlay {
+  animation: dialog-overlay-in 0.16s ease-out both;
+}
+
+.dialog-panel {
+  animation: dialog-panel-in 0.2s ease-out both;
+}
+
+.orb {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(52px);
+  opacity: 0.55;
+  animation: orb-drift 16s ease-in-out infinite;
+}
+
+.orb-a {
+  top: -5rem;
+  left: -4rem;
+  width: 18rem;
+  height: 18rem;
+  background: rgba(12, 107, 92, 0.18);
+}
+
+.orb-b {
+  top: 30%;
+  right: -5rem;
+  width: 16rem;
+  height: 16rem;
+  background: rgba(192, 86, 33, 0.12);
+  animation-delay: -7s;
+}
+
+@keyframes orb-drift {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(18px, 22px) scale(1.08);
+  }
+}
+
+.progress-fill {
+  transform-origin: left center;
+  animation: progress-fill 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes progress-fill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.splash-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #f4efe6;
+  color: #1a1612;
+}
+
+.splash-screen-out {
+  animation: splash-leave 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  pointer-events: none;
+}
+
+.splash-glow {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(64px);
+  pointer-events: none;
+}
+
+.splash-glow-a {
+  top: 18%;
+  left: 50%;
+  width: 18rem;
+  height: 18rem;
+  background: rgba(12, 107, 92, 0.22);
+  transform: translateX(-70%);
+  animation: splash-glow 3.6s ease-in-out infinite;
+}
+
+.splash-glow-b {
+  bottom: 16%;
+  right: 18%;
+  width: 14rem;
+  height: 14rem;
+  background: rgba(192, 86, 33, 0.12);
+  animation: splash-glow 4.2s ease-in-out infinite reverse;
+}
+
+.splash-core {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.5rem;
+}
+
+.splash-mark {
+  animation: splash-mark-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.splash-mark svg rect {
+  transform-box: fill-box;
+  transform-origin: left center;
+  animation: splash-sheet 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.splash-mark svg path:nth-of-type(1) {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: splash-sheet 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.08s both;
+}
+
+.splash-mark svg path:nth-of-type(2) {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: splash-check 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.28s both;
+}
+
+.splash-word {
+  margin-top: 1.25rem;
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-size: 2.35rem;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  animation: splash-copy 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.22s both;
+}
+
+.splash-kicker {
+  margin-top: 0.7rem;
+  font-size: 0.9rem;
+  color: rgba(26, 22, 18, 0.55);
+  animation: splash-copy 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.32s both;
+}
+
+.splash-track {
+  margin-top: 1.6rem;
+  width: 8.5rem;
+  height: 3px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(12, 107, 92, 0.14);
+}
+
+.splash-bar {
+  display: block;
+  height: 100%;
+  width: 42%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #0b4038, #0c6b5c, #2d6a4f);
+  animation: splash-bar 1.15s ease-in-out infinite;
+}
+
+@keyframes splash-mark-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes splash-sheet {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes splash-check {
+  from {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes splash-copy {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes splash-bar {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(280%);
+  }
+}
+
+@keyframes splash-glow {
+  0%,
+  100% {
+    opacity: 0.7;
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(12px, 8px) scale(1.08);
+  }
+}
+
+@keyframes splash-leave {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orb,
+  .progress-fill,
+  .dialog-overlay,
+  .dialog-panel,
+  .scroll-hint-down,
+  .splash-mark,
+  .splash-word,
+  .splash-kicker,
+  .splash-bar,
+  .splash-glow {
+    animation: none !important;
+  }
+
+  .sheet:hover {
+    transform: none;
+  }
+}

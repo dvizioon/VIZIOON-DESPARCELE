@@ -1,0 +1,14 @@
+node_modules
+.next
+out
+.vercel
+*.tsbuildinfo
+.env
+.env*.local
+prisma/*.db
+prisma/*.db-journal
+uploads/**
+!uploads/.gitkeep
+storage/**
+!storage/.gitkeep
+.DS_Store

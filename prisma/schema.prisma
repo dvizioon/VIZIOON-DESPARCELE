@@ -1,0 +1,225 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum WorkspaceType {
+  PERSONAL
+  SHARED
+}
+
+enum WorkspaceRole {
+  ADMIN
+  EDITOR
+  VIEWER
+}
+
+enum SystemRole {
+  MEMBER
+  ADMIN
+}
+
+enum EmailBodyFormat {
+  HTML
+  TEXT
+}
+
+enum EmailOutboxStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+enum InstallmentStatus {
+  PENDING
+  PAID
+}
+
+model User {
+  id           String     @id @default(cuid())
+  name         String
+  email        String     @unique
+  passwordHash String
+  systemRole   SystemRole @default(MEMBER)
+  disabledAt   DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  ownedWorkspaces  Workspace[]          @relation("WorkspaceOwner")
+  memberships      WorkspaceMember[]
+  ownedDebts       Debt[]               @relation("DebtOwner")
+  createdDebts     Debt[]               @relation("DebtCreator")
+  paidInstallments Installment[]        @relation("InstallmentPayer")
+  notes            DebtNote[]
+  passwordResets   PasswordResetToken[]
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Workspace {
+  id         String        @id @default(cuid())
+  name       String
+  type       WorkspaceType
+  ownerId    String
+  archivedAt DateTime?
+  deletedAt  DateTime?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  owner   User              @relation("WorkspaceOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  members WorkspaceMember[]
+  debts   Debt[]
+
+  @@index([ownerId])
+  @@index([archivedAt])
+  @@index([deletedAt])
+}
+
+model WorkspaceMember {
+  workspaceId String
+  userId      String
+  role        WorkspaceRole
+  createdAt   DateTime      @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([workspaceId, userId])
+  @@index([userId])
+}
+
+model Debt {
+  id               String   @id @default(cuid())
+  workspaceId      String
+  name             String
+  totalAmount      Decimal  @db.Decimal(12, 2)
+  installmentCount Int
+  ownerId          String
+  createdById      String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  workspace    Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  owner        User          @relation("DebtOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  createdBy    User          @relation("DebtCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  installments Installment[]
+  notes        DebtNote[]
+
+  @@index([workspaceId])
+  @@index([ownerId])
+}
+
+model DebtNote {
+  id        String   @id @default(cuid())
+  debtId    String
+  authorId  String
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  debt        Debt           @relation(fields: [debtId], references: [id], onDelete: Cascade)
+  author      User           @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  attachments DebtNoteFile[]
+
+  @@index([debtId])
+}
+
+model DebtNoteFile {
+  id        String   @id @default(cuid())
+  noteId    String
+  url       String
+  filename  String
+  mimeType  String
+  createdAt DateTime @default(now())
+
+  note DebtNote @relation(fields: [noteId], references: [id], onDelete: Cascade)
+}
+
+model Installment {
+  id           String            @id @default(cuid())
+  debtId       String
+  number       Int
+  amount       Decimal           @db.Decimal(12, 2)
+  dueDate      DateTime
+  status       InstallmentStatus @default(PENDING)
+  paidByUserId String?
+  receiptUrl   String?
+  paidAt       DateTime?
+
+  debt   Debt  @relation(fields: [debtId], references: [id], onDelete: Cascade)
+  paidBy User? @relation("InstallmentPayer", fields: [paidByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([debtId, number])
+  @@index([dueDate, status])
+}
+
+model EmailProvider {
+  id          String   @id @default(cuid())
+  name        String
+  host        String
+  port        Int      @default(587)
+  secure      Boolean  @default(false)
+  username    String?
+  password    String?
+  fromAddress String
+  replyTo     String?
+  active      Boolean  @default(true)
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  routes EmailPurposeRoute[]
+  outbox EmailOutbox[]
+}
+
+model EmailPurposeRoute {
+  id              String          @id @default(cuid())
+  purpose         String          @unique
+  providerId      String?
+  subjectTemplate String
+  bodyTemplate    String          @db.Text
+  bodyFormat      EmailBodyFormat @default(HTML)
+  active          Boolean         @default(true)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  provider EmailProvider? @relation(fields: [providerId], references: [id], onDelete: SetNull)
+
+  @@index([providerId])
+}
+
+model EmailOutbox {
+  id         String            @id @default(cuid())
+  purpose    String
+  providerId String?
+  toEmail    String
+  subject    String
+  body       String            @db.Text
+  format     EmailBodyFormat
+  status     EmailOutboxStatus @default(PENDING)
+  error      String?
+  attempts   Int               @default(0)
+  variables  Json?
+  sentAt     DateTime?
+  createdAt  DateTime          @default(now())
+
+  provider EmailProvider? @relation(fields: [providerId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([purpose])
+}
