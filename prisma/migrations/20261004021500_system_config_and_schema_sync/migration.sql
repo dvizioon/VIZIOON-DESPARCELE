@@ -8,18 +8,13 @@ CREATE TYPE "EmailBodyFormat" AS ENUM ('HTML', 'TEXT');
 CREATE TYPE "EmailOutboxStatus" AS ENUM ('PENDING', 'SENT', 'FAILED');
 
 -- AlterEnum
-BEGIN;
 CREATE TYPE "WorkspaceRole_new" AS ENUM ('ADMIN', 'EDITOR', 'VIEWER');
 ALTER TABLE "WorkspaceMember" ALTER COLUMN "role" TYPE "WorkspaceRole_new" USING (
-  CASE
-    WHEN "role"::text = 'MEMBER' THEN 'EDITOR'
-    ELSE "role"::text
-  END
+  CASE WHEN "role"::text = 'MEMBER' THEN 'EDITOR' ELSE "role"::text END
 )::"WorkspaceRole_new";
 ALTER TYPE "WorkspaceRole" RENAME TO "WorkspaceRole_old";
 ALTER TYPE "WorkspaceRole_new" RENAME TO "WorkspaceRole";
 DROP TYPE "public"."WorkspaceRole_old";
-COMMIT;
 
 -- AlterTable
 ALTER TABLE "User" ADD COLUMN     "systemRole" "SystemRole" NOT NULL DEFAULT 'MEMBER';
