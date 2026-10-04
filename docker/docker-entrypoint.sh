@@ -22,8 +22,6 @@ until pg_isready -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER"; do
   sleep 2
 done
 
-# P3009: limpa marcador failed desta migration (falhou numa tentativa anterior).
-node /opt/prisma-cli/node_modules/prisma/build/index.js migrate resolve --rolled-back 20261004021500_system_config_and_schema_sync --schema=/app/prisma/schema.prisma || true
 node /opt/prisma-cli/node_modules/prisma/build/index.js migrate deploy --schema=/app/prisma/schema.prisma
 
 echo "Seed (usuário inicial)..."
