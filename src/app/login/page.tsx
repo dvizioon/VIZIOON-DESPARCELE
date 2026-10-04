@@ -2,6 +2,8 @@ import { AuthStage } from "@/components/auth/auth-stage";
 import { LoginForm } from "@/components/forms/auth-forms";
 import { getRepositories } from "@/shared/infrastructure/container";
 
+export const dynamic = "force-dynamic";
+
 type LoginPageProps = {
   searchParams: Promise<{ callbackUrl?: string; redefinida?: string; desativada?: string }>;
 };

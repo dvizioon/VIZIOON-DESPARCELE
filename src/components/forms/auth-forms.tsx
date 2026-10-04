@@ -141,7 +141,11 @@ export function LoginForm({
   );
 }
 
-export function RegisterForm({ closed }: { closed?: boolean }) {
+export type RegisterFormProps = {
+  closed?: boolean;
+};
+
+export function RegisterForm({ closed = false }: RegisterFormProps) {
   const [state, action, pending] = useActionState(registerAction, initial);
 
   if (closed) {
