@@ -70,6 +70,21 @@ export class PrismaInstallmentRepository implements InstallmentRepository {
       ),
     );
   }
+
+  async updateDueDates(updates: Array<{ id: string; dueDate: Date }>): Promise<void> {
+    if (updates.length === 0) {
+      return;
+    }
+
+    await prisma.$transaction(
+      updates.map((item) =>
+        prisma.installment.update({
+          where: { id: item.id },
+          data: { dueDate: item.dueDate },
+        }),
+      ),
+    );
+  }
 }
 
 export function mapInstallment(row: {

@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
 import { InstallmentActions } from "@/components/forms/installment-actions";
-import { InstallmentAmountEditor } from "@/components/forms/installment-amount-editor";
 import { NoteComposer } from "@/components/notes/note-composer";
 import { NoteList } from "@/components/notes/note-list";
 import { DebtSettingsModal } from "@/components/debt/debt-settings-modal";
+import { InstallmentsBatchModal } from "@/components/debt/installments-batch-modal";
 import { Reveal } from "@/components/motion/reveal";
 import { AppIcon } from "@/components/ui/icon";
 import { PrismaDebtRepository } from "@/modules/debt/infrastructure/prisma-debt-repository";
@@ -107,54 +107,64 @@ export default async function DebtDetailPage({ params }: DebtDetailPageProps) {
         />
       </section>
 
-      <ul className="grid gap-3">
-        {debt.installments.map((item) => {
-          const paid = item.status === "PAID";
+      <section className="space-y-3" data-reveal>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h3 className="font-display text-2xl">Parcelas</h3>
+          {canEdit ? (
+            <InstallmentsBatchModal
+              debtId={debtId}
+              installments={debt.installments.map((item) => ({
+                id: item.id,
+                number: item.number,
+                amountCents: item.amountCents,
+                dueDate: item.dueDate.toISOString(),
+                status: item.status,
+              }))}
+              workspaceId={workspaceId}
+            />
+          ) : null}
+        </div>
 
-          return (
-            <li className="sheet" data-reveal key={item.id}>
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="flex items-center gap-2 font-medium">
-                    <AppIcon
-                      name={paid ? "tabler:circle-check" : "tabler:clock"}
-                      className={paid ? "size-5 text-moss" : "size-5 text-clay"}
-                    />
-                    Parcela {item.number}
-                  </p>
-                  <p className="mt-1 text-sm text-ink/55">Vence {formatDateFull(item.dueDate)}</p>
-                  {paid ? (
-                    <p className="mt-1 text-sm text-moss">
-                      Paga por {item.paidByName ?? "alguem"}
-                      {item.paidAt ? ` em ${formatDateFull(item.paidAt)}` : ""}
+        <ul className="grid gap-3">
+          {debt.installments.map((item) => {
+            const paid = item.status === "PAID";
+
+            return (
+              <li className="sheet" key={item.id}>
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="flex items-center gap-2 font-medium">
+                      <AppIcon
+                        name={paid ? "tabler:circle-check" : "tabler:clock"}
+                        className={paid ? "size-5 text-moss" : "size-5 text-clay"}
+                      />
+                      Parcela {item.number}
                     </p>
-                  ) : null}
+                    <p className="mt-1 text-sm text-ink/55">Vence {formatDateFull(item.dueDate)}</p>
+                    {paid ? (
+                      <p className="mt-1 text-sm text-moss">
+                        Paga por {item.paidByName ?? "alguem"}
+                        {item.paidAt ? ` em ${formatDateFull(item.paidAt)}` : ""}
+                      </p>
+                    ) : null}
+                  </div>
+                  <p className="font-display text-2xl">{formatBRL(item.amountCents)}</p>
                 </div>
+
                 {canEdit ? (
-                  <InstallmentAmountEditor
-                    amountCents={item.amountCents}
+                  <InstallmentActions
                     debtId={debtId}
                     installmentId={item.id}
+                    paid={paid}
+                    receiptUrl={item.receiptUrl}
                     workspaceId={workspaceId}
                   />
-                ) : (
-                  <p className="font-display text-2xl">{formatBRL(item.amountCents)}</p>
-                )}
-              </div>
-
-              {canEdit ? (
-                <InstallmentActions
-                  debtId={debtId}
-                  installmentId={item.id}
-                  paid={paid}
-                  receiptUrl={item.receiptUrl}
-                  workspaceId={workspaceId}
-                />
-              ) : null}
-            </li>
-          );
-        })}
-      </ul>
+                ) : null}
+              </li>
+            );
+          })}
+        </ul>
+      </section>
     </Reveal>
   );
 }

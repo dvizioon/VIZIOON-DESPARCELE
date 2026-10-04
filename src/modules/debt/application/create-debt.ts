@@ -1,4 +1,5 @@
 import { generateInstallments } from "@/modules/installment/domain/generate-installments";
+import { addMonths } from "@/shared/utils/date";
 import { canEditContent } from "@/modules/workspace/domain/workspace";
 import type { WorkspaceRepository } from "@/modules/workspace/domain/workspace-repository";
 import { fail, ok, type Result } from "@/shared/types/result";
@@ -9,12 +10,13 @@ export interface CreateDebtInput {
   workspaceId: string;
   actorId: string;
   name: string;
-  totalAmountCents: number;
   installmentCount: number;
   isLoan?: boolean;
   ownerId: string;
   firstDueDate: Date;
-  firstAmountCents?: number;
+  installmentAmountsCents?: number[];
+  installmentDueDates?: Date[];
+  totalAmountCents?: number;
 }
 
 export async function createDebt(
@@ -37,34 +39,49 @@ export async function createDebt(
     return fail("INVALID_NAME", "Informe o nome da divida");
   }
 
-  if (input.totalAmountCents < 100) {
-    return fail("INVALID_AMOUNT", "Valor minimo de R$ 1,00");
-  }
-
   if (input.installmentCount < 1 || input.installmentCount > 360) {
     return fail("INVALID_COUNT", "Parcelas entre 1 e 360");
   }
 
-  if (
-    input.firstAmountCents != null &&
-    (input.firstAmountCents < 1 ||
-      input.firstAmountCents >= input.totalAmountCents ||
-      (input.installmentCount === 1 && input.firstAmountCents !== input.totalAmountCents))
-  ) {
-    return fail("INVALID_FIRST", "Valor da 1a parcela precisa ser menor que o total");
-  }
+  let installments;
+  let totalAmountCents: number;
 
-  const installments = generateInstallments(
-    input.totalAmountCents,
-    input.installmentCount,
-    input.firstDueDate,
-    input.firstAmountCents,
-  );
+  if (input.installmentAmountsCents && input.installmentAmountsCents.length > 0) {
+    if (input.installmentAmountsCents.length !== input.installmentCount) {
+      return fail("INVALID_AMOUNTS", "Quantidade de valores nao bate com as parcelas");
+    }
+    if (input.installmentAmountsCents.some((value) => value < 1)) {
+      return fail("INVALID_AMOUNT", "Cada parcela precisa de pelo menos R$ 0,01");
+    }
+    if (
+      input.installmentDueDates &&
+      input.installmentDueDates.length !== input.installmentCount
+    ) {
+      return fail("INVALID_DATES", "Quantidade de datas nao bate com as parcelas");
+    }
+    totalAmountCents = input.installmentAmountsCents.reduce((sum, value) => sum + value, 0);
+    installments = input.installmentAmountsCents.map((amountCents, index) => ({
+      number: index + 1,
+      amountCents,
+      dueDate:
+        input.installmentDueDates?.[index] ?? addMonths(input.firstDueDate, index),
+    }));
+  } else {
+    totalAmountCents = input.totalAmountCents ?? 0;
+    if (totalAmountCents < 100) {
+      return fail("INVALID_AMOUNT", "Valor minimo de R$ 1,00");
+    }
+    installments = generateInstallments(
+      totalAmountCents,
+      input.installmentCount,
+      input.firstDueDate,
+    );
+  }
 
   const debt = await debts.create({
     workspaceId: input.workspaceId,
     name,
-    totalAmountCents: input.totalAmountCents,
+    totalAmountCents,
     installmentCount: input.installmentCount,
     isLoan: Boolean(input.isLoan),
     ownerId: input.ownerId,

@@ -1,0 +1,293 @@
+"use client";
+
+import { useActionState, useMemo, useState } from "react";
+import { createDebtAction } from "@/app/actions/debt";
+import type { ActionState } from "@/app/actions/auth";
+import { FormError } from "@/components/forms/auth-forms";
+import { NoteEditor } from "@/components/notes/note-editor";
+import { SearchSelect } from "@/components/ui/search-select";
+import { generateInstallments } from "@/modules/installment/domain/generate-installments";
+import { addMonths, parseDateInput } from "@/shared/utils/date";
+import { formatBRL, parseBRLInput } from "@/shared/utils/money";
+
+const initial: ActionState = { error: null };
+
+export type DebtCreateMember = {
+  userId: string;
+  userName: string;
+  userEmail?: string;
+};
+
+type PreviewRow = {
+  number: number;
+  amountInput: string;
+  dueDate: string;
+};
+
+function centsToInput(cents: number): string {
+  return (cents / 100).toFixed(2).replace(".", ",");
+}
+
+function toDateInput(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+export function DebtCreateForm({
+  workspaceId,
+  members,
+  currentUserId,
+  defaultDueDate,
+  shared,
+}: {
+  workspaceId: string;
+  members: DebtCreateMember[];
+  currentUserId: string;
+  defaultDueDate: string;
+  shared: boolean;
+}) {
+  const action = createDebtAction.bind(null, workspaceId);
+  const [state, formAction, pending] = useActionState(action, initial);
+  const [ownerId, setOwnerId] = useState(currentUserId);
+  const [note, setNote] = useState("");
+  const [step, setStep] = useState<"setup" | "preview">("setup");
+  const [localError, setLocalError] = useState<string | null>(null);
+
+  const [name, setName] = useState("");
+  const [totalAmount, setTotalAmount] = useState("");
+  const [installmentCount, setInstallmentCount] = useState("");
+  const [firstDueDate, setFirstDueDate] = useState(defaultDueDate);
+  const [isLoan, setIsLoan] = useState(false);
+  const [preview, setPreview] = useState<PreviewRow[]>([]);
+
+  const previewTotalCents = useMemo(() => {
+    return preview.reduce((sum, row) => {
+      try {
+        return sum + parseBRLInput(row.amountInput);
+      } catch {
+        return sum;
+      }
+    }, 0);
+  }, [preview]);
+
+  function buildPreview() {
+    setLocalError(null);
+    try {
+      const totalCents = parseBRLInput(totalAmount);
+      const count = Number(installmentCount);
+      if (!Number.isInteger(count) || count < 1 || count > 360) {
+        setLocalError("Parcelas entre 1 e 360");
+        return;
+      }
+      if (name.trim().length < 2) {
+        setLocalError("Informe o nome da dívida");
+        return;
+      }
+      const due = parseDateInput(firstDueDate);
+      const rows = generateInstallments(totalCents, count, due).map((item) => ({
+        number: item.number,
+        amountInput: centsToInput(item.amountCents),
+        dueDate: toDateInput(item.dueDate),
+      }));
+      setPreview(rows);
+      setStep("preview");
+    } catch {
+      setLocalError("Valor ou data inválidos");
+    }
+  }
+
+  function updateAmount(index: number, value: string) {
+    setPreview((rows) =>
+      rows.map((row, i) => (i === index ? { ...row, amountInput: value } : row)),
+    );
+  }
+
+  function updateDueDate(index: number, value: string) {
+    setPreview((rows) => {
+      const next = rows.map((row, i) => (i === index ? { ...row, dueDate: value } : row));
+      try {
+        const base = parseDateInput(value);
+        for (let i = index + 1; i < next.length; i += 1) {
+          next[i] = {
+            ...next[i]!,
+            dueDate: toDateInput(addMonths(base, i - index)),
+          };
+        }
+      } catch {
+        // deixa só a linha editada
+      }
+      return next;
+    });
+  }
+
+  const amountsHidden = preview
+    .map((row) => {
+      try {
+        return String(parseBRLInput(row.amountInput));
+      } catch {
+        return "0";
+      }
+    })
+    .join(",");
+
+  if (step === "preview") {
+    return (
+      <form action={formAction} className="space-y-4">
+        <input name="name" type="hidden" value={name} />
+        <input name="installmentCount" type="hidden" value={String(preview.length)} />
+        <input name="firstDueDate" type="hidden" value={preview[0]?.dueDate ?? firstDueDate} />
+        <input name="ownerId" type="hidden" value={shared ? ownerId : currentUserId} />
+        <input name="isLoan" type="hidden" value={isLoan ? "1" : "0"} />
+        <input name="note" type="hidden" value={note} />
+        <input name="installmentAmounts" type="hidden" value={amountsHidden} />
+        <input name="installmentDueDates" type="hidden" value={preview.map((r) => r.dueDate).join(",")} />
+
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="text-sm text-ink/50">Preview</p>
+            <h3 className="font-display text-2xl">{name}</h3>
+            <p className="mt-1 text-sm text-ink/60">
+              Mexeu em uma parcela? As outras ficam. O total vira a soma.
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-sm text-ink/50">Total</p>
+            <p className="font-display text-2xl">{formatBRL(previewTotalCents)}</p>
+          </div>
+        </div>
+
+        <ul className="max-h-72 space-y-2 overflow-y-auto rounded-2xl border border-line bg-white/50 p-3">
+          {preview.map((row, index) => (
+            <li
+              className="grid grid-cols-[auto_1fr_7rem] items-center gap-2 rounded-xl px-1 py-1.5 sm:grid-cols-[4rem_1fr_8rem]"
+              key={row.number}
+            >
+              <span className="text-sm font-medium text-ink/70">#{row.number}</span>
+              <input
+                className="field py-2 text-sm"
+                onChange={(event) => updateDueDate(index, event.target.value)}
+                type="date"
+                value={row.dueDate}
+              />
+              <input
+                className="field py-2 text-right text-sm"
+                onChange={(event) => updateAmount(index, event.target.value)}
+                value={row.amountInput}
+              />
+            </li>
+          ))}
+        </ul>
+
+        {(localError || state.error) ? <FormError message={localError ?? state.error!} /> : null}
+
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <button
+            className="btn-ghost w-full"
+            disabled={pending}
+            onClick={() => setStep("setup")}
+            type="button"
+          >
+            Voltar
+          </button>
+          <button className="btn-primary w-full" disabled={pending} type="submit">
+            {pending ? "Salvando..." : "Confirmar e gerar"}
+          </button>
+        </div>
+      </form>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <label className="block space-y-1.5">
+        <span className="text-sm text-ink/70">Nome</span>
+        <input
+          className="field"
+          onChange={(event) => setName(event.target.value)}
+          placeholder="Cartão, financiamento, loja"
+          value={name}
+        />
+      </label>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label className="block space-y-1.5">
+          <span className="text-sm text-ink/70">Valor total</span>
+          <input
+            className="field"
+            onChange={(event) => setTotalAmount(event.target.value)}
+            placeholder="6425,00"
+            value={totalAmount}
+          />
+        </label>
+        <label className="block space-y-1.5">
+          <span className="text-sm text-ink/70">Parcelas</span>
+          <input
+            className="field"
+            max={360}
+            min={1}
+            onChange={(event) => setInstallmentCount(event.target.value)}
+            type="number"
+            value={installmentCount}
+          />
+        </label>
+      </div>
+      <label className="block space-y-1.5">
+        <span className="text-sm text-ink/70">Primeiro vencimento</span>
+        <input
+          className="field"
+          onChange={(event) => setFirstDueDate(event.target.value)}
+          type="date"
+          value={firstDueDate}
+        />
+      </label>
+      {shared ? (
+        <label className="block space-y-1.5">
+          <span className="text-sm text-ink/70">De quem é a dívida</span>
+          <SearchSelect
+            name="ownerId"
+            options={members.map((member) => ({
+              value: member.userId,
+              label: member.userName,
+              hint: member.userEmail,
+            }))}
+            placeholder="Escolher pessoa"
+            searchPlaceholder="Buscar pelo nome"
+            value={ownerId}
+            onChange={setOwnerId}
+          />
+        </label>
+      ) : null}
+      <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-line bg-white/60 px-3 py-3">
+        <input
+          checked={isLoan}
+          className="mt-1 size-4 accent-[var(--pine)]"
+          onChange={(event) => setIsLoan(event.target.checked)}
+          type="checkbox"
+        />
+        <span>
+          <span className="block text-sm font-medium text-ink">Empréstimo</span>
+          <span className="mt-0.5 block text-xs text-ink/55">
+            No vencimento a parcela fica paga sozinha.
+          </span>
+        </span>
+      </label>
+      <label className="block space-y-1.5">
+        <span className="text-sm text-ink/70">Nota</span>
+        <NoteEditor
+          height={180}
+          placeholder="O que combina lembrar: acordo, loja, por que parcelou..."
+          value={note}
+          onChange={setNote}
+        />
+      </label>
+      <p className="text-xs text-ink/55">
+        No próximo passo você vê as parcelas, ajusta valores (juros, entrada…) e o total acompanha a soma.
+      </p>
+      {(localError || state.error) ? <FormError message={localError ?? state.error!} /> : null}
+      <button className="btn-primary w-full" onClick={buildPreview} type="button">
+        Ver parcelas
+      </button>
+    </div>
+  );
+}
