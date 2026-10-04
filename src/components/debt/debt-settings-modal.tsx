@@ -230,7 +230,7 @@ function DebtSettingsDialog({
                 checked={payAuto}
                 description="No vencimento a parcela é marcada como paga sozinha."
                 disabled={togglePending}
-                label="Baixa automática"
+                label="Empréstimo"
                 onChange={(next) => {
                   setPayAuto(next);
                   setTogglePending(true);

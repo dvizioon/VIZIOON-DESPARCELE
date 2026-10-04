@@ -375,9 +375,9 @@ export function DebtCreateForm({
           type="checkbox"
         />
         <span>
-          <span className="block text-sm font-medium text-ink">Baixa automática</span>
+          <span className="block text-sm font-medium text-ink">Empréstimo</span>
           <span className="mt-0.5 block text-xs text-ink/55">
-            No vencimento a parcela fica paga sozinha.
+            Já desconta na conta; no vencimento a parcela fica paga sozinha.
           </span>
         </span>
       </label>

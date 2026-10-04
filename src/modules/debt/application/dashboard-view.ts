@@ -1,4 +1,5 @@
 import { firstName } from "@/modules/auth/domain/user";
+import type { DebtKind } from "@/modules/debt/domain/debt";
 import { canEditContent } from "@/modules/workspace/domain/workspace";
 import { addMonths, toDateInputValue } from "@/shared/utils/date";
 import type { DashboardData } from "./get-dashboard";
@@ -20,6 +21,7 @@ export interface DashboardUpcomingView {
   dueDate: string;
   overdue: boolean;
   autoPay: boolean;
+  kind: DebtKind;
 }
 
 export interface DashboardView {
@@ -59,6 +61,7 @@ export interface DashboardView {
     ownerId: string;
     ownerName: string;
     autoPay: boolean;
+    kind: DebtKind;
     remainingCents: number;
     paidCents: number;
     remainingCount: number;
@@ -104,6 +107,7 @@ export function toDashboardView(data: DashboardData): DashboardView {
       dueDate: item.dueDate.toISOString(),
       overdue: item.overdue,
       autoPay: item.autoPay,
+      kind: item.kind,
     })),
     scores: data.scores.map((score) => ({
       ...score,

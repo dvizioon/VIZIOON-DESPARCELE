@@ -96,7 +96,7 @@ export default async function DebtDetailPage({ params }: DebtDetailPageProps) {
           {debt.autoPay ? (
             <p className="inline-flex items-center gap-1.5 rounded-full bg-pine-soft px-2.5 py-1 text-xs font-medium text-pine-dark">
               <AppIcon name="tabler:building-bank" className="size-3.5" />
-              Baixa automática
+              Empréstimo
             </p>
           ) : null}
           {debt.remindersEnabled ? (

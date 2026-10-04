@@ -471,7 +471,7 @@ function DebtBadges({
       ) : null}
       {debt.autoPay ? (
         <DebtBadge icon="tabler:building-bank" tone="pine">
-          Baixa auto
+          Empréstimo
         </DebtBadge>
       ) : null}
       {isAdmin && debt.hideMode !== "NONE" ? (

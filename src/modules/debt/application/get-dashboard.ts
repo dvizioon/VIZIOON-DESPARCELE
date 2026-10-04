@@ -7,7 +7,7 @@ import { calculatePriority } from "@/modules/payment-priority/application/calcul
 import type { PrioritySuggestion } from "@/modules/payment-priority/domain/priority-strategy";
 import type { WorkspaceAccess } from "@/modules/workspace/application/require-workspace-access";
 import { endOfMonth, startOfMonth } from "@/shared/utils/date";
-import type { DebtWithInstallments } from "../domain/debt";
+import type { DebtKind, DebtWithInstallments } from "../domain/debt";
 
 export interface UpcomingInstallment {
   installmentId: string;
@@ -20,6 +20,7 @@ export interface UpcomingInstallment {
   dueDate: Date;
   overdue: boolean;
   autoPay: boolean;
+  kind: DebtKind;
 }
 
 export interface MemberScore {
@@ -37,6 +38,7 @@ export interface DebtSlice {
   ownerId: string;
   ownerName: string;
   autoPay: boolean;
+  kind: DebtKind;
   remainingCents: number;
   paidCents: number;
   remainingCount: number;
@@ -85,6 +87,7 @@ export function buildDashboard(
         dueDate: item.dueDate,
         overdue: item.dueDate < today,
         autoPay: debt.autoPay,
+        kind: debt.kind,
       })),
   );
 
@@ -168,6 +171,7 @@ export function buildDashboard(
       ownerId: debt.ownerId,
       ownerName: debt.ownerName,
       autoPay: debt.autoPay,
+      kind: debt.kind,
       remainingCents: remainingAmountCents(debt.installments),
       paidCents: debt.totalAmountCents - remainingAmountCents(debt.installments),
       remainingCount: remainingInstallments(debt.installments),

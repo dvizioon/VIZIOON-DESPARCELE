@@ -7,16 +7,16 @@ import { FilterPills } from "@/components/motion/filter-pills";
 import { Reveal } from "@/components/motion/reveal";
 import { AppIcon } from "@/components/ui/icon";
 import type { DashboardView } from "@/modules/debt/application/dashboard-view";
+import type { DebtKind } from "@/modules/debt/domain/debt";
 import { formatDate } from "@/shared/utils/date";
 import { formatBRL } from "@/shared/utils/money";
 
 type OwnerFilter = "all" | "mine" | string;
-/** manual = sem baixa automática (você paga); auto = só baixa auto; all = tudo */
-type PayFilter = "manual" | "auto" | "all";
 
 export function MonthTotals({ data }: { data: DashboardView }) {
   const [ownerFilter, setOwnerFilter] = useState<OwnerFilter>("all");
-  const [payFilter, setPayFilter] = useState<PayFilter>("manual");
+  const [includeLoan, setIncludeLoan] = useState(false);
+  const [includeRecurring, setIncludeRecurring] = useState(false);
 
   const other = data.members.find((member) => member.userId !== data.currentUserId);
   const theirsLabel = other && data.members.length === 2 ? other.firstName : "Outras";
@@ -31,23 +31,23 @@ export function MonthTotals({ data }: { data: DashboardView }) {
       if (!matchesOwner(item.ownerId, data.currentUserId, ownerFilter)) {
         return false;
       }
-      if (!matchesPay(item.autoPay, payFilter)) {
+      if (!matchesInclude(item.autoPay, item.kind, includeLoan, includeRecurring)) {
         return false;
       }
 
       const due = new Date(item.dueDate);
       return due.getMonth() === now.getMonth() && due.getFullYear() === now.getFullYear();
     });
-  }, [data, ownerFilter, payFilter]);
+  }, [data, ownerFilter, includeLoan, includeRecurring]);
 
   const overdueItems = useMemo(() => {
     return data.upcoming.filter(
       (item) =>
         item.overdue &&
         matchesOwner(item.ownerId, data.currentUserId, ownerFilter) &&
-        matchesPay(item.autoPay, payFilter),
+        matchesInclude(item.autoPay, item.kind, includeLoan, includeRecurring),
     );
-  }, [data, ownerFilter, payFilter]);
+  }, [data, ownerFilter, includeLoan, includeRecurring]);
 
   const monthDueCents = monthItems.reduce((sum, item) => sum + item.amountCents, 0);
   const overdueCents = overdueItems.reduce((sum, item) => sum + item.amountCents, 0);
@@ -58,7 +58,7 @@ export function MonthTotals({ data }: { data: DashboardView }) {
       (item) =>
         item.id === data.suggestion?.debtId &&
         matchesOwner(item.ownerId, data.currentUserId, ownerFilter) &&
-        matchesPay(item.autoPay, payFilter),
+        matchesInclude(item.autoPay, item.kind, includeLoan, includeRecurring),
     );
 
   return (
@@ -67,8 +67,8 @@ export function MonthTotals({ data }: { data: DashboardView }) {
         <p className="text-sm capitalize text-ink/55">{monthLabel}</p>
         <h2 className="mt-1 font-display text-3xl sm:text-4xl">Devido no mês</h2>
         <p className="mt-2 max-w-xl text-sm text-ink/60">
-          Só parcelas ainda não pagas com vencimento neste mês. Baixa automática fica de fora no
-          filtro padrão (desconta sozinha da conta).
+          Parcelas em aberto deste mês. Por padrão fica fora o que já desconta na conta
+          (empréstimo) e o que é recorrente — marque abaixo se quiser somar.
         </p>
         <p className="mt-5 font-display text-4xl text-pine-dark sm:text-5xl">
           <CountUpMoney cents={monthDueCents} />
@@ -121,18 +121,19 @@ export function MonthTotals({ data }: { data: DashboardView }) {
         </article>
       </section>
 
-      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap" data-reveal>
-        <FilterPills watch={payFilter}>
-          <FilterChip active={payFilter === "manual"} onClick={() => setPayFilter("manual")}>
-            Eu pago
-          </FilterChip>
-          <FilterChip active={payFilter === "auto"} onClick={() => setPayFilter("auto")}>
-            Baixa automática
-          </FilterChip>
-          <FilterChip active={payFilter === "all"} onClick={() => setPayFilter("all")}>
-            Tudo
-          </FilterChip>
-        </FilterPills>
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center" data-reveal>
+        <div className="flex flex-wrap gap-2">
+          <IncludeCheck
+            checked={includeLoan}
+            label="Empréstimo"
+            onChange={setIncludeLoan}
+          />
+          <IncludeCheck
+            checked={includeRecurring}
+            label="Recorrência"
+            onChange={setIncludeRecurring}
+          />
+        </div>
         {data.shared ? (
           <FilterPills watch={ownerFilter}>
             <FilterChip active={ownerFilter === "all"} onClick={() => setOwnerFilter("all")}>
@@ -171,7 +172,7 @@ export function MonthTotals({ data }: { data: DashboardView }) {
                     <p className="text-sm text-ink/55">
                       Parcela {item.number}
                       {data.shared ? ` · ${item.ownerName}` : ""}
-                      {item.autoPay ? " · baixa auto" : ""}
+                      {itemTag(item.autoPay, item.kind)}
                     </p>
                   </div>
                   <div className="text-right">
@@ -206,7 +207,7 @@ export function MonthTotals({ data }: { data: DashboardView }) {
                     <p className="text-sm text-ink/55">
                       Parcela {item.number}
                       {data.shared ? ` · ${item.ownerName}` : ""}
-                      {item.autoPay ? " · baixa auto" : ""}
+                      {itemTag(item.autoPay, item.kind)}
                     </p>
                   </div>
                   <div className="text-right">
@@ -235,16 +236,62 @@ function matchesOwner(ownerId: string, currentUserId: string, filter: OwnerFilte
   return ownerId !== currentUserId;
 }
 
-function matchesPay(autoPay: boolean, filter: PayFilter): boolean {
-  if (filter === "all") {
+/** Padrão: só parcelada comum. Marca para somar empréstimo e/ou recorrente. */
+function matchesInclude(
+  autoPay: boolean,
+  kind: DebtKind,
+  includeLoan: boolean,
+  includeRecurring: boolean,
+): boolean {
+  const isLoan = autoPay;
+  const isRecurring = kind === "RECURRING";
+
+  if (!isLoan && !isRecurring) {
     return true;
   }
 
-  if (filter === "auto") {
-    return autoPay;
+  if (isLoan && includeLoan) {
+    return true;
   }
 
-  return !autoPay;
+  if (isRecurring && includeRecurring) {
+    return true;
+  }
+
+  return false;
+}
+
+function itemTag(autoPay: boolean, kind: DebtKind): string {
+  const parts: string[] = [];
+  if (autoPay) {
+    parts.push("empréstimo");
+  }
+  if (kind === "RECURRING") {
+    parts.push("recorrente");
+  }
+  return parts.length ? ` · ${parts.join(" · ")}` : "";
+}
+
+function IncludeCheck({
+  checked,
+  label,
+  onChange,
+}: {
+  checked: boolean;
+  label: string;
+  onChange: (next: boolean) => void;
+}) {
+  return (
+    <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-line bg-white/70 px-3 py-2 text-sm text-ink/80">
+      <input
+        checked={checked}
+        className="size-4 accent-[var(--pine)]"
+        onChange={(event) => onChange(event.target.checked)}
+        type="checkbox"
+      />
+      {label}
+    </label>
+  );
 }
 
 function StatCard({
