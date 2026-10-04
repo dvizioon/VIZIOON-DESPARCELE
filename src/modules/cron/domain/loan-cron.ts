@@ -4,9 +4,32 @@ export type LoanCronSettings = {
   updatedAt: Date | null;
 };
 
+export type RecurringCronSettings = {
+  enabled: boolean;
+  hour: number;
+};
+
+export type ReminderCronSettings = {
+  enabled: boolean;
+  hour: number;
+  daysBefore: number;
+};
+
+export type SystemCronSettings = {
+  loan: LoanCronSettings;
+  recurring: RecurringCronSettings;
+  reminder: ReminderCronSettings;
+  updatedAt: Date | null;
+};
+
+export type CronTaskTypeView =
+  | "LOAN_AUTO_PAY"
+  | "RECURRING_GENERATE"
+  | "INSTALLMENT_REMINDER";
+
 export type CronTaskView = {
   id: string;
-  type: "LOAN_AUTO_PAY";
+  type: CronTaskTypeView;
   status: "PENDING" | "RUNNING" | "DONE" | "FAILED";
   runDate: string;
   scheduledFor: Date;

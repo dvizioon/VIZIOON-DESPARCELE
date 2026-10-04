@@ -2,7 +2,12 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { markPaidAction, removeReceiptAction, revertPaidAction } from "@/app/actions/debt";
+import {
+  markPaidAction,
+  removeReceiptAction,
+  revertPaidAction,
+  setInstallmentReminderDisabledAction,
+} from "@/app/actions/debt";
 import { FormError } from "@/components/forms/auth-forms";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { AppIcon } from "@/components/ui/icon";
@@ -13,6 +18,8 @@ type InstallmentActionsProps = {
   installmentId: string;
   paid: boolean;
   receiptUrl: string | null;
+  reminderDisabled?: boolean;
+  remindersOnDebt?: boolean;
 };
 
 type ConfirmKind = "receipt" | "unpay" | null;
@@ -23,10 +30,13 @@ export function InstallmentActions({
   installmentId,
   paid,
   receiptUrl,
+  reminderDisabled = false,
+  remindersOnDebt = false,
 }: InstallmentActionsProps) {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [confirm, setConfirm] = useState<ConfirmKind>(null);
+  const [noMail, setNoMail] = useState(reminderDisabled);
 
   async function run(task: () => Promise<{ error: string | null }>) {
     setPending(true);
@@ -57,6 +67,34 @@ export function InstallmentActions({
             {pending ? "Salvando..." : "Marcar paga"}
           </button>
         </div>
+        {remindersOnDebt ? (
+          <label className="flex cursor-pointer items-center gap-2 text-sm text-ink/65">
+            <input
+              checked={noMail}
+              className="size-4 accent-[var(--pine)]"
+              disabled={pending}
+              onChange={(event) => {
+                const next = event.target.checked;
+                setNoMail(next);
+                const formData = new FormData();
+                formData.set("disabled", next ? "1" : "0");
+                void setInstallmentReminderDisabledAction(
+                  workspaceId,
+                  debtId,
+                  installmentId,
+                  formData,
+                ).then((result) => {
+                  if (result.error) {
+                    setNoMail(!next);
+                    setError(result.error);
+                  }
+                });
+              }}
+              type="checkbox"
+            />
+            Não avisar esta parcela por e-mail
+          </label>
+        ) : null}
         {error ? <FormError message={error} /> : null}
       </form>
     );

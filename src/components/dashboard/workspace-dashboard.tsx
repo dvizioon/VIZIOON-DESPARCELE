@@ -52,6 +52,9 @@ export function WorkspaceDashboard({ data }: { data: DashboardView }) {
     const now = new Date();
     return data.upcoming
       .filter((item) => {
+        if (item.autoPay) {
+          return false;
+        }
         if (!matchesOwner(item.ownerId, data.currentUserId, ownerFilter)) {
           return false;
         }
@@ -63,6 +66,9 @@ export function WorkspaceDashboard({ data }: { data: DashboardView }) {
   const filteredMonthCount = useMemo(() => {
     const now = new Date();
     return data.upcoming.filter((item) => {
+      if (item.autoPay) {
+        return false;
+      }
       if (!matchesOwner(item.ownerId, data.currentUserId, ownerFilter)) {
         return false;
       }
@@ -94,7 +100,7 @@ export function WorkspaceDashboard({ data }: { data: DashboardView }) {
             <CountUpMoney cents={filteredMonthDue} />
           </p>
           <p className="mt-1 text-sm text-ink/50">
-            {filteredMonthCount} parcelas · ver totais
+            {filteredMonthCount} em aberto (sem baixa auto)
           </p>
         </Link>
         <StatCard

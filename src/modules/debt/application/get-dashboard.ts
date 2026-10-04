@@ -19,6 +19,7 @@ export interface UpcomingInstallment {
   amountCents: number;
   dueDate: Date;
   overdue: boolean;
+  autoPay: boolean;
 }
 
 export interface MemberScore {
@@ -35,6 +36,7 @@ export interface DebtSlice {
   name: string;
   ownerId: string;
   ownerName: string;
+  autoPay: boolean;
   remainingCents: number;
   paidCents: number;
   remainingCount: number;
@@ -82,6 +84,7 @@ export function buildDashboard(
         amountCents: item.amountCents,
         dueDate: item.dueDate,
         overdue: item.dueDate < today,
+        autoPay: debt.autoPay,
       })),
   );
 
@@ -164,6 +167,7 @@ export function buildDashboard(
       name: debt.name,
       ownerId: debt.ownerId,
       ownerName: debt.ownerName,
+      autoPay: debt.autoPay,
       remainingCents: remainingAmountCents(debt.installments),
       paidCents: debt.totalAmountCents - remainingAmountCents(debt.installments),
       remainingCount: remainingInstallments(debt.installments),
@@ -196,7 +200,10 @@ export function toDebtCard(debt: DebtWithInstallments) {
   return {
     id: debt.id,
     name: debt.name,
-    isLoan: debt.isLoan,
+    kind: debt.kind,
+    autoPay: debt.autoPay,
+    remindersEnabled: debt.remindersEnabled,
+    recurringPaused: debt.recurringPausedAt != null,
     hideMode: debt.hideMode,
     hiddenUserIds: debt.hiddenUserIds,
     ownerName: debt.ownerName,

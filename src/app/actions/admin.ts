@@ -6,7 +6,15 @@ import { setAllowPublicSignup } from "@/modules/admin/application/set-allow-publ
 import { setUserDisabled } from "@/modules/admin/application/set-user-disabled";
 import { setUserPassword } from "@/modules/admin/application/set-user-password";
 import { setUserRole } from "@/modules/admin/application/set-user-role";
-import { setLoanCronEnabled, setLoanCronHour } from "@/modules/cron/application/set-loan-cron-settings";
+import {
+  setLoanCronEnabled,
+  setLoanCronHour,
+  setRecurringCronEnabled,
+  setRecurringCronHour,
+  setReminderCronEnabled,
+  setReminderCronHour,
+  setReminderDaysBefore,
+} from "@/modules/cron/application/set-loan-cron-settings";
 import { retryCronTask, tickLoanCron } from "@/modules/cron/application/tick-loan-cron";
 import { requireSystemAdmin } from "@/shared/auth/session";
 import { getRepositories } from "@/shared/infrastructure/container";
@@ -142,6 +150,56 @@ export async function setLoanCronHourAction(hour: number): Promise<ActionState> 
   return { error: null, ok: true };
 }
 
+export async function setRecurringCronEnabledAction(enabled: boolean): Promise<ActionState> {
+  await requireSystemAdmin();
+  const result = await setRecurringCronEnabled(enabled);
+  if (!result.ok) {
+    return { error: result.error.message };
+  }
+  refreshCronSettings();
+  return { error: null, ok: true };
+}
+
+export async function setRecurringCronHourAction(hour: number): Promise<ActionState> {
+  await requireSystemAdmin();
+  const result = await setRecurringCronHour(hour);
+  if (!result.ok) {
+    return { error: result.error.message };
+  }
+  refreshCronSettings();
+  return { error: null, ok: true };
+}
+
+export async function setReminderCronEnabledAction(enabled: boolean): Promise<ActionState> {
+  await requireSystemAdmin();
+  const result = await setReminderCronEnabled(enabled);
+  if (!result.ok) {
+    return { error: result.error.message };
+  }
+  refreshCronSettings();
+  return { error: null, ok: true };
+}
+
+export async function setReminderCronHourAction(hour: number): Promise<ActionState> {
+  await requireSystemAdmin();
+  const result = await setReminderCronHour(hour);
+  if (!result.ok) {
+    return { error: result.error.message };
+  }
+  refreshCronSettings();
+  return { error: null, ok: true };
+}
+
+export async function setReminderDaysBeforeAction(days: number): Promise<ActionState> {
+  await requireSystemAdmin();
+  const result = await setReminderDaysBefore(days);
+  if (!result.ok) {
+    return { error: result.error.message };
+  }
+  refreshCronSettings();
+  return { error: null, ok: true };
+}
+
 export async function processLoanCronNowAction(): Promise<ActionState> {
   await requireSystemAdmin();
   try {
@@ -150,7 +208,7 @@ export async function processLoanCronNowAction(): Promise<ActionState> {
     return {
       error: null,
       ok: true,
-      message: `+${result.enqueued} na fila · ${result.processed} processada(s) · ${result.paidTotal} parcela(s)`,
+      message: `+${result.enqueued} na fila · ${result.processed} processada(s) · ${result.paidTotal} paga(s) · ${result.createdTotal} gerada(s) · ${result.reminderTotal} e-mail(s)`,
     };
   } catch (error) {
     return {
@@ -167,7 +225,7 @@ export async function retryCronTaskAction(taskId: string): Promise<ActionState> 
     return {
       error: null,
       ok: true,
-      message: `${result.paidCount} parcela(s) nesta tarefa`,
+      message: `${result.paidCount} paga(s) · ${result.createdCount} gerada(s) · ${result.reminderCount} e-mail(s)`,
     };
   } catch (error) {
     return {

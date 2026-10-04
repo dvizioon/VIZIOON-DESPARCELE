@@ -70,24 +70,39 @@ export default async function DebtDetailPage({ params }: DebtDetailPageProps) {
           <h2 className="min-w-0 truncate font-display text-3xl sm:text-4xl">{debt.name}</h2>
           {canEdit ? (
             <DebtSettingsModal
+              autoPay={debt.autoPay}
               canManageVisibility={admin}
               currentUserId={user.id}
               debtId={debtId}
               debtName={debt.name}
               hideMode={debt.hideMode}
               hiddenUserIds={debt.hiddenUserIds}
-              isLoan={debt.isLoan}
+              kind={debt.kind}
               members={members}
+              recurringPaused={debt.recurringPausedAt != null}
+              remindersEnabled={debt.remindersEnabled}
               shared={shared}
               workspaceId={workspaceId}
             />
           ) : null}
         </div>
         <div className="mt-3 flex flex-wrap gap-1.5">
-          {debt.isLoan ? (
+          {debt.kind === "RECURRING" ? (
+            <p className="inline-flex items-center gap-1.5 rounded-full bg-pine-soft px-2.5 py-1 text-xs font-medium text-pine-dark">
+              <AppIcon name="tabler:repeat" className="size-3.5" />
+              {debt.recurringPausedAt ? "Recorrente pausada" : "Recorrente"}
+            </p>
+          ) : null}
+          {debt.autoPay ? (
             <p className="inline-flex items-center gap-1.5 rounded-full bg-pine-soft px-2.5 py-1 text-xs font-medium text-pine-dark">
               <AppIcon name="tabler:building-bank" className="size-3.5" />
-              Empréstimo · parcela paga no vencimento
+              Baixa automática
+            </p>
+          ) : null}
+          {debt.remindersEnabled ? (
+            <p className="inline-flex items-center gap-1.5 rounded-full bg-ink/5 px-2.5 py-1 text-xs font-medium text-ink/70">
+              <AppIcon name="tabler:mail" className="size-3.5" />
+              Aviso por e-mail
             </p>
           ) : null}
           {admin && isDebtHidden(debt) ? (
@@ -183,6 +198,8 @@ export default async function DebtDetailPage({ params }: DebtDetailPageProps) {
                     installmentId={item.id}
                     paid={paid}
                     receiptUrl={item.receiptUrl}
+                    reminderDisabled={item.reminderDisabled}
+                    remindersOnDebt={debt.remindersEnabled}
                     workspaceId={workspaceId}
                   />
                 ) : null}

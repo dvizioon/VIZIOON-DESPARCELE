@@ -24,7 +24,18 @@ export class PrismaInstallmentRepository implements InstallmentRepository {
         paidByUserId: input.paidByUserId,
         receiptUrl: input.receiptUrl,
         paidAt: new Date(),
+        reminderDisabled: true,
       },
+      include: { paidBy: true },
+    });
+
+    return mapInstallment(row);
+  }
+
+  async setReminderDisabled(installmentId: string, disabled: boolean): Promise<Installment> {
+    const row = await prisma.installment.update({
+      where: { id: installmentId },
+      data: { reminderDisabled: disabled },
       include: { paidBy: true },
     });
 
@@ -97,6 +108,9 @@ export function mapInstallment(row: {
   paidByUserId: string | null;
   receiptUrl: string | null;
   paidAt: Date | null;
+  reminderDisabled?: boolean;
+  reminderSentAt?: Date | null;
+  overdueReminderSentAt?: Date | null;
   paidBy?: { name: string } | null;
 }): Installment {
   return {
@@ -110,5 +124,8 @@ export function mapInstallment(row: {
     paidByName: row.paidBy?.name ?? null,
     receiptUrl: row.receiptUrl,
     paidAt: row.paidAt,
+    reminderDisabled: row.reminderDisabled ?? false,
+    reminderSentAt: row.reminderSentAt ?? null,
+    overdueReminderSentAt: row.overdueReminderSentAt ?? null,
   };
 }

@@ -141,14 +141,17 @@ export default async function DebtsPage({ params, searchParams }: DebtsPageProps
                   {canEdit ? (
                     <div className="absolute right-3 top-3 z-10">
                       <DebtSettingsModal
+                        autoPay={debt.autoPay}
                         canManageVisibility={admin}
                         currentUserId={user.id}
                         debtId={debt.id}
                         debtName={debt.name}
                         hideMode={debt.hideMode}
                         hiddenUserIds={debt.hiddenUserIds}
-                        isLoan={debt.isLoan}
+                        kind={debt.kind}
                         members={memberOptions}
+                        recurringPaused={debt.recurringPaused}
+                        remindersEnabled={debt.remindersEnabled}
                         shared={shared}
                         workspaceId={workspaceId}
                       />
@@ -163,9 +166,14 @@ export default async function DebtsPage({ params, searchParams }: DebtsPageProps
                         cadastro de {debt.createdByName}
                       </p>
                       <div className="mt-3 flex flex-wrap gap-1.5">
-                        {debt.isLoan ? (
+                        {debt.kind === "RECURRING" ? (
+                          <DebtBadge icon="tabler:repeat" tone="pine">
+                            {debt.recurringPaused ? "Recorrente pausada" : "Recorrente"}
+                          </DebtBadge>
+                        ) : null}
+                        {debt.autoPay ? (
                           <DebtBadge icon="tabler:building-bank" tone="pine">
-                            Empréstimo
+                            Baixa auto
                           </DebtBadge>
                         ) : null}
                         {admin && debt.hideMode !== "NONE" ? (

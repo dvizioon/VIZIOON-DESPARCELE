@@ -5,6 +5,7 @@ export type AutoPayLoanResult = {
   installmentIds: string[];
 };
 
+/** Baixa automática: parcelas PENDING vencidas de dívidas com autoPay. */
 export async function autoPayDueLoanInstallments(now = new Date()): Promise<AutoPayLoanResult> {
   const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
 
@@ -12,7 +13,7 @@ export async function autoPayDueLoanInstallments(now = new Date()): Promise<Auto
     where: {
       status: "PENDING",
       dueDate: { lte: endOfToday },
-      debt: { isLoan: true },
+      debt: { autoPay: true },
     },
     select: {
       id: true,
@@ -31,6 +32,7 @@ export async function autoPayDueLoanInstallments(now = new Date()): Promise<Auto
         status: "PAID",
         paidAt,
         paidByUserId: item.debt.ownerId,
+        reminderDisabled: true,
       },
     });
     installmentIds.push(item.id);

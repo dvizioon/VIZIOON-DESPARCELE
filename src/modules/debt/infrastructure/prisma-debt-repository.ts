@@ -2,7 +2,8 @@ import { prisma } from "@/shared/infrastructure/prisma";
 import { mapInstallment } from "@/modules/installment/infrastructure/prisma-installment-repository";
 import { centsToDecimalString, toCents } from "@/shared/utils/money";
 import type { CreateDebtRecordInput, DebtRepository } from "../domain/debt-repository";
-import type { Debt, DebtHideMode, DebtWithInstallments } from "../domain/debt";
+import type { Debt, DebtHideMode, DebtKind, DebtWithInstallments } from "../domain/debt";
+import type { InstallmentDraft } from "@/modules/installment/domain/installment";
 
 export class PrismaDebtRepository implements DebtRepository {
   async create(input: CreateDebtRecordInput): Promise<DebtWithInstallments> {
@@ -12,7 +13,14 @@ export class PrismaDebtRepository implements DebtRepository {
         name: input.name,
         totalAmount: centsToDecimalString(input.totalAmountCents),
         installmentCount: input.installmentCount,
-        isLoan: input.isLoan,
+        kind: input.kind,
+        autoPay: input.autoPay,
+        remindersEnabled: input.remindersEnabled,
+        recurringAmount:
+          input.recurringAmountCents != null
+            ? centsToDecimalString(input.recurringAmountCents)
+            : null,
+        recurringDay: input.recurringDay ?? null,
         ownerId: input.ownerId,
         createdById: input.createdById,
         installments: {
@@ -48,6 +56,21 @@ export class PrismaDebtRepository implements DebtRepository {
     return rows.map(mapDebt);
   }
 
+  async listRecurringActive(): Promise<DebtWithInstallments[]> {
+    const rows = await prisma.debt.findMany({
+      where: {
+        kind: "RECURRING",
+        recurringPausedAt: null,
+        recurringAmount: { not: null },
+        recurringDay: { not: null },
+      },
+      include: debtInclude,
+      orderBy: { createdAt: "asc" },
+    });
+
+    return rows.map(mapDebt);
+  }
+
   async rename(id: string, name: string): Promise<void> {
     await prisma.debt.update({
       where: { id },
@@ -55,10 +78,24 @@ export class PrismaDebtRepository implements DebtRepository {
     });
   }
 
-  async setLoan(id: string, isLoan: boolean): Promise<void> {
+  async setAutoPay(id: string, autoPay: boolean): Promise<void> {
     await prisma.debt.update({
       where: { id },
-      data: { isLoan },
+      data: { autoPay },
+    });
+  }
+
+  async setRemindersEnabled(id: string, enabled: boolean): Promise<void> {
+    await prisma.debt.update({
+      where: { id },
+      data: { remindersEnabled: enabled },
+    });
+  }
+
+  async setRecurringPaused(id: string, paused: boolean): Promise<void> {
+    await prisma.debt.update({
+      where: { id },
+      data: { recurringPausedAt: paused ? new Date() : null },
     });
   }
 
@@ -83,6 +120,41 @@ export class PrismaDebtRepository implements DebtRepository {
         },
       });
     });
+  }
+
+  async appendInstallment(
+    debtId: string,
+    draft: InstallmentDraft,
+  ): Promise<DebtWithInstallments> {
+    const current = await prisma.debt.findUnique({
+      where: { id: debtId },
+      include: { installments: true },
+    });
+    if (!current) {
+      throw new Error("Divida nao encontrada");
+    }
+
+    const totalCents =
+      current.installments.reduce((sum, item) => sum + toCents(item.amount.toString()), 0) +
+      draft.amountCents;
+
+    const row = await prisma.debt.update({
+      where: { id: debtId },
+      data: {
+        installmentCount: current.installmentCount + 1,
+        totalAmount: centsToDecimalString(totalCents),
+        installments: {
+          create: {
+            number: draft.number,
+            amount: centsToDecimalString(draft.amountCents),
+            dueDate: draft.dueDate,
+          },
+        },
+      },
+      include: debtInclude,
+    });
+
+    return mapDebt(row);
   }
 
   async updateTotalAmount(id: string, totalAmountCents: number): Promise<void> {
@@ -113,7 +185,12 @@ function mapDebt(row: {
   name: string;
   totalAmount: { toString(): string };
   installmentCount: number;
-  isLoan: boolean;
+  kind: DebtKind;
+  autoPay: boolean;
+  remindersEnabled: boolean;
+  recurringAmount: { toString(): string } | null;
+  recurringDay: number | null;
+  recurringPausedAt: Date | null;
   hideMode: DebtHideMode;
   ownerId: string;
   createdById: string;
@@ -129,7 +206,14 @@ function mapDebt(row: {
     name: row.name,
     totalAmountCents: toCents(row.totalAmount.toString()),
     installmentCount: row.installmentCount,
-    isLoan: row.isLoan,
+    kind: row.kind,
+    autoPay: row.autoPay,
+    remindersEnabled: row.remindersEnabled,
+    recurringAmountCents: row.recurringAmount
+      ? toCents(row.recurringAmount.toString())
+      : null,
+    recurringDay: row.recurringDay,
+    recurringPausedAt: row.recurringPausedAt,
     hideMode: row.hideMode,
     hiddenUserIds: row.hiddenFrom.map((item) => item.userId),
     ownerId: row.ownerId,

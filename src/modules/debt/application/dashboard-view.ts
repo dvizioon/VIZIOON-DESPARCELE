@@ -19,6 +19,7 @@ export interface DashboardUpcomingView {
   amountCents: number;
   dueDate: string;
   overdue: boolean;
+  autoPay: boolean;
 }
 
 export interface DashboardView {
@@ -57,6 +58,7 @@ export interface DashboardView {
     name: string;
     ownerId: string;
     ownerName: string;
+    autoPay: boolean;
     remainingCents: number;
     paidCents: number;
     remainingCount: number;
@@ -101,6 +103,7 @@ export function toDashboardView(data: DashboardData): DashboardView {
       amountCents: item.amountCents,
       dueDate: item.dueDate.toISOString(),
       overdue: item.overdue,
+      autoPay: item.autoPay,
     })),
     scores: data.scores.map((score) => ({
       ...score,

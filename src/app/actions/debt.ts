@@ -48,14 +48,30 @@ export async function createDebtAction(
     return { error: "Valor ou data invalidos" };
   }
 
+  const kindRaw = String(formData.get("kind") ?? "INSTALLMENT");
+  const kind = kindRaw === "RECURRING" ? "RECURRING" : "INSTALLMENT";
+  let recurringAmountCents: number | undefined;
+  const recurringRaw = String(formData.get("recurringAmount") ?? "").trim();
+  if (recurringRaw) {
+    try {
+      recurringAmountCents = parseBRLInput(recurringRaw);
+    } catch {
+      return { error: "Valor mensal invalido" };
+    }
+  }
+
   const result = await createDebt(
     {
       workspaceId,
       actorId: user.id,
       name: String(formData.get("name") ?? ""),
+      kind,
       totalAmountCents,
-      installmentCount: Number(formData.get("installmentCount") ?? 0),
-      isLoan: String(formData.get("isLoan") ?? "") === "1",
+      installmentCount: Number(formData.get("installmentCount") ?? (kind === "RECURRING" ? 1 : 0)),
+      autoPay: String(formData.get("autoPay") ?? formData.get("isLoan") ?? "") === "1",
+      remindersEnabled: String(formData.get("remindersEnabled") ?? "") === "1",
+      recurringAmountCents,
+      recurringDay: Number(formData.get("recurringDay") ?? 0) || undefined,
       ownerId: String(formData.get("ownerId") ?? user.id),
       firstDueDate,
       installmentAmountsCents,
@@ -240,14 +256,103 @@ export async function setDebtLoanAction(
   debtId: string,
   formData: FormData,
 ): Promise<ActionState> {
+  return setDebtAutoPayAction(workspaceId, debtId, formData);
+}
+
+export async function setDebtAutoPayAction(
+  workspaceId: string,
+  debtId: string,
+  formData: FormData,
+): Promise<ActionState> {
   const user = await requireUser();
   const { debts, workspaces } = getRepositories();
-  const { setDebtLoan } = await import("@/modules/debt/application/set-debt-loan");
+  const { setDebtAutoPay } = await import("@/modules/debt/application/set-debt-auto-pay");
 
-  const result = await setDebtLoan(
+  const result = await setDebtAutoPay(
     debtId,
     user.id,
-    String(formData.get("isLoan") ?? "") === "1",
+    String(formData.get("autoPay") ?? formData.get("isLoan") ?? "") === "1",
+    debts,
+    workspaces,
+  );
+
+  if (!result.ok) {
+    return { error: result.error.message };
+  }
+
+  await revalidateDebtPaths(workspaceId, debtId);
+  return { error: null, ok: true };
+}
+
+export async function setDebtRemindersAction(
+  workspaceId: string,
+  debtId: string,
+  formData: FormData,
+): Promise<ActionState> {
+  const user = await requireUser();
+  const { debts, workspaces } = getRepositories();
+  const { setDebtReminders } = await import("@/modules/debt/application/set-debt-reminders");
+
+  const result = await setDebtReminders(
+    debtId,
+    user.id,
+    String(formData.get("remindersEnabled") ?? "") === "1",
+    debts,
+    workspaces,
+  );
+
+  if (!result.ok) {
+    return { error: result.error.message };
+  }
+
+  await revalidateDebtPaths(workspaceId, debtId);
+  return { error: null, ok: true };
+}
+
+export async function setDebtRecurringPausedAction(
+  workspaceId: string,
+  debtId: string,
+  formData: FormData,
+): Promise<ActionState> {
+  const user = await requireUser();
+  const { debts, workspaces } = getRepositories();
+  const { setDebtRecurringPaused } = await import(
+    "@/modules/debt/application/set-debt-reminders"
+  );
+
+  const result = await setDebtRecurringPaused(
+    debtId,
+    user.id,
+    String(formData.get("paused") ?? "") === "1",
+    debts,
+    workspaces,
+  );
+
+  if (!result.ok) {
+    return { error: result.error.message };
+  }
+
+  await revalidateDebtPaths(workspaceId, debtId);
+  return { error: null, ok: true };
+}
+
+export async function setInstallmentReminderDisabledAction(
+  workspaceId: string,
+  debtId: string,
+  installmentId: string,
+  formData: FormData,
+): Promise<ActionState> {
+  const user = await requireUser();
+  const { installments, debts, workspaces } = getRepositories();
+  const { setInstallmentReminderDisabled } = await import(
+    "@/modules/installment/application/set-installment-reminder-disabled"
+  );
+
+  const result = await setInstallmentReminderDisabled(
+    installmentId,
+    user.id,
+    String(formData.get("disabled") ?? "") === "1",
+    installments,
     debts,
     workspaces,
   );

@@ -14,7 +14,7 @@ export default async function AdminLoanCronPage() {
         <SettingsBack />
         <h2 className="font-display text-3xl sm:text-4xl">Cron</h2>
         <p className="mt-2 max-w-xl text-sm text-ink/60">
-          Empréstimo: fila diária que marca parcelas vencidas como pagas.
+          Baixa automática, geração de recorrentes e e-mails de parcela.
         </p>
       </div>
       <div data-reveal>

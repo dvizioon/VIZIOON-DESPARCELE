@@ -64,7 +64,7 @@ export default async function AdminSettingsPage() {
           href="/admin/configuracoes/cron"
           icon="tabler:clock"
           title="Cron"
-          text="Empréstimo: ligar/desligar, horário e fila de tarefas."
+          text="Baixa automática, recorrentes e e-mails de parcela."
         />
       </div>
     </Reveal>

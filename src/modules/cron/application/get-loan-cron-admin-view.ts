@@ -1,8 +1,12 @@
 import { prisma } from "@/shared/infrastructure/prisma";
-import type { CronQueueSummary, CronTaskView, LoanCronSettings } from "../domain/loan-cron";
+import type {
+  CronQueueSummary,
+  CronTaskView,
+  SystemCronSettings,
+} from "../domain/loan-cron";
 
 export type LoanCronAdminView = {
-  settings: LoanCronSettings;
+  settings: SystemCronSettings;
   summary: CronQueueSummary;
   tasks: CronTaskView[];
 };
@@ -14,27 +18,38 @@ export async function getLoanCronAdminView(): Promise<LoanCronAdminView> {
       create: { id: "default" },
       update: {},
     }),
-    prisma.cronTask.count({ where: { type: "LOAN_AUTO_PAY", status: "PENDING" } }),
-    prisma.cronTask.count({ where: { type: "LOAN_AUTO_PAY", status: "RUNNING" } }),
-    prisma.cronTask.count({ where: { type: "LOAN_AUTO_PAY", status: "DONE" } }),
-    prisma.cronTask.count({ where: { type: "LOAN_AUTO_PAY", status: "FAILED" } }),
+    prisma.cronTask.count({ where: { status: "PENDING" } }),
+    prisma.cronTask.count({ where: { status: "RUNNING" } }),
+    prisma.cronTask.count({ where: { status: "DONE" } }),
+    prisma.cronTask.count({ where: { status: "FAILED" } }),
     prisma.cronTask.findMany({
-      where: { type: "LOAN_AUTO_PAY" },
       orderBy: [{ scheduledFor: "desc" }, { createdAt: "desc" }],
-      take: 40,
+      take: 60,
     }),
   ]);
 
   return {
     settings: {
-      enabled: config.loanCronEnabled,
-      hour: config.loanCronHour,
+      loan: {
+        enabled: config.loanCronEnabled,
+        hour: config.loanCronHour,
+        updatedAt: config.updatedAt,
+      },
+      recurring: {
+        enabled: config.recurringCronEnabled,
+        hour: config.recurringCronHour,
+      },
+      reminder: {
+        enabled: config.reminderCronEnabled,
+        hour: config.reminderCronHour,
+        daysBefore: config.reminderDaysBefore,
+      },
       updatedAt: config.updatedAt,
     },
     summary: { pending, running, done, failed },
     tasks: rows.map((row) => ({
       id: row.id,
-      type: "LOAN_AUTO_PAY" as const,
+      type: row.type,
       status: row.status,
       runDate: row.runDate,
       scheduledFor: row.scheduledFor,

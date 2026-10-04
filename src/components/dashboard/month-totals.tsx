@@ -11,9 +11,12 @@ import { formatDate } from "@/shared/utils/date";
 import { formatBRL } from "@/shared/utils/money";
 
 type OwnerFilter = "all" | "mine" | string;
+/** manual = sem baixa automática (você paga); auto = só baixa auto; all = tudo */
+type PayFilter = "manual" | "auto" | "all";
 
 export function MonthTotals({ data }: { data: DashboardView }) {
   const [ownerFilter, setOwnerFilter] = useState<OwnerFilter>("all");
+  const [payFilter, setPayFilter] = useState<PayFilter>("manual");
 
   const other = data.members.find((member) => member.userId !== data.currentUserId);
   const theirsLabel = other && data.members.length === 2 ? other.firstName : "Outras";
@@ -28,18 +31,23 @@ export function MonthTotals({ data }: { data: DashboardView }) {
       if (!matchesOwner(item.ownerId, data.currentUserId, ownerFilter)) {
         return false;
       }
+      if (!matchesPay(item.autoPay, payFilter)) {
+        return false;
+      }
 
       const due = new Date(item.dueDate);
       return due.getMonth() === now.getMonth() && due.getFullYear() === now.getFullYear();
     });
-  }, [data, ownerFilter]);
+  }, [data, ownerFilter, payFilter]);
 
   const overdueItems = useMemo(() => {
     return data.upcoming.filter(
       (item) =>
-        item.overdue && matchesOwner(item.ownerId, data.currentUserId, ownerFilter),
+        item.overdue &&
+        matchesOwner(item.ownerId, data.currentUserId, ownerFilter) &&
+        matchesPay(item.autoPay, payFilter),
     );
-  }, [data, ownerFilter]);
+  }, [data, ownerFilter, payFilter]);
 
   const monthDueCents = monthItems.reduce((sum, item) => sum + item.amountCents, 0);
   const overdueCents = overdueItems.reduce((sum, item) => sum + item.amountCents, 0);
@@ -49,7 +57,8 @@ export function MonthTotals({ data }: { data: DashboardView }) {
     data.slices.some(
       (item) =>
         item.id === data.suggestion?.debtId &&
-        matchesOwner(item.ownerId, data.currentUserId, ownerFilter),
+        matchesOwner(item.ownerId, data.currentUserId, ownerFilter) &&
+        matchesPay(item.autoPay, payFilter),
     );
 
   return (
@@ -58,15 +67,15 @@ export function MonthTotals({ data }: { data: DashboardView }) {
         <p className="text-sm capitalize text-ink/55">{monthLabel}</p>
         <h2 className="mt-1 font-display text-3xl sm:text-4xl">Devido no mês</h2>
         <p className="mt-2 max-w-xl text-sm text-ink/60">
-          Soma das parcelas em aberto com vencimento neste mês. Atrasadas entram à parte; a
-          sugestão de pagamento continua valendo.
+          Só parcelas ainda não pagas com vencimento neste mês. Baixa automática fica de fora no
+          filtro padrão (desconta sozinha da conta).
         </p>
         <p className="mt-5 font-display text-4xl text-pine-dark sm:text-5xl">
           <CountUpMoney cents={monthDueCents} />
         </p>
         <p className="mt-1 text-sm text-ink/50">
-          {monthItems.length} parcela{monthItems.length === 1 ? "" : "s"} · {openDebtIds.size}{" "}
-          dívida{openDebtIds.size === 1 ? "" : "s"}
+          {monthItems.length} parcela{monthItems.length === 1 ? "" : "s"} em aberto ·{" "}
+          {openDebtIds.size} dívida{openDebtIds.size === 1 ? "" : "s"}
         </p>
       </div>
 
@@ -112,8 +121,19 @@ export function MonthTotals({ data }: { data: DashboardView }) {
         </article>
       </section>
 
-      {data.shared ? (
-        <div data-reveal>
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap" data-reveal>
+        <FilterPills watch={payFilter}>
+          <FilterChip active={payFilter === "manual"} onClick={() => setPayFilter("manual")}>
+            Eu pago
+          </FilterChip>
+          <FilterChip active={payFilter === "auto"} onClick={() => setPayFilter("auto")}>
+            Baixa automática
+          </FilterChip>
+          <FilterChip active={payFilter === "all"} onClick={() => setPayFilter("all")}>
+            Tudo
+          </FilterChip>
+        </FilterPills>
+        {data.shared ? (
           <FilterPills watch={ownerFilter}>
             <FilterChip active={ownerFilter === "all"} onClick={() => setOwnerFilter("all")}>
               Todas
@@ -128,15 +148,15 @@ export function MonthTotals({ data }: { data: DashboardView }) {
               {theirsLabel}
             </FilterChip>
           </FilterPills>
-        </div>
-      ) : null}
+        ) : null}
+      </div>
 
       <section className="sheet" data-reveal>
         <h3 className="font-display text-2xl">Parcelas do mês</h3>
         {monthItems.length === 0 ? (
           <p className="mt-4 flex items-center gap-2 text-ink/60">
             <AppIcon name="tabler:calendar-off" className="size-5" />
-            Nenhuma parcela em aberto neste mês
+            Nenhuma parcela em aberto neste filtro
           </p>
         ) : (
           <ul className="mt-2 divide-y divide-line">
@@ -151,6 +171,7 @@ export function MonthTotals({ data }: { data: DashboardView }) {
                     <p className="text-sm text-ink/55">
                       Parcela {item.number}
                       {data.shared ? ` · ${item.ownerName}` : ""}
+                      {item.autoPay ? " · baixa auto" : ""}
                     </p>
                   </div>
                   <div className="text-right">
@@ -185,6 +206,7 @@ export function MonthTotals({ data }: { data: DashboardView }) {
                     <p className="text-sm text-ink/55">
                       Parcela {item.number}
                       {data.shared ? ` · ${item.ownerName}` : ""}
+                      {item.autoPay ? " · baixa auto" : ""}
                     </p>
                   </div>
                   <div className="text-right">
@@ -211,6 +233,18 @@ function matchesOwner(ownerId: string, currentUserId: string, filter: OwnerFilte
   }
 
   return ownerId !== currentUserId;
+}
+
+function matchesPay(autoPay: boolean, filter: PayFilter): boolean {
+  if (filter === "all") {
+    return true;
+  }
+
+  if (filter === "auto") {
+    return autoPay;
+  }
+
+  return !autoPay;
 }
 
 function StatCard({

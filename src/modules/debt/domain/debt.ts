@@ -1,6 +1,7 @@
 import type { Installment } from "@/modules/installment/domain/installment";
 
 export type DebtHideMode = "NONE" | "ALL" | "SELECTED";
+export type DebtKind = "INSTALLMENT" | "RECURRING";
 
 export interface Debt {
   id: string;
@@ -8,7 +9,12 @@ export interface Debt {
   name: string;
   totalAmountCents: number;
   installmentCount: number;
-  isLoan: boolean;
+  kind: DebtKind;
+  autoPay: boolean;
+  remindersEnabled: boolean;
+  recurringAmountCents: number | null;
+  recurringDay: number | null;
+  recurringPausedAt: Date | null;
   hideMode: DebtHideMode;
   hiddenUserIds: string[];
   ownerId: string;
@@ -61,4 +67,12 @@ export function isDebtHidden(
   debt: Pick<Debt, "hideMode" | "hiddenUserIds">,
 ): boolean {
   return debt.hideMode !== "NONE";
+}
+
+export function isRecurring(debt: Pick<Debt, "kind">): boolean {
+  return debt.kind === "RECURRING";
+}
+
+export function isRecurringPaused(debt: Pick<Debt, "kind" | "recurringPausedAt">): boolean {
+  return debt.kind === "RECURRING" && debt.recurringPausedAt != null;
 }

@@ -136,15 +136,16 @@ export const WORKSPACE_INVITE_MAIL_HTML = mailLayout({
 });
 
 export const INSTALLMENT_REMINDER_MAIL_HTML = mailLayout({
-  preheader: "A parcela {{parcela}} de {{divida}} vence em {{vencimento}}.",
+  preheader: "Parcela {{parcela}} de {{divida}}: {{motivo}} ({{vencimento}}).",
   eyebrow: "Parcela",
-  title: "{{divida}} vence em breve",
-  paragraphs: ["Dá uma olhada no que está perto do vencimento para não passar batido."],
+  title: "{{divida}} — {{motivo}}",
+  paragraphs: ["Confira a parcela no Desparcele. Se já pagou, marque como paga para parar os avisos."],
   facts: [
     { label: "Espaço", value: "{{workspace}}" },
     { label: "Parcela", value: "{{parcela}}" },
     { label: "Valor", value: "{{valor}}" },
     { label: "Vencimento", value: "{{vencimento}}" },
+    { label: "Situação", value: "{{motivo}}" },
   ],
   ctaLabel: "Ver a dívida",
   ctaHref: "{{link}}",

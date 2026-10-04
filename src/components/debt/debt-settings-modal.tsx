@@ -4,7 +4,9 @@ import { useState } from "react";
 import {
   deleteDebtAction,
   renameDebtAction,
-  setDebtLoanAction,
+  setDebtAutoPayAction,
+  setDebtRecurringPausedAction,
+  setDebtRemindersAction,
   setDebtVisibilityAction,
 } from "@/app/actions/debt";
 import { FormError } from "@/components/forms/auth-forms";
@@ -13,7 +15,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { AppIcon } from "@/components/ui/icon";
 import { HiddenScroll } from "@/components/ui/hidden-scroll";
 import { Portal } from "@/components/ui/portal";
-import type { DebtHideMode } from "@/modules/debt/domain/debt";
+import type { DebtHideMode, DebtKind } from "@/modules/debt/domain/debt";
 
 type MemberOption = {
   userId: string;
@@ -24,7 +26,10 @@ export function DebtSettingsModal({
   workspaceId,
   debtId,
   debtName,
-  isLoan,
+  autoPay,
+  remindersEnabled = false,
+  kind = "INSTALLMENT",
+  recurringPaused = false,
   hideMode = "NONE",
   hiddenUserIds = [],
   canManageVisibility = false,
@@ -35,7 +40,10 @@ export function DebtSettingsModal({
   workspaceId: string;
   debtId: string;
   debtName: string;
-  isLoan: boolean;
+  autoPay: boolean;
+  remindersEnabled?: boolean;
+  kind?: DebtKind;
+  recurringPaused?: boolean;
   hideMode?: DebtHideMode;
   hiddenUserIds?: string[];
   canManageVisibility?: boolean;
@@ -61,14 +69,17 @@ export function DebtSettingsModal({
       </button>
       {open ? (
         <DebtSettingsDialog
+          autoPay={autoPay}
           canManageVisibility={canManageVisibility}
           currentUserId={currentUserId}
           debtId={debtId}
           debtName={debtName}
           hideMode={hideMode}
           hiddenUserIds={hiddenUserIds}
-          isLoan={isLoan}
+          kind={kind}
           members={members}
+          recurringPaused={recurringPaused}
+          remindersEnabled={remindersEnabled}
           shared={shared}
           workspaceId={workspaceId}
           onClose={() => setOpen(false)}
@@ -82,7 +93,10 @@ function DebtSettingsDialog({
   workspaceId,
   debtId,
   debtName,
-  isLoan,
+  autoPay,
+  remindersEnabled,
+  kind,
+  recurringPaused,
   hideMode,
   hiddenUserIds,
   canManageVisibility,
@@ -94,7 +108,10 @@ function DebtSettingsDialog({
   workspaceId: string;
   debtId: string;
   debtName: string;
-  isLoan: boolean;
+  autoPay: boolean;
+  remindersEnabled: boolean;
+  kind: DebtKind;
+  recurringPaused: boolean;
   hideMode: DebtHideMode;
   hiddenUserIds: string[];
   canManageVisibility: boolean;
@@ -104,18 +121,20 @@ function DebtSettingsDialog({
   onClose: () => void;
 }) {
   const [name, setName] = useState(debtName);
-  const [loan, setLoan] = useState(isLoan);
+  const [payAuto, setPayAuto] = useState(autoPay);
+  const [reminders, setReminders] = useState(remindersEnabled);
+  const [paused, setPaused] = useState(recurringPaused);
   const [mode, setMode] = useState<DebtHideMode>(hideMode);
   const [selected, setSelected] = useState<string[]>(hiddenUserIds);
   const [confirm, setConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [pending, setPending] = useState(false);
-  const [loanPending, setLoanPending] = useState(false);
+  const [togglePending, setTogglePending] = useState(false);
   const [hidePending, setHidePending] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  const busy = pending || loanPending || hidePending || deleting || confirm;
+  const busy = pending || togglePending || hidePending || deleting || confirm;
   useDialogMotion(onClose, busy);
 
   const otherMembers = members.filter((item) => item.userId !== currentUserId);
@@ -207,35 +226,70 @@ function DebtSettingsDialog({
             </form>
 
             <div className="mt-6 space-y-3 border-t border-line pt-5">
-              <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-line bg-white/60 px-3 py-3">
-                <input
-                  checked={loan}
-                  className="mt-1 size-4 accent-[var(--pine)]"
-                  disabled={loanPending}
-                  onChange={(event) => {
-                    const next = event.target.checked;
-                    setLoan(next);
-                    setLoanPending(true);
+              <ToggleRow
+                checked={payAuto}
+                description="No vencimento a parcela é marcada como paga sozinha."
+                disabled={togglePending}
+                label="Baixa automática"
+                onChange={(next) => {
+                  setPayAuto(next);
+                  setTogglePending(true);
+                  setError(null);
+                  const formData = new FormData();
+                  formData.set("autoPay", next ? "1" : "0");
+                  void setDebtAutoPayAction(workspaceId, debtId, formData).then((result) => {
+                    setTogglePending(false);
+                    if (result.error) {
+                      setPayAuto(!next);
+                      setError(result.error);
+                    }
+                  });
+                }}
+              />
+              <ToggleRow
+                checked={reminders}
+                description="E-mail antes do vencimento e se atrasar (admin liga o cron)."
+                disabled={togglePending}
+                label="Avisar por e-mail"
+                onChange={(next) => {
+                  setReminders(next);
+                  setTogglePending(true);
+                  setError(null);
+                  const formData = new FormData();
+                  formData.set("remindersEnabled", next ? "1" : "0");
+                  void setDebtRemindersAction(workspaceId, debtId, formData).then((result) => {
+                    setTogglePending(false);
+                    if (result.error) {
+                      setReminders(!next);
+                      setError(result.error);
+                    }
+                  });
+                }}
+              />
+              {kind === "RECURRING" ? (
+                <ToggleRow
+                  checked={paused}
+                  description="Para de gerar a cobrança do mês até você despausar."
+                  disabled={togglePending}
+                  label="Pausar recorrência"
+                  onChange={(next) => {
+                    setPaused(next);
+                    setTogglePending(true);
                     setError(null);
                     const formData = new FormData();
-                    formData.set("isLoan", next ? "1" : "0");
-                    void setDebtLoanAction(workspaceId, debtId, formData).then((result) => {
-                      setLoanPending(false);
-                      if (result.error) {
-                        setLoan(!next);
-                        setError(result.error);
-                      }
-                    });
+                    formData.set("paused", next ? "1" : "0");
+                    void setDebtRecurringPausedAction(workspaceId, debtId, formData).then(
+                      (result) => {
+                        setTogglePending(false);
+                        if (result.error) {
+                          setPaused(!next);
+                          setError(result.error);
+                        }
+                      },
+                    );
                   }}
-                  type="checkbox"
                 />
-                <span>
-                  <span className="block text-sm font-medium text-ink">Empréstimo</span>
-                  <span className="mt-0.5 block text-xs text-ink/55">
-                    No vencimento a parcela é marcada como paga sozinha.
-                  </span>
-                </span>
-              </label>
+              ) : null}
             </div>
 
             {canManageVisibility && shared ? (
@@ -356,5 +410,35 @@ function DebtSettingsDialog({
         }}
       />
     </Portal>
+  );
+}
+
+function ToggleRow({
+  checked,
+  label,
+  description,
+  disabled,
+  onChange,
+}: {
+  checked: boolean;
+  label: string;
+  description: string;
+  disabled: boolean;
+  onChange: (next: boolean) => void;
+}) {
+  return (
+    <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-line bg-white/60 px-3 py-3">
+      <input
+        checked={checked}
+        className="mt-1 size-4 accent-[var(--pine)]"
+        disabled={disabled}
+        onChange={(event) => onChange(event.target.checked)}
+        type="checkbox"
+      />
+      <span>
+        <span className="block text-sm font-medium text-ink">{label}</span>
+        <span className="mt-0.5 block text-xs text-ink/55">{description}</span>
+      </span>
+    </label>
   );
 }

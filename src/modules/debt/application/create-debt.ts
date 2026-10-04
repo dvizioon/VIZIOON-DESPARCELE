@@ -1,17 +1,21 @@
 import { generateInstallments } from "@/modules/installment/domain/generate-installments";
-import { addMonths } from "@/shared/utils/date";
+import { addMonths, withDayOfMonth } from "@/shared/utils/date";
 import { canEditContent } from "@/modules/workspace/domain/workspace";
 import type { WorkspaceRepository } from "@/modules/workspace/domain/workspace-repository";
 import { fail, ok, type Result } from "@/shared/types/result";
-import type { DebtWithInstallments } from "../domain/debt";
+import type { DebtKind, DebtWithInstallments } from "../domain/debt";
 import type { DebtRepository } from "../domain/debt-repository";
 
 export interface CreateDebtInput {
   workspaceId: string;
   actorId: string;
   name: string;
+  kind?: DebtKind;
   installmentCount: number;
-  isLoan?: boolean;
+  autoPay?: boolean;
+  remindersEnabled?: boolean;
+  recurringAmountCents?: number;
+  recurringDay?: number;
   ownerId: string;
   firstDueDate: Date;
   installmentAmountsCents?: number[];
@@ -37,6 +41,12 @@ export async function createDebt(
   const name = input.name.trim();
   if (name.length < 2) {
     return fail("INVALID_NAME", "Informe o nome da divida");
+  }
+
+  const kind: DebtKind = input.kind === "RECURRING" ? "RECURRING" : "INSTALLMENT";
+
+  if (kind === "RECURRING") {
+    return createRecurringDebt(input, name, debts);
   }
 
   if (input.installmentCount < 1 || input.installmentCount > 360) {
@@ -83,10 +93,53 @@ export async function createDebt(
     name,
     totalAmountCents,
     installmentCount: input.installmentCount,
-    isLoan: Boolean(input.isLoan),
+    kind: "INSTALLMENT",
+    autoPay: Boolean(input.autoPay),
+    remindersEnabled: Boolean(input.remindersEnabled),
     ownerId: input.ownerId,
     createdById: input.actorId,
     installments,
+  });
+
+  return ok(debt);
+}
+
+async function createRecurringDebt(
+  input: CreateDebtInput,
+  name: string,
+  debts: DebtRepository,
+): Promise<Result<DebtWithInstallments>> {
+  const amountCents = input.recurringAmountCents ?? input.totalAmountCents ?? 0;
+  if (amountCents < 100) {
+    return fail("INVALID_AMOUNT", "Valor mensal minimo de R$ 1,00");
+  }
+
+  const day = input.recurringDay ?? input.firstDueDate.getUTCDate();
+  if (!Number.isInteger(day) || day < 1 || day > 31) {
+    return fail("INVALID_DAY", "Dia do vencimento entre 1 e 31");
+  }
+
+  const firstDue = withDayOfMonth(input.firstDueDate, day);
+
+  const debt = await debts.create({
+    workspaceId: input.workspaceId,
+    name,
+    totalAmountCents: amountCents,
+    installmentCount: 1,
+    kind: "RECURRING",
+    autoPay: Boolean(input.autoPay),
+    remindersEnabled: Boolean(input.remindersEnabled),
+    recurringAmountCents: amountCents,
+    recurringDay: day,
+    ownerId: input.ownerId,
+    createdById: input.actorId,
+    installments: [
+      {
+        number: 1,
+        amountCents,
+        dueDate: firstDue,
+      },
+    ],
   });
 
   return ok(debt);

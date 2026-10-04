@@ -107,7 +107,7 @@ export const EMAIL_PURPOSES: EmailPurposeDefinition[] = [
   {
     id: "installment_reminder",
     label: "Lembrete de parcela",
-    description: "Aviso de parcela perto do vencimento.",
+    description: "Aviso antes do vencimento ou quando a parcela atrasa.",
     placeholders: [
       LOGO,
       { key: "nome", label: "Nome", description: "Dono da dívida" },
@@ -117,10 +117,11 @@ export const EMAIL_PURPOSES: EmailPurposeDefinition[] = [
       { key: "parcela", label: "Parcela", description: "Número da parcela" },
       { key: "valor", label: "Valor", description: "Valor em reais" },
       { key: "vencimento", label: "Vencimento", description: "Data de vencimento" },
+      { key: "motivo", label: "Motivo", description: "vence em breve ou atrasada" },
       { key: "link", label: "Link", description: "Link da dívida" },
       { key: "data", label: "Data", description: "Data do aviso" },
     ],
-    defaultSubject: "Parcela {{parcela}} de {{divida}} vence em {{vencimento}}",
+    defaultSubject: "Parcela {{parcela}} de {{divida}}: {{motivo}} ({{vencimento}})",
     defaultBody: INSTALLMENT_REMINDER_MAIL_HTML,
     defaultFormat: "HTML",
     sample: {
@@ -131,6 +132,7 @@ export const EMAIL_PURPOSES: EmailPurposeDefinition[] = [
       parcela: "3",
       valor: "R$ 300,00",
       vencimento: "20/09/2026",
+      motivo: "vence em breve",
       data: "14/09/2026",
       link: "http://localhost:7250/workspaces",
     },

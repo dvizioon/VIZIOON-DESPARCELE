@@ -11,6 +11,9 @@ export interface Installment {
   paidByName: string | null;
   receiptUrl: string | null;
   paidAt: Date | null;
+  reminderDisabled: boolean;
+  reminderSentAt: Date | null;
+  overdueReminderSentAt: Date | null;
 }
 
 export interface InstallmentDraft {
