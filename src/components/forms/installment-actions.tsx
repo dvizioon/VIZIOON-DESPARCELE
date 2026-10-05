@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
+  changeInstallmentPayerAction,
   deleteInstallmentAction,
   markPaidAction,
   removeReceiptAction,
@@ -12,13 +13,22 @@ import {
 import { FormError } from "@/components/forms/auth-forms";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { AppIcon } from "@/components/ui/icon";
+import { SearchSelect } from "@/components/ui/search-select";
+
+export type InstallmentPayerOption = {
+  userId: string;
+  userName: string;
+};
 
 type InstallmentActionsProps = {
   workspaceId: string;
   debtId: string;
   installmentId: string;
   paid: boolean;
+  paidByUserId: string | null;
   receiptUrl: string | null;
+  members: InstallmentPayerOption[];
+  currentUserId: string;
   reminderDisabled?: boolean;
   remindersOnDebt?: boolean;
   /** Impede apagar a última cobrança da dívida. */
@@ -32,15 +42,30 @@ export function InstallmentActions({
   debtId,
   installmentId,
   paid,
+  paidByUserId,
   receiptUrl,
+  members,
+  currentUserId,
   reminderDisabled = false,
   remindersOnDebt = false,
   canDelete = true,
 }: InstallmentActionsProps) {
+  const defaultPayer = paidByUserId ?? currentUserId;
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [confirm, setConfirm] = useState<ConfirmKind>(null);
   const [noMail, setNoMail] = useState(reminderDisabled);
+  const [payerId, setPayerId] = useState(defaultPayer);
+
+  useEffect(() => {
+    setPayerId(paidByUserId ?? currentUserId);
+  }, [paidByUserId, currentUserId]);
+
+  const payerOptions = members.map((item) => ({
+    value: item.userId,
+    label: item.userName,
+  }));
+  const showPayerSelect = members.length > 1;
 
   async function run(task: () => Promise<{ error: string | null }>) {
     setPending(true);
@@ -51,6 +76,16 @@ export function InstallmentActions({
     if (result.error) {
       setError(result.error);
     }
+  }
+
+  async function savePayer(nextId: string) {
+    setPayerId(nextId);
+    if (!paid || nextId === paidByUserId) {
+      return;
+    }
+    const formData = new FormData();
+    formData.set("paidByUserId", nextId);
+    await run(() => changeInstallmentPayerAction(workspaceId, debtId, installmentId, formData));
   }
 
   const deleteButton = canDelete ? (
@@ -107,15 +142,42 @@ export function InstallmentActions({
     />
   );
 
+  const payerField = showPayerSelect ? (
+    <label className="block space-y-1 sm:min-w-[14rem] sm:flex-1">
+      <span className="text-xs text-ink/55">Quem pagou</span>
+      <SearchSelect
+        disabled={pending}
+        name={paid ? undefined : "paidByUserId"}
+        options={payerOptions}
+        placeholder="Quem pagou"
+        searchPlaceholder="Buscar pessoa"
+        value={payerId}
+        onChange={(value) => {
+          if (paid) {
+            void savePayer(value);
+            return;
+          }
+          setPayerId(value);
+        }}
+      />
+    </label>
+  ) : paid ? null : (
+    <input name="paidByUserId" type="hidden" value={currentUserId} />
+  );
+
   if (!paid) {
     return (
       <form
         action={async (formData) => {
+          if (!formData.get("paidByUserId")) {
+            formData.set("paidByUserId", payerId || currentUserId);
+          }
           await run(() => markPaidAction(workspaceId, debtId, installmentId, formData));
         }}
         className="mt-4 flex flex-col gap-3"
       >
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          {payerField}
           <label className="flex flex-1 cursor-pointer items-center gap-2 rounded-2xl border border-dashed border-line bg-white px-3 py-2 text-sm text-ink/70 transition hover:border-pine">
             <AppIcon name="tabler:paperclip" className="size-4" />
             <span>Comprovante</span>
@@ -125,9 +187,7 @@ export function InstallmentActions({
             {pending ? "Salvando..." : "Marcar paga"}
           </button>
         </div>
-        <div className="flex flex-wrap gap-2">
-          {deleteButton}
-        </div>
+        <div className="flex flex-wrap gap-2">{deleteButton}</div>
         {remindersOnDebt ? (
           <label className="flex cursor-pointer items-center gap-2 text-sm text-ink/65">
             <input
@@ -164,6 +224,7 @@ export function InstallmentActions({
 
   return (
     <div className="mt-4 flex flex-col gap-3">
+      {payerField}
       <div className="flex flex-wrap gap-2">
         {receiptUrl ? (
           <>

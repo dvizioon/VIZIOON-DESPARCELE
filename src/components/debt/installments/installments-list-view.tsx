@@ -12,7 +12,7 @@ import {
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { AppIcon } from "@/components/ui/icon";
 import { SortableInstallmentCard, StaticInstallmentCard } from "./installment-card";
-import type { InstallmentListItem, ListMode } from "./types";
+import type { InstallmentListItem, InstallmentMemberOption, ListMode } from "./types";
 
 function InstallmentSkeleton() {
   return (
@@ -49,6 +49,8 @@ export function InstallmentsListView({
   totalPages,
   hasMore,
   loadingMore,
+  members,
+  currentUserId,
   onPageChange,
   onLoadMore,
   onDragEnd,
@@ -69,6 +71,8 @@ export function InstallmentsListView({
   totalPages: number;
   hasMore: boolean;
   loadingMore: boolean;
+  members: InstallmentMemberOption[];
+  currentUserId: string;
   onPageChange: (page: number) => void;
   onLoadMore: () => void;
   onDragEnd: (event: DragEndEvent) => void;
@@ -112,10 +116,12 @@ export function InstallmentsListView({
                 <SortableInstallmentCard
                   blink={blinkId === item.id}
                   canDelete={canDelete}
+                  currentUserId={currentUserId}
                   debtId={debtId}
                   isNew={highlightId === item.id}
                   item={item}
                   key={item.id}
+                  members={members}
                   remindersOnDebt={remindersOnDebt}
                   workspaceId={workspaceId}
                 />
@@ -130,10 +136,12 @@ export function InstallmentsListView({
               blink={blinkId === item.id}
               canDelete={canDelete}
               canEdit={canEdit}
+              currentUserId={currentUserId}
               debtId={debtId}
               isNew={highlightId === item.id}
               item={item}
               key={item.id}
+              members={members}
               remindersOnDebt={remindersOnDebt}
               workspaceId={workspaceId}
             />

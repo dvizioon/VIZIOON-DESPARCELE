@@ -67,6 +67,16 @@ export class PrismaInstallmentRepository implements InstallmentRepository {
     return mapInstallment(row);
   }
 
+  async updatePaidBy(installmentId: string, paidByUserId: string): Promise<Installment> {
+    const row = await prisma.installment.update({
+      where: { id: installmentId },
+      data: { paidByUserId },
+      include: { paidBy: true },
+    });
+
+    return mapInstallment(row);
+  }
+
   async updateAmounts(updates: Array<{ id: string; amountCents: number }>): Promise<void> {
     if (updates.length === 0) {
       return;

@@ -11,6 +11,7 @@ export interface InstallmentRepository {
   markPaid(input: MarkInstallmentPaidInput): Promise<Installment>;
   markPending(installmentId: string): Promise<Installment>;
   clearReceipt(installmentId: string): Promise<Installment>;
+  updatePaidBy(installmentId: string, paidByUserId: string): Promise<Installment>;
   setReminderDisabled(installmentId: string, disabled: boolean): Promise<Installment>;
   updateAmounts(updates: Array<{ id: string; amountCents: number }>): Promise<void>;
   updateDueDates(updates: Array<{ id: string; dueDate: Date }>): Promise<void>;

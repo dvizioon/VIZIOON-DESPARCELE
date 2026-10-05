@@ -182,6 +182,7 @@ export default async function DebtDetailPage({ params }: DebtDetailPageProps) {
 
         <InstallmentsList
           canEdit={canEdit}
+          currentUserId={user.id}
           debtId={debtId}
           installments={debt.installments.map((item) => ({
             id: item.id,
@@ -189,11 +190,13 @@ export default async function DebtDetailPage({ params }: DebtDetailPageProps) {
             amountCents: item.amountCents,
             dueDate: item.dueDate.toISOString(),
             paid: item.status === "PAID",
+            paidByUserId: item.paidByUserId,
             paidByName: item.paidByName,
             paidAt: item.paidAt?.toISOString() ?? null,
             receiptUrl: item.receiptUrl,
             reminderDisabled: item.reminderDisabled,
           }))}
+          members={members}
           remindersOnDebt={debt.remindersEnabled}
           workspaceId={workspaceId}
         />

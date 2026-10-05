@@ -7,7 +7,7 @@ import { AppIcon } from "@/components/ui/icon";
 import { MonthBadge } from "@/components/ui/month-badge";
 import { formatDateFull } from "@/shared/utils/date";
 import { formatBRL } from "@/shared/utils/money";
-import type { InstallmentListItem } from "./types";
+import type { InstallmentListItem, InstallmentMemberOption } from "./types";
 import { parseItemDate } from "./utils";
 
 export function InstallmentCardBody({
@@ -65,6 +65,8 @@ export function SortableInstallmentCard({
   workspaceId,
   debtId,
   remindersOnDebt,
+  members,
+  currentUserId,
   isNew,
   blink,
 }: {
@@ -73,6 +75,8 @@ export function SortableInstallmentCard({
   workspaceId: string;
   debtId: string;
   remindersOnDebt: boolean;
+  members: InstallmentMemberOption[];
+  currentUserId: string;
   isNew: boolean;
   blink: boolean;
 }) {
@@ -108,9 +112,12 @@ export function SortableInstallmentCard({
       <InstallmentCardBody isNew={isNew} item={item} />
       <InstallmentActions
         canDelete={canDelete}
+        currentUserId={currentUserId}
         debtId={debtId}
         installmentId={item.id}
+        members={members}
         paid={item.paid}
+        paidByUserId={item.paidByUserId}
         receiptUrl={item.receiptUrl}
         reminderDisabled={item.reminderDisabled}
         remindersOnDebt={remindersOnDebt}
@@ -127,6 +134,8 @@ export function StaticInstallmentCard({
   workspaceId,
   debtId,
   remindersOnDebt,
+  members,
+  currentUserId,
   isNew,
   blink,
 }: {
@@ -136,21 +145,23 @@ export function StaticInstallmentCard({
   workspaceId: string;
   debtId: string;
   remindersOnDebt: boolean;
+  members: InstallmentMemberOption[];
+  currentUserId: string;
   isNew: boolean;
   blink: boolean;
 }) {
   return (
-    <li
-      className={`sheet ${blink ? "installment-blink" : ""}`}
-      id={`installment-${item.id}`}
-    >
+    <li className={`sheet ${blink ? "installment-blink" : ""}`} id={`installment-${item.id}`}>
       <InstallmentCardBody isNew={isNew} item={item} />
       {canEdit ? (
         <InstallmentActions
           canDelete={canDelete}
+          currentUserId={currentUserId}
           debtId={debtId}
           installmentId={item.id}
+          members={members}
           paid={item.paid}
+          paidByUserId={item.paidByUserId}
           receiptUrl={item.receiptUrl}
           reminderDisabled={item.reminderDisabled}
           remindersOnDebt={remindersOnDebt}

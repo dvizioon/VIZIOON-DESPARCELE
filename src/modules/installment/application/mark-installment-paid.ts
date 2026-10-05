@@ -17,6 +17,7 @@ export interface ReceiptFile {
 export interface MarkInstallmentPaidCommand {
   installmentId: string;
   actorId: string;
+  paidByUserId?: string | null;
   receipt: ReceiptFile | null;
 }
 
@@ -51,6 +52,12 @@ export async function markInstallmentPaid(
     return fail("NOT_FOUND", hidden);
   }
 
+  const paidByUserId = command.paidByUserId?.trim() || command.actorId;
+  const payer = await workspaces.findMember(debt.workspaceId, paidByUserId);
+  if (!payer) {
+    return fail("INVALID_PAYER", "Escolha alguem deste espaco");
+  }
+
   let receiptUrl: string | null = null;
   if (command.receipt) {
     if (!isReceiptMimeType(command.receipt.mimeType)) {
@@ -66,7 +73,7 @@ export async function markInstallmentPaid(
 
   const paid = await installments.markPaid({
     installmentId: command.installmentId,
-    paidByUserId: command.actorId,
+    paidByUserId,
     receiptUrl,
   });
 

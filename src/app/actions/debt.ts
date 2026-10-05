@@ -143,7 +143,12 @@ export async function markPaidAction(
   }
 
   const result = await markInstallmentPaid(
-    { installmentId, actorId: user.id, receipt },
+    {
+      installmentId,
+      actorId: user.id,
+      paidByUserId: String(formData.get("paidByUserId") ?? "") || null,
+      receipt,
+    },
     installments,
     debts,
     workspaces,
@@ -156,6 +161,35 @@ export async function markPaidAction(
 
   await revalidateDebtPaths(workspaceId, debtId);
   return { error: null };
+}
+
+export async function changeInstallmentPayerAction(
+  workspaceId: string,
+  debtId: string,
+  installmentId: string,
+  formData: FormData,
+): Promise<ActionState> {
+  const user = await requireUser();
+  const { installments, debts, workspaces } = getRepositories();
+  const { changeInstallmentPayer } = await import(
+    "@/modules/installment/application/change-installment-payer"
+  );
+
+  const result = await changeInstallmentPayer(
+    installmentId,
+    user.id,
+    String(formData.get("paidByUserId") ?? ""),
+    installments,
+    debts,
+    workspaces,
+  );
+
+  if (!result.ok) {
+    return { error: result.error.message };
+  }
+
+  await revalidateDebtPaths(workspaceId, debtId);
+  return { error: null, ok: true };
 }
 
 async function revalidateDebtPaths(workspaceId: string, debtId: string): Promise<void> {

@@ -6,7 +6,7 @@ import { InstallmentsCalendar } from "./installments-calendar";
 import { InstallmentsListView } from "./installments-list-view";
 import { InstallmentsPipeline } from "./installments-pipeline";
 import { InstallmentsToolbar } from "./installments-toolbar";
-import type { InstallmentListItem } from "./types";
+import type { InstallmentListItem, InstallmentMemberOption } from "./types";
 import { useInstallmentsBoard } from "./use-installments-board";
 
 export type { InstallmentListItem } from "./types";
@@ -17,12 +17,16 @@ export function InstallmentsList({
   installments,
   canEdit,
   remindersOnDebt,
+  members,
+  currentUserId,
 }: {
   workspaceId: string;
   debtId: string;
   installments: InstallmentListItem[];
   canEdit: boolean;
   remindersOnDebt: boolean;
+  members: InstallmentMemberOption[];
+  currentUserId: string;
 }) {
   const board = useInstallmentsBoard({
     workspaceId,
@@ -57,12 +61,14 @@ export function InstallmentsList({
           canDelete={board.items.length > 1}
           canDrag={board.canDrag}
           canEdit={canEdit}
+          currentUserId={currentUserId}
           debtId={debtId}
           hasMore={board.hasMore}
           highlightId={board.highlightId}
           items={board.visibleItems}
           listMode={board.listMode}
           loadingMore={board.loadingMore}
+          members={members}
           page={board.page}
           pageSize={board.pageSize}
           remindersOnDebt={remindersOnDebt}
