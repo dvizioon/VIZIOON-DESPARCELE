@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   DndContext,
   PointerSensor,
@@ -20,10 +20,11 @@ import { CSS } from "@dnd-kit/utilities";
 import { addInstallmentAction, reorderInstallmentsAction } from "@/app/actions/debt";
 import { InstallmentActions } from "@/components/forms/installment-actions";
 import { FormError } from "@/components/forms/auth-forms";
+import { FilterPills } from "@/components/motion/filter-pills";
 import { AppIcon } from "@/components/ui/icon";
 import { MonthBadge } from "@/components/ui/month-badge";
-import { formatDateFull } from "@/shared/utils/date";
 import { formatBRL } from "@/shared/utils/money";
+import { formatDateFull } from "@/shared/utils/date";
 
 export type InstallmentListItem = {
   id: string;
@@ -36,6 +37,33 @@ export type InstallmentListItem = {
   receiptUrl: string | null;
   reminderDisabled: boolean;
 };
+
+type ViewMode = "list" | "calendar" | "pipeline";
+
+const VIEW_KEY = "desparcele.installments.view";
+const WEEKDAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+
+function parseItemDate(value: string): Date {
+  return new Date(value.includes("T") ? value : `${value}T12:00:00.000Z`);
+}
+
+function monthKey(date: Date): string {
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+function dayKey(date: Date): string {
+  return `${monthKey(date)}-${String(date.getUTCDate()).padStart(2, "0")}`;
+}
+
+function isOverdue(item: InstallmentListItem, now = new Date()): boolean {
+  if (item.paid) {
+    return false;
+  }
+  const due = parseItemDate(item.dueDate);
+  const todayUtc = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  const dueUtc = Date.UTC(due.getUTCFullYear(), due.getUTCMonth(), due.getUTCDate());
+  return dueUtc < todayUtc;
+}
 
 export function InstallmentsList({
   workspaceId,
@@ -54,15 +82,77 @@ export function InstallmentsList({
   const [items, setItems] = useState(installments);
   const [error, setError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
+  const [view, setView] = useState<ViewMode>("list");
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const [blinkId, setBlinkId] = useState<string | null>(null);
+  const [calendarCursor, setCalendarCursor] = useState(() => {
+    const firstOpen = installments.find((item) => !item.paid);
+    const base = parseItemDate((firstOpen ?? installments[0])?.dueDate ?? new Date().toISOString());
+    return { year: base.getUTCFullYear(), month: base.getUTCMonth() };
+  });
+  const highlightTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const blinkTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     setItems(installments);
   }, [installments]);
 
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(VIEW_KEY);
+      if (saved === "list" || saved === "calendar" || saved === "pipeline") {
+        setView(saved);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!highlightId) {
+      return;
+    }
+    const node = document.getElementById(`installment-${highlightId}`);
+    node?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [highlightId, items, view]);
+
+  useEffect(() => {
+    return () => {
+      if (highlightTimer.current) {
+        clearTimeout(highlightTimer.current);
+      }
+      if (blinkTimer.current) {
+        clearTimeout(blinkTimer.current);
+      }
+    };
+  }, []);
+
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
+  function changeView(next: ViewMode) {
+    setView(next);
+    try {
+      localStorage.setItem(VIEW_KEY, next);
+    } catch {
+      // ignore
+    }
+  }
+
+  function markNew(id: string) {
+    setHighlightId(id);
+    setBlinkId(id);
+    if (highlightTimer.current) {
+      clearTimeout(highlightTimer.current);
+    }
+    if (blinkTimer.current) {
+      clearTimeout(blinkTimer.current);
+    }
+    blinkTimer.current = setTimeout(() => setBlinkId(null), 1800);
+    highlightTimer.current = setTimeout(() => setHighlightId(null), 8000);
+  }
+
   async function onDragEnd(event: DragEndEvent) {
-    if (!canEdit) {
+    if (!canEdit || view !== "list") {
       return;
     }
     const { active, over } = event;
@@ -105,54 +195,158 @@ export function InstallmentsList({
       setError(result.error);
       return;
     }
+    if (result.installmentId) {
+      changeView("list");
+      markNew(result.installmentId);
+    }
     router.refresh();
   }
 
+  const pipeline = useMemo(() => {
+    const overdue: InstallmentListItem[] = [];
+    const open: InstallmentListItem[] = [];
+    const paid: InstallmentListItem[] = [];
+    for (const item of items) {
+      if (item.paid) {
+        paid.push(item);
+      } else if (isOverdue(item)) {
+        overdue.push(item);
+      } else {
+        open.push(item);
+      }
+    }
+    return { overdue, open, paid };
+  }, [items]);
+
   return (
     <div className="space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <FilterPills watch={view}>
+          <ViewChip active={view === "list"} onClick={() => changeView("list")}>
+            <AppIcon className="size-4" name="tabler:list" />
+            Lista
+          </ViewChip>
+          <ViewChip active={view === "calendar"} onClick={() => changeView("calendar")}>
+            <AppIcon className="size-4" name="tabler:calendar" />
+            Calendário
+          </ViewChip>
+          <ViewChip active={view === "pipeline"} onClick={() => changeView("pipeline")}>
+            <AppIcon className="size-4" name="tabler:layout-kanban" />
+            Pipeline
+          </ViewChip>
+        </FilterPills>
+      </div>
+
+      {error ? <FormError message={error} /> : null}
+
+      {view === "list" ? (
+        canEdit ? (
+          <DndContext collisionDetection={closestCenter} onDragEnd={onDragEnd} sensors={sensors}>
+            <SortableContext items={items.map((item) => item.id)} strategy={verticalListSortingStrategy}>
+              <ul className="grid gap-3">
+                {items.map((item) => (
+                  <SortableInstallmentCard
+                    blink={blinkId === item.id}
+                    canDelete={items.length > 1}
+                    debtId={debtId}
+                    isNew={highlightId === item.id}
+                    item={item}
+                    key={item.id}
+                    remindersOnDebt={remindersOnDebt}
+                    workspaceId={workspaceId}
+                  />
+                ))}
+              </ul>
+            </SortableContext>
+          </DndContext>
+        ) : (
+          <ul className="grid gap-3">
+            {items.map((item) => (
+              <li
+                className={`sheet ${blinkId === item.id ? "installment-blink" : ""}`}
+                id={`installment-${item.id}`}
+                key={item.id}
+              >
+                <InstallmentCardBody isNew={highlightId === item.id} item={item} />
+              </li>
+            ))}
+          </ul>
+        )
+      ) : null}
+
+      {view === "calendar" ? (
+        <CalendarView
+          blinkId={blinkId}
+          cursor={calendarCursor}
+          highlightId={highlightId}
+          items={items}
+          onCursorChange={setCalendarCursor}
+        />
+      ) : null}
+
+      {view === "pipeline" ? (
+        <div className="grid gap-3 lg:grid-cols-3">
+          <PipelineColumn
+            blinkId={blinkId}
+            highlightId={highlightId}
+            items={pipeline.overdue}
+            title="Atrasadas"
+            tone="clay"
+          />
+          <PipelineColumn
+            blinkId={blinkId}
+            highlightId={highlightId}
+            items={pipeline.open}
+            title="Em aberto"
+            tone="ink"
+          />
+          <PipelineColumn
+            blinkId={blinkId}
+            highlightId={highlightId}
+            items={pipeline.paid}
+            title="Pagas"
+            tone="moss"
+          />
+        </div>
+      ) : null}
+
       {canEdit ? (
-        <div className="flex flex-wrap justify-end gap-2">
+        <div className="flex justify-center pt-1">
           <button
             aria-label="Adicionar parcela"
-            className="inline-flex size-10 items-center justify-center rounded-full border border-pine/30 bg-pine-soft/40 text-pine-dark transition hover:bg-pine-soft disabled:opacity-40"
+            className="inline-flex size-12 items-center justify-center rounded-full border border-pine/30 bg-pine-soft/40 text-pine-dark shadow-sm transition hover:bg-pine-soft disabled:opacity-40"
             disabled={adding || items.length >= 360}
             onClick={() => void addOne()}
             type="button"
           >
-            <AppIcon className="size-5" name="tabler:plus" />
+            <AppIcon className="size-6" name="tabler:plus" />
           </button>
         </div>
       ) : null}
-
-      {error ? <FormError message={error} /> : null}
-
-      {canEdit ? (
-        <DndContext collisionDetection={closestCenter} onDragEnd={onDragEnd} sensors={sensors}>
-          <SortableContext items={items.map((item) => item.id)} strategy={verticalListSortingStrategy}>
-            <ul className="grid gap-3">
-              {items.map((item) => (
-                <SortableInstallmentCard
-                  canDelete={items.length > 1}
-                  debtId={debtId}
-                  item={item}
-                  key={item.id}
-                  remindersOnDebt={remindersOnDebt}
-                  workspaceId={workspaceId}
-                />
-              ))}
-            </ul>
-          </SortableContext>
-        </DndContext>
-      ) : (
-        <ul className="grid gap-3">
-          {items.map((item) => (
-            <li className="sheet" key={item.id}>
-              <InstallmentCardBody item={item} />
-            </li>
-          ))}
-        </ul>
-      )}
     </div>
+  );
+}
+
+function ViewChip({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      className={`nav-link relative z-10 shrink-0 snap-start ${
+        active ? "font-semibold text-pine-dark" : ""
+      }`}
+      data-pill-active={active ? "true" : "false"}
+      onClick={onClick}
+      type="button"
+    >
+      {children}
+    </button>
   );
 }
 
@@ -162,12 +356,16 @@ function SortableInstallmentCard({
   workspaceId,
   debtId,
   remindersOnDebt,
+  isNew,
+  blink,
 }: {
   item: InstallmentListItem;
   canDelete: boolean;
   workspaceId: string;
   debtId: string;
   remindersOnDebt: boolean;
+  isNew: boolean;
+  blink: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.id,
@@ -181,7 +379,12 @@ function SortableInstallmentCard({
   };
 
   return (
-    <li className="sheet" ref={setNodeRef} style={style}>
+    <li
+      className={`sheet ${blink ? "installment-blink" : ""}`}
+      id={`installment-${item.id}`}
+      ref={setNodeRef}
+      style={style}
+    >
       <div className="mb-2">
         <button
           aria-label="Arrastar parcela"
@@ -193,7 +396,7 @@ function SortableInstallmentCard({
           <AppIcon className="size-4" name="tabler:grip-vertical" />
         </button>
       </div>
-      <InstallmentCardBody item={item} />
+      <InstallmentCardBody isNew={isNew} item={item} />
       <InstallmentActions
         canDelete={canDelete}
         debtId={debtId}
@@ -208,11 +411,17 @@ function SortableInstallmentCard({
   );
 }
 
-function InstallmentCardBody({ item }: { item: InstallmentListItem }) {
-  const due = new Date(item.dueDate.includes("T") ? item.dueDate : `${item.dueDate}T12:00:00.000Z`);
-  const paidAt = item.paidAt
-    ? new Date(item.paidAt.includes("T") ? item.paidAt : `${item.paidAt}T12:00:00.000Z`)
-    : null;
+function InstallmentCardBody({
+  item,
+  isNew = false,
+  compact = false,
+}: {
+  item: InstallmentListItem;
+  isNew?: boolean;
+  compact?: boolean;
+}) {
+  const due = parseItemDate(item.dueDate);
+  const paidAt = item.paidAt ? parseItemDate(item.paidAt) : null;
 
   return (
     <div className="flex flex-wrap items-start justify-between gap-3">
@@ -224,16 +433,212 @@ function InstallmentCardBody({ item }: { item: InstallmentListItem }) {
           />
           Parcela {item.number}
           <MonthBadge date={due} />
+          {isNew ? (
+            <span className="rounded-full bg-pine px-2 py-0.5 text-[11px] font-semibold text-white">
+              Nova
+            </span>
+          ) : null}
         </p>
-        <p className="mt-1 text-sm text-ink/55">Vence {formatDateFull(due)}</p>
-        {item.paid ? (
-          <p className="mt-1 text-sm text-moss">
-            Paga por {item.paidByName ?? "alguem"}
-            {paidAt ? ` em ${formatDateFull(paidAt)}` : ""}
-          </p>
-        ) : null}
+        {!compact ? (
+          <>
+            <p className="mt-1 text-sm text-ink/55">Vence {formatDateFull(due)}</p>
+            {item.paid ? (
+              <p className="mt-1 text-sm text-moss">
+                Paga por {item.paidByName ?? "alguem"}
+                {paidAt ? ` em ${formatDateFull(paidAt)}` : ""}
+              </p>
+            ) : null}
+          </>
+        ) : (
+          <p className="mt-1 text-xs text-ink/55">{formatDateFull(due)}</p>
+        )}
       </div>
-      <p className="font-display text-2xl">{formatBRL(item.amountCents)}</p>
+      <p className={`font-display ${compact ? "text-lg" : "text-2xl"}`}>
+        {formatBRL(item.amountCents)}
+      </p>
+    </div>
+  );
+}
+
+function PipelineColumn({
+  title,
+  items,
+  tone,
+  highlightId,
+  blinkId,
+}: {
+  title: string;
+  items: InstallmentListItem[];
+  tone: "clay" | "ink" | "moss";
+  highlightId: string | null;
+  blinkId: string | null;
+}) {
+  const toneClass =
+    tone === "clay" ? "text-clay" : tone === "moss" ? "text-moss" : "text-ink/70";
+
+  return (
+    <section className="rounded-3xl border border-line bg-white/50 p-3">
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <h4 className={`text-sm font-semibold ${toneClass}`}>{title}</h4>
+        <span className="text-xs text-ink/45">{items.length}</span>
+      </div>
+      <ul className="grid max-h-[28rem] gap-2 overflow-y-auto">
+        {items.length === 0 ? (
+          <li className="rounded-2xl border border-dashed border-line px-3 py-4 text-center text-xs text-ink/45">
+            Nenhuma
+          </li>
+        ) : (
+          items.map((item) => (
+            <li
+              className={`rounded-2xl border border-line bg-card px-3 py-3 ${
+                blinkId === item.id ? "installment-blink" : ""
+              }`}
+              id={`installment-${item.id}`}
+              key={item.id}
+            >
+              <InstallmentCardBody compact isNew={highlightId === item.id} item={item} />
+            </li>
+          ))
+        )}
+      </ul>
+    </section>
+  );
+}
+
+function CalendarView({
+  items,
+  cursor,
+  onCursorChange,
+  highlightId,
+  blinkId,
+}: {
+  items: InstallmentListItem[];
+  cursor: { year: number; month: number };
+  onCursorChange: (next: { year: number; month: number }) => void;
+  highlightId: string | null;
+  blinkId: string | null;
+}) {
+  const byDay = useMemo(() => {
+    const map = new Map<string, InstallmentListItem[]>();
+    for (const item of items) {
+      const key = dayKey(parseItemDate(item.dueDate));
+      const list = map.get(key) ?? [];
+      list.push(item);
+      map.set(key, list);
+    }
+    return map;
+  }, [items]);
+
+  const first = new Date(Date.UTC(cursor.year, cursor.month, 1));
+  const startPad = first.getUTCDay();
+  const daysInMonth = new Date(Date.UTC(cursor.year, cursor.month + 1, 0)).getUTCDate();
+  const cells: Array<{ day: number | null; key: string | null }> = [];
+  for (let i = 0; i < startPad; i += 1) {
+    cells.push({ day: null, key: null });
+  }
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    const key = `${cursor.year}-${String(cursor.month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    cells.push({ day, key });
+  }
+
+  const label = new Intl.DateTimeFormat("pt-BR", {
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(first);
+
+  const monthItems = items.filter((item) => {
+    const due = parseItemDate(item.dueDate);
+    return due.getUTCFullYear() === cursor.year && due.getUTCMonth() === cursor.month;
+  });
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-2">
+        <button
+          className="btn-ghost px-3 py-2"
+          onClick={() => {
+            const month = cursor.month - 1;
+            onCursorChange(
+              month < 0 ? { year: cursor.year - 1, month: 11 } : { year: cursor.year, month },
+            );
+          }}
+          type="button"
+        >
+          <AppIcon className="size-4" name="tabler:chevron-left" />
+        </button>
+        <p className="font-display text-xl capitalize">{label}</p>
+        <button
+          className="btn-ghost px-3 py-2"
+          onClick={() => {
+            const month = cursor.month + 1;
+            onCursorChange(
+              month > 11 ? { year: cursor.year + 1, month: 0 } : { year: cursor.year, month },
+            );
+          }}
+          type="button"
+        >
+          <AppIcon className="size-4" name="tabler:chevron-right" />
+        </button>
+      </div>
+
+      <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-medium text-ink/50">
+        {WEEKDAYS.map((day) => (
+          <div key={day}>{day}</div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-7 gap-1">
+        {cells.map((cell, index) => {
+          if (cell.day == null || !cell.key) {
+            return <div className="min-h-16 rounded-xl bg-transparent" key={`empty-${index}`} />;
+          }
+          const dayItems = byDay.get(cell.key) ?? [];
+          return (
+            <div
+              className="min-h-16 rounded-xl border border-line bg-white/70 p-1.5"
+              key={cell.key}
+            >
+              <p className="text-[11px] font-medium text-ink/55">{cell.day}</p>
+              <div className="mt-1 space-y-0.5">
+                {dayItems.slice(0, 2).map((item) => (
+                  <p
+                    className={`truncate rounded-md px-1 py-0.5 text-[10px] ${
+                      item.paid ? "bg-pine-soft text-pine-dark" : "bg-clay/10 text-clay"
+                    } ${blinkId === item.id ? "installment-blink" : ""}`}
+                    key={item.id}
+                    title={`Parcela ${item.number} · ${formatBRL(item.amountCents)}`}
+                  >
+                    #{item.number}
+                    {highlightId === item.id ? " · nova" : ""}
+                  </p>
+                ))}
+                {dayItems.length > 2 ? (
+                  <p className="text-[10px] text-ink/45">+{dayItems.length - 2}</p>
+                ) : null}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <ul className="grid gap-2">
+        {monthItems.length === 0 ? (
+          <li className="rounded-2xl border border-dashed border-line px-3 py-4 text-center text-sm text-ink/50">
+            Nenhuma parcela neste mês
+          </li>
+        ) : (
+          monthItems.map((item) => (
+            <li
+              className={`sheet ${blinkId === item.id ? "installment-blink" : ""}`}
+              id={`installment-${item.id}`}
+              key={item.id}
+            >
+              <InstallmentCardBody isNew={highlightId === item.id} item={item} />
+            </li>
+          ))
+        )}
+      </ul>
     </div>
   );
 }

@@ -15,6 +15,7 @@ export type ActionState = {
   ok?: boolean;
   message?: string;
   debtId?: string;
+  installmentId?: string;
 };
 
 export async function loginAction(

@@ -163,6 +163,27 @@ body {
   animation: scroll-hint-down 1.4s ease-in-out infinite;
 }
 
+@keyframes installment-blink {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+    background-color: inherit;
+  }
+  25%,
+  75% {
+    box-shadow: 0 0 0 3px rgba(12, 107, 92, 0.35);
+    background-color: rgba(12, 107, 92, 0.08);
+  }
+  50% {
+    box-shadow: 0 0 0 0 transparent;
+    background-color: inherit;
+  }
+}
+
+.installment-blink {
+  animation: installment-blink 0.9s ease-in-out 2;
+}
+
 @keyframes dialog-overlay-in {
   from {
     opacity: 0;

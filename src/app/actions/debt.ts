@@ -524,7 +524,7 @@ export async function addInstallmentAction(
   }
 
   await revalidateDebtPaths(workspaceId, debtId);
-  return { error: null, ok: true };
+  return { error: null, ok: true, installmentId: result.value.id };
 }
 
 export async function reorderInstallmentsAction(
