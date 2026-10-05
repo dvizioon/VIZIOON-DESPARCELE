@@ -54,7 +54,8 @@ export async function createDebtAction(
   }
 
   const kindRaw = String(formData.get("kind") ?? "INSTALLMENT");
-  const kind = kindRaw === "RECURRING" ? "RECURRING" : "INSTALLMENT";
+  const kind =
+    kindRaw === "RECURRING" ? "RECURRING" : kindRaw === "VARIABLE" ? "VARIABLE" : "INSTALLMENT";
   let recurringAmountCents: number | undefined;
   const recurringRaw = String(formData.get("recurringAmount") ?? "").trim();
   if (recurringRaw) {
@@ -63,9 +64,12 @@ export async function createDebtAction(
     } catch {
       return { error: "Valor mensal invalido" };
     }
+  } else if (kind === "VARIABLE") {
+    recurringAmountCents = 0;
   }
 
   const alreadyPaidCount = Number(formData.get("alreadyPaidCount") ?? 0);
+  const isMonthly = kind === "RECURRING" || kind === "VARIABLE";
 
   const result = await createDebt(
     {
@@ -74,7 +78,7 @@ export async function createDebtAction(
       name: String(formData.get("name") ?? ""),
       kind,
       totalAmountCents,
-      installmentCount: Number(formData.get("installmentCount") ?? (kind === "RECURRING" ? 1 : 0)),
+      installmentCount: Number(formData.get("installmentCount") ?? (isMonthly ? 1 : 0)),
       autoPay: String(formData.get("autoPay") ?? formData.get("isLoan") ?? "") === "1",
       remindersEnabled: String(formData.get("remindersEnabled") ?? "") === "1",
       recurringAmountCents,

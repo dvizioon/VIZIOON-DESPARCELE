@@ -1,12 +1,14 @@
 import { calendarDate, withDayOfMonth } from "@/shared/utils/date";
 import type { DebtRepository } from "../domain/debt-repository";
+import { suggestMonthlyAmountCents } from "./create-debt";
 
 export type GenerateRecurringResult = {
   createdCount: number;
+  paidOnCreateCount: number;
   debtIds: string[];
 };
 
-/** Gera a parcela do mês de `asOf` para cada dívida recorrente ativa. */
+/** Gera a parcela do mês de `asOf` para cada dívida recorrente/variável ativa. */
 export async function generateRecurringInstallments(
   debts: DebtRepository,
   asOf = new Date(),
@@ -19,9 +21,15 @@ export async function generateRecurringInstallments(
   const active = await debts.listRecurringActive();
   const debtIds: string[] = [];
   let createdCount = 0;
+  let paidOnCreateCount = 0;
 
   for (const debt of active) {
-    if (debt.recurringAmountCents == null || debt.recurringDay == null) {
+    if (debt.recurringDay == null) {
+      continue;
+    }
+
+    // Recorrente fixa ainda exige estimativa/valor cadastrado
+    if (debt.kind === "RECURRING" && debt.recurringAmountCents == null) {
       continue;
     }
 
@@ -37,15 +45,28 @@ export async function generateRecurringInstallments(
     const nextNumber =
       debt.installments.reduce((max, item) => Math.max(max, item.number), 0) + 1;
 
+    const amountCents =
+      debt.kind === "VARIABLE"
+        ? suggestMonthlyAmountCents(debt)
+        : (debt.recurringAmountCents ?? 1);
+
+    const autoPaid = debt.autoPay;
+
     await debts.appendInstallment(debt.id, {
       number: nextNumber,
-      amountCents: debt.recurringAmountCents,
+      amountCents,
       dueDate,
+      status: autoPaid ? "PAID" : "PENDING",
+      paidAt: autoPaid ? dueDate : null,
+      paidByUserId: autoPaid ? debt.ownerId : null,
     });
 
     createdCount += 1;
+    if (autoPaid) {
+      paidOnCreateCount += 1;
+    }
     debtIds.push(debt.id);
   }
 
-  return { createdCount, debtIds };
+  return { createdCount, paidOnCreateCount, debtIds };
 }

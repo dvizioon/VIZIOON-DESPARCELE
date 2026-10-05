@@ -42,8 +42,8 @@ export async function setDebtRecurringPaused(
     return fail("NOT_FOUND", "Divida nao encontrada");
   }
 
-  if (debt.kind !== "RECURRING") {
-    return fail("VALIDATION", "So divida recorrente pode pausar");
+  if (debt.kind !== "RECURRING" && debt.kind !== "VARIABLE") {
+    return fail("VALIDATION", "So divida recorrente ou mensal variavel pode pausar");
   }
 
   const member = await workspaces.findMember(debt.workspaceId, actorId);

@@ -342,7 +342,7 @@ function StatusPill({ enabled }: { enabled: boolean }) {
 
 function typeLabel(type: CronTaskView["type"]): string {
   if (type === "LOAN_AUTO_PAY") return "baixa auto";
-  if (type === "RECURRING_GENERATE") return "recorrente";
+  if (type === "RECURRING_GENERATE") return "recorrente/variável";
   return "e-mail";
 }
 

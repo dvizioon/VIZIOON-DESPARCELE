@@ -1,7 +1,7 @@
 import type { Installment } from "@/modules/installment/domain/installment";
 
 export type DebtHideMode = "NONE" | "ALL" | "SELECTED";
-export type DebtKind = "INSTALLMENT" | "RECURRING";
+export type DebtKind = "INSTALLMENT" | "RECURRING" | "VARIABLE";
 
 export interface Debt {
   id: string;
@@ -74,6 +74,15 @@ export function isRecurring(debt: Pick<Debt, "kind">): boolean {
   return debt.kind === "RECURRING";
 }
 
+export function isVariable(debt: Pick<Debt, "kind">): boolean {
+  return debt.kind === "VARIABLE";
+}
+
+/** Recorrente fixa ou mensal variável — entram no cron de geração. */
+export function isMonthlyGenerated(debt: Pick<Debt, "kind">): boolean {
+  return debt.kind === "RECURRING" || debt.kind === "VARIABLE";
+}
+
 export function isRecurringPaused(debt: Pick<Debt, "kind" | "recurringPausedAt">): boolean {
-  return debt.kind === "RECURRING" && debt.recurringPausedAt != null;
+  return isMonthlyGenerated(debt) && debt.recurringPausedAt != null;
 }

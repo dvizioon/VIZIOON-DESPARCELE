@@ -54,6 +54,9 @@ export default async function DebtDetailPage({ params }: DebtDetailPageProps) {
   const remaining = remainingAmountCents(debt.installments);
   const remainingCount = remainingInstallments(debt.installments);
   const paidCount = debt.installmentCount - remainingCount;
+  const paidCents = debt.installments
+    .filter((item) => item.status === "PAID")
+    .reduce((sum, item) => sum + item.amountCents, 0);
   const progress = Math.round((paidCount / debt.installmentCount) * 100);
   const members = access.value.members.map((item) => ({
     userId: item.userId,
@@ -63,9 +66,7 @@ export default async function DebtDetailPage({ params }: DebtDetailPageProps) {
   return (
     <Reveal className="space-y-5">
       <div className="sheet" data-reveal>
-        <p className="text-sm text-ink/55">
-          {shared ? `${debt.ownerName} · cadastro de ${debt.createdByName}` : "Sua dívida"}
-        </p>
+        <p className="text-sm text-ink/55">{shared ? debt.ownerName : "Sua dívida"}</p>
         <div className="mt-1 flex min-w-0 items-center gap-1">
           <h2 className="min-w-0 truncate font-display text-3xl sm:text-4xl">{debt.name}</h2>
           {canEdit ? (
@@ -93,10 +94,16 @@ export default async function DebtDetailPage({ params }: DebtDetailPageProps) {
               {debt.recurringPausedAt ? "Recorrente pausada" : "Recorrente"}
             </p>
           ) : null}
+          {debt.kind === "VARIABLE" ? (
+            <p className="inline-flex items-center gap-1.5 rounded-full bg-pine-soft px-2.5 py-1 text-xs font-medium text-pine-dark">
+              <AppIcon name="tabler:chart-dots" className="size-3.5" />
+              {debt.recurringPausedAt ? "Variável pausada" : "Mensal variável"}
+            </p>
+          ) : null}
           {debt.autoPay ? (
             <p className="inline-flex items-center gap-1.5 rounded-full bg-pine-soft px-2.5 py-1 text-xs font-medium text-pine-dark">
               <AppIcon name="tabler:building-bank" className="size-3.5" />
-              Empréstimo
+              Baixa automática
             </p>
           ) : null}
           {debt.remindersEnabled ? (
@@ -114,8 +121,16 @@ export default async function DebtDetailPage({ params }: DebtDetailPageProps) {
         </div>
         <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Metric label="Total" value={formatBRL(debt.totalAmountCents)} />
-          <Metric label="Ainda falta" value={formatBRL(remaining)} />
-          <Metric label="Parcelas" value={`${remainingCount} de ${debt.installmentCount}`} />
+          <Metric
+            label="Já pago"
+            value={formatBRL(paidCents)}
+            hint={`${paidCount} parcela${paidCount === 1 ? "" : "s"}`}
+          />
+          <Metric
+            label="Ainda falta"
+            value={formatBRL(remaining)}
+            hint={`${remainingCount} em aberto`}
+          />
           <Metric label="Progresso" value={`${progress}%`} />
         </div>
         <div className="mt-5 h-2 overflow-hidden rounded-full bg-line">
@@ -212,11 +227,20 @@ export default async function DebtDetailPage({ params }: DebtDetailPageProps) {
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+function Metric({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+}) {
   return (
     <div>
       <p className="text-sm text-ink/50">{label}</p>
       <p className="font-display text-2xl">{value}</p>
+      {hint ? <p className="mt-0.5 text-xs text-ink/45">{hint}</p> : null}
     </div>
   );
 }

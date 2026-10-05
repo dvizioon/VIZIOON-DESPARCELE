@@ -24,13 +24,17 @@ export function WorkspaceNav({
   return (
     <nav className="mb-5 sm:mb-6">
       <div className="-mx-1 overflow-x-auto overflow-y-visible px-1 pb-1 sm:overflow-visible">
-        <PillTrack className="flex min-w-max gap-1 rounded-full bg-white/80 p-1" watch={pathname}>
+        <PillTrack
+          className="flex min-w-max gap-1 rounded-full bg-white/80 p-1"
+          pillClassName="bg-pine-soft shadow-sm"
+          watch={pathname}
+        >
         {items.map((item) => {
           const active = isActive(pathname, item.href);
 
           return (
             <Link
-              className={`nav-link relative z-10 ${active ? "text-ink" : ""}`}
+              className={`nav-link relative z-10 ${active ? "font-semibold text-pine-dark" : ""}`}
               data-pill-active={active ? "true" : "false"}
               href={item.href}
               key={item.href}

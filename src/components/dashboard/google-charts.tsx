@@ -110,6 +110,127 @@ export function ScoreBarChart({ scores }: { scores: DashboardView["scores"] }) {
   );
 }
 
+const KIND_LABEL: Record<string, string> = {
+  INSTALLMENT: "Parcelada",
+  RECURRING: "Recorrente",
+  VARIABLE: "Variável",
+};
+
+/** Mix do que ainda falta por tipo de dívida. */
+export function KindMixChart({ slices }: { slices: DashboardView["slices"] }) {
+  const totals = new Map<string, number>();
+  for (const item of slices) {
+    if (item.remainingCents <= 0) {
+      continue;
+    }
+    const key = item.kind ?? "INSTALLMENT";
+    totals.set(key, (totals.get(key) ?? 0) + item.remainingCents);
+  }
+
+  if (totals.size === 0) {
+    return <EmptyChart label="Nada em aberto por tipo" />;
+  }
+
+  const data: Array<[string, string | number]> = [
+    ["Tipo", "Valor"],
+    ...[...totals.entries()].map(
+      ([kind, cents]) => [KIND_LABEL[kind] ?? kind, cents / 100] as [string, number],
+    ),
+  ];
+
+  return (
+    <Chart
+      chartType="PieChart"
+      data={data}
+      height="260px"
+      loader={<ChartLoader />}
+      options={{
+        ...baseOptions,
+        pieHole: 0.48,
+        colors: ["#0c6b5c", "#2d6a4f", "#8b5e34", "#c05621"],
+        pieSliceText: "percentage",
+      }}
+      width="100%"
+    />
+  );
+}
+
+/** Em dia vs atrasado (parcelas pendentes). */
+export function AgendaStatusChart({ upcoming }: { upcoming: DashboardView["upcoming"] }) {
+  const overdue = upcoming.filter((item) => item.overdue).reduce((sum, item) => sum + item.amountCents, 0);
+  const onTime = upcoming
+    .filter((item) => !item.overdue)
+    .reduce((sum, item) => sum + item.amountCents, 0);
+
+  if (overdue === 0 && onTime === 0) {
+    return <EmptyChart label="Sem parcelas na agenda" />;
+  }
+
+  return (
+    <Chart
+      chartType="PieChart"
+      data={[
+        ["Status", "Valor"],
+        ["Em dia", onTime / 100],
+        ["Atrasado", overdue / 100],
+      ]}
+      height="260px"
+      loader={<ChartLoader />}
+      options={{
+        ...baseOptions,
+        pieHole: 0.5,
+        colors: ["#0c6b5c", "#c05621"],
+        pieSliceText: "percentage",
+      }}
+      width="100%"
+    />
+  );
+}
+
+/** Barras: próximas parcelas do mês (top 8). */
+export function MonthUpcomingColumnChart({
+  upcoming,
+}: {
+  upcoming: DashboardView["upcoming"];
+}) {
+  const now = new Date();
+  const monthItems = upcoming
+    .filter((item) => {
+      const due = new Date(item.dueDate);
+      return due.getMonth() === now.getMonth() && due.getFullYear() === now.getFullYear();
+    })
+    .slice(0, 8);
+
+  if (monthItems.length === 0) {
+    return <EmptyChart label="Nada vence neste mês" />;
+  }
+
+  const data: Array<Array<string | number | object>> = [
+    ["Divida", "Valor", { role: "style" }],
+    ...monthItems.map((item) => [
+      item.debtName.length > 14 ? `${item.debtName.slice(0, 12)}…` : item.debtName,
+      item.amountCents / 100,
+      item.overdue ? "#c05621" : "#0c6b5c",
+    ]),
+  ];
+
+  return (
+    <Chart
+      chartType="ColumnChart"
+      data={data}
+      height="280px"
+      loader={<ChartLoader />}
+      options={{
+        ...baseOptions,
+        legend: { position: "none" },
+        hAxis: { textStyle: { fontSize: 11 } },
+        vAxis: { minValue: 0, textStyle: { fontSize: 11 } },
+      }}
+      width="100%"
+    />
+  );
+}
+
 function ChartLoader() {
   return <div className="h-48 animate-pulse rounded-2xl bg-line/70" />;
 }

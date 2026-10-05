@@ -5,7 +5,9 @@ import Link from "next/link";
 import { CountUpMoney } from "@/components/motion/count-up";
 import { FilterPills } from "@/components/motion/filter-pills";
 import { Reveal } from "@/components/motion/reveal";
+import { FancyCheckbox } from "@/components/ui/fancy-checkbox";
 import { AppIcon } from "@/components/ui/icon";
+import { MonthPicker } from "@/components/ui/month-picker";
 import type { DashboardView } from "@/modules/debt/application/dashboard-view";
 import type { DebtKind } from "@/modules/debt/domain/debt";
 import { formatDate } from "@/shared/utils/date";
@@ -14,62 +16,80 @@ import { formatBRL } from "@/shared/utils/money";
 type OwnerFilter = "all" | "mine" | string;
 
 export function MonthTotals({ data }: { data: DashboardView }) {
+  const now = new Date();
   const [ownerFilter, setOwnerFilter] = useState<OwnerFilter>("all");
   const [includeLoan, setIncludeLoan] = useState(false);
-  const [includeRecurring, setIncludeRecurring] = useState(false);
+  const [includeRecurring, setIncludeRecurring] = useState(true);
+  const [includeVariable, setIncludeVariable] = useState(false);
+  const [month, setMonth] = useState(now.getMonth());
+  const [year, setYear] = useState(now.getFullYear());
 
   const other = data.members.find((member) => member.userId !== data.currentUserId);
   const theirsLabel = other && data.members.length === 2 ? other.firstName : "Outras";
-  const monthLabel = new Date().toLocaleDateString("pt-BR", {
-    month: "long",
-    year: "numeric",
-  });
+  const isCurrentMonth = month === now.getMonth() && year === now.getFullYear();
 
   const monthItems = useMemo(() => {
-    const now = new Date();
     return data.upcoming.filter((item) => {
       if (!matchesOwner(item.ownerId, data.currentUserId, ownerFilter)) {
         return false;
       }
-      if (!matchesInclude(item.autoPay, item.kind, includeLoan, includeRecurring)) {
+      if (!matchesInclude(item.autoPay, item.kind, includeLoan, includeRecurring, includeVariable)) {
         return false;
       }
 
       const due = new Date(item.dueDate);
-      return due.getMonth() === now.getMonth() && due.getFullYear() === now.getFullYear();
+      return due.getMonth() === month && due.getFullYear() === year;
     });
-  }, [data, ownerFilter, includeLoan, includeRecurring]);
+  }, [data, ownerFilter, includeLoan, includeRecurring, includeVariable, month, year]);
 
   const overdueItems = useMemo(() => {
     return data.upcoming.filter(
       (item) =>
         item.overdue &&
         matchesOwner(item.ownerId, data.currentUserId, ownerFilter) &&
-        matchesInclude(item.autoPay, item.kind, includeLoan, includeRecurring),
+        matchesInclude(item.autoPay, item.kind, includeLoan, includeRecurring, includeVariable),
     );
-  }, [data, ownerFilter, includeLoan, includeRecurring]);
+  }, [data, ownerFilter, includeLoan, includeRecurring, includeVariable]);
 
   const monthDueCents = monthItems.reduce((sum, item) => sum + item.amountCents, 0);
   const overdueCents = overdueItems.reduce((sum, item) => sum + item.amountCents, 0);
   const openDebtIds = new Set(monthItems.map((item) => item.debtId));
   const suggestionVisible =
+    isCurrentMonth &&
     data.suggestion &&
     data.slices.some(
       (item) =>
         item.id === data.suggestion?.debtId &&
         matchesOwner(item.ownerId, data.currentUserId, ownerFilter) &&
-        matchesInclude(item.autoPay, item.kind, includeLoan, includeRecurring),
+        matchesInclude(item.autoPay, item.kind, includeLoan, includeRecurring, includeVariable),
     );
 
   return (
     <Reveal className="space-y-5">
       <div className="sheet" data-reveal>
-        <p className="text-sm capitalize text-ink/55">{monthLabel}</p>
-        <h2 className="mt-1 font-display text-3xl sm:text-4xl">Devido no mês</h2>
-        <p className="mt-2 max-w-xl text-sm text-ink/60">
-          Parcelas em aberto deste mês. Por padrão fica fora o que já desconta na conta
-          (empréstimo) e o que é recorrente — marque abaixo se quiser somar.
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <MonthPicker
+            month={month}
+            onChange={({ month: nextMonth, year: nextYear }) => {
+              setMonth(nextMonth);
+              setYear(nextYear);
+            }}
+            year={year}
+          />
+          {!isCurrentMonth ? (
+            <button
+              className="text-sm font-medium text-pine-dark hover:underline"
+              onClick={() => {
+                setMonth(now.getMonth());
+                setYear(now.getFullYear());
+              }}
+              type="button"
+            >
+              Voltar ao mês atual
+            </button>
+          ) : null}
+        </div>
+        <h2 className="mt-3 font-display text-3xl sm:text-4xl">Devido no mês</h2>
         <p className="mt-5 font-display text-4xl text-pine-dark sm:text-5xl">
           <CountUpMoney cents={monthDueCents} />
         </p>
@@ -116,23 +136,22 @@ export function MonthTotals({ data }: { data: DashboardView }) {
               </Link>
             </>
           ) : (
-            <p className="mt-3 font-display text-2xl">Nada pendente</p>
+            <p className="mt-3 font-display text-2xl">
+              {isCurrentMonth ? "Nada pendente" : "Sugestão só no mês atual"}
+            </p>
           )}
         </article>
       </section>
 
       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center" data-reveal>
         <div className="flex flex-wrap gap-2">
-          <IncludeCheck
-            checked={includeLoan}
-            label="Empréstimo"
-            onChange={setIncludeLoan}
-          />
-          <IncludeCheck
+          <FancyCheckbox checked={includeLoan} label="Empréstimo" onChange={setIncludeLoan} />
+          <FancyCheckbox
             checked={includeRecurring}
             label="Recorrência"
             onChange={setIncludeRecurring}
           />
+          <FancyCheckbox checked={includeVariable} label="Variável" onChange={setIncludeVariable} />
         </div>
         {data.shared ? (
           <FilterPills watch={ownerFilter}>
@@ -236,17 +255,19 @@ function matchesOwner(ownerId: string, currentUserId: string, filter: OwnerFilte
   return ownerId !== currentUserId;
 }
 
-/** Padrão: só parcelada comum. Marca para somar empréstimo e/ou recorrente. */
+/** Padrão: só parcelada comum. Marca para somar empréstimo / recorrente / variável. */
 function matchesInclude(
   autoPay: boolean,
   kind: DebtKind,
   includeLoan: boolean,
   includeRecurring: boolean,
+  includeVariable: boolean,
 ): boolean {
   const isLoan = autoPay;
   const isRecurring = kind === "RECURRING";
+  const isVariable = kind === "VARIABLE";
 
-  if (!isLoan && !isRecurring) {
+  if (!isLoan && !isRecurring && !isVariable) {
     return true;
   }
 
@@ -258,40 +279,25 @@ function matchesInclude(
     return true;
   }
 
+  if (isVariable && includeVariable) {
+    return true;
+  }
+
   return false;
 }
 
 function itemTag(autoPay: boolean, kind: DebtKind): string {
   const parts: string[] = [];
   if (autoPay) {
-    parts.push("empréstimo");
+    parts.push("baixa auto");
   }
   if (kind === "RECURRING") {
     parts.push("recorrente");
   }
+  if (kind === "VARIABLE") {
+    parts.push("variável");
+  }
   return parts.length ? ` · ${parts.join(" · ")}` : "";
-}
-
-function IncludeCheck({
-  checked,
-  label,
-  onChange,
-}: {
-  checked: boolean;
-  label: string;
-  onChange: (next: boolean) => void;
-}) {
-  return (
-    <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-line bg-white/70 px-3 py-2 text-sm text-ink/80">
-      <input
-        checked={checked}
-        className="size-4 accent-[var(--pine)]"
-        onChange={(event) => onChange(event.target.checked)}
-        type="checkbox"
-      />
-      {label}
-    </label>
-  );
 }
 
 function StatCard({
@@ -330,7 +336,9 @@ function FilterChip({
 }) {
   return (
     <button
-      className={`nav-link relative z-10 shrink-0 snap-start ${active ? "text-ink" : ""}`}
+      className={`nav-link relative z-10 shrink-0 snap-start ${
+        active ? "font-semibold text-pine-dark" : ""
+      }`}
       data-pill-active={active ? "true" : "false"}
       onClick={onClick}
       type="button"

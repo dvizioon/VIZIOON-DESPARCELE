@@ -27,7 +27,7 @@ export default async function MonthPage({ params }: MonthPageProps) {
   const debts = (await new PrismaDebtRepository().listByWorkspace(workspaceId)).filter((debt) =>
     isDebtVisibleTo(debt, user.id, admin),
   );
-  const dashboard = toDashboardView(buildDashboard(access.value, debts));
+  const dashboard = toDashboardView(buildDashboard(access.value, debts, new Date(), { allPending: true }));
 
   return <MonthTotals data={dashboard} />;
 }

@@ -56,9 +56,12 @@ export function DebtCreateForm({
   const [kind, setKind] = useState<DebtKind>("INSTALLMENT");
   const [name, setName] = useState("");
   const [totalAmount, setTotalAmount] = useState("");
+  const [installmentValue, setInstallmentValue] = useState("");
   const [installmentCount, setInstallmentCount] = useState("");
   const [alreadyPaidCount, setAlreadyPaidCount] = useState("0");
   const [firstDueDate, setFirstDueDate] = useState(defaultDueDate);
+  /** total foi preenchido pela calculadora (parcela × qtd) */
+  const [totalFromCalc, setTotalFromCalc] = useState(false);
   const [autoPay, setAutoPay] = useState(false);
   const [remindersEnabled, setRemindersEnabled] = useState(false);
   const [recurringDay, setRecurringDay] = useState(
@@ -67,6 +70,7 @@ export function DebtCreateForm({
   const [preview, setPreview] = useState<PreviewRow[]>([]);
 
   const busy = pending || navigating;
+  const isMonthly = kind === "RECURRING" || kind === "VARIABLE";
 
   useEffect(() => {
     if (!state.ok || !state.debtId || navigating) {
@@ -109,8 +113,20 @@ export function DebtCreateForm({
         return;
       }
 
-      if (kind === "RECURRING") {
-        const amountCents = parseBRLInput(totalAmount);
+      if (isMonthly) {
+        let amountCents = 0;
+        if (totalAmount.trim() && totalAmount.trim() !== "0" && totalAmount.trim() !== "0,00") {
+          amountCents = parseBRLInput(totalAmount);
+        } else if (kind === "RECURRING") {
+          setLocalError("Informe o valor mensal");
+          return;
+        } else {
+          amountCents = 1; // variável sem estimativa: placeholder R$ 0,01
+        }
+        if (kind === "RECURRING" && amountCents < 100) {
+          setLocalError("Valor mensal mínimo de R$ 1,00");
+          return;
+        }
         const day = Number(recurringDay);
         if (!Number.isInteger(day) || day < 1 || day > 31) {
           setLocalError("Dia do vencimento entre 1 e 31");
@@ -122,7 +138,7 @@ export function DebtCreateForm({
           return;
         }
         const nextDue = parseDateInput(firstDueDate);
-        const amountInput = centsToInput(amountCents);
+        const amountInput = centsToInput(Math.max(amountCents, 1));
         const rows: PreviewRow[] = [];
         for (let i = 0; i < paid; i += 1) {
           rows.push({
@@ -143,23 +159,111 @@ export function DebtCreateForm({
         return;
       }
 
-      const totalCents = parseBRLInput(totalAmount);
       const count = Number(installmentCount);
       if (!Number.isInteger(count) || count < 1 || count > 360) {
         setLocalError("Parcelas entre 1 e 360");
         return;
       }
+
+      let totalCents = 0;
+      let perCents: number | null = null;
+      try {
+        if (installmentValue.trim()) {
+          perCents = parseBRLInput(installmentValue);
+        }
+      } catch {
+        setLocalError("Valor da parcela inválido");
+        return;
+      }
+      try {
+        if (totalAmount.trim() && totalAmount.trim() !== "0" && totalAmount.trim() !== "0,00") {
+          totalCents = parseBRLInput(totalAmount);
+        }
+      } catch {
+        setLocalError("Valor total inválido");
+        return;
+      }
+
+      // Não sabe o total: qtd × valor da parcela
+      let equalParcels = false;
+      if (totalCents < 1 && perCents != null && perCents >= 1) {
+        totalCents = perCents * count;
+        setTotalAmount(centsToInput(totalCents));
+        setTotalFromCalc(true);
+        equalParcels = true;
+      } else if (
+        perCents != null &&
+        perCents >= 1 &&
+        (totalFromCalc || totalCents === perCents * count)
+      ) {
+        equalParcels = true;
+      }
+
+      if (totalCents < 100) {
+        setLocalError("Informe o total ou o valor de cada parcela");
+        return;
+      }
+
       const due = parseDateInput(firstDueDate);
-      const rows = generateInstallments(totalCents, count, due).map((item) => ({
-        number: item.number,
-        amountInput: centsToInput(item.amountCents),
-        dueDate: toCalendarInputValue(item.dueDate),
-        paid: false,
-      }));
+      const rows = equalParcels
+        ? Array.from({ length: count }, (_, index) => ({
+            number: index + 1,
+            amountInput: centsToInput(perCents!),
+            dueDate: toCalendarInputValue(addMonths(due, index)),
+            paid: false,
+          }))
+        : generateInstallments(totalCents, count, due).map((item) => ({
+            number: item.number,
+            amountInput: centsToInput(item.amountCents),
+            dueDate: toCalendarInputValue(item.dueDate),
+            paid: false,
+          }));
       setPreview(rows);
       setStep("preview");
     } catch {
       setLocalError("Valor ou data inválidos");
+    }
+  }
+
+  function syncTotalFromParcel(nextParcel: string, nextCount: string) {
+    setInstallmentValue(nextParcel);
+    try {
+      const count = Number(nextCount);
+      if (!Number.isInteger(count) || count < 1) {
+        return;
+      }
+      if (!nextParcel.trim()) {
+        return;
+      }
+      const per = parseBRLInput(nextParcel);
+      if (per < 1) {
+        return;
+      }
+      setTotalAmount(centsToInput(per * count));
+      setTotalFromCalc(true);
+    } catch {
+      // digitando
+    }
+  }
+
+  function syncParcelFromTotal(nextTotal: string, nextCount: string) {
+    setTotalAmount(nextTotal);
+    setTotalFromCalc(false);
+    try {
+      const count = Number(nextCount);
+      if (!Number.isInteger(count) || count < 1) {
+        return;
+      }
+      if (!nextTotal.trim() || nextTotal.trim() === "0") {
+        return;
+      }
+      const total = parseBRLInput(nextTotal);
+      if (total < 1) {
+        return;
+      }
+      setInstallmentValue(centsToInput(Math.floor(total / count)));
+    } catch {
+      // digitando
     }
   }
 
@@ -172,7 +276,7 @@ export function DebtCreateForm({
   function updateDueDate(index: number, value: string) {
     setPreview((rows) => {
       const next = rows.map((row, i) => (i === index ? { ...row, dueDate: value } : row));
-      if (kind === "RECURRING") {
+      if (isMonthly) {
         return next;
       }
       try {
@@ -218,12 +322,18 @@ export function DebtCreateForm({
         <input name="installmentAmounts" type="hidden" value={amountsHidden} />
         <input name="installmentDueDates" type="hidden" value={preview.map((r) => r.dueDate).join(",")} />
         <input name="installmentPaidFlags" type="hidden" value={paidHidden} />
-        {kind === "RECURRING" ? (
+        {isMonthly ? (
           <>
             <input
               name="recurringAmount"
               type="hidden"
-              value={preview.find((row) => !row.paid)?.amountInput ?? totalAmount}
+              value={
+                kind === "VARIABLE"
+                  ? totalAmount.trim() && totalAmount !== "0" && totalAmount !== "0,00"
+                    ? totalAmount
+                    : "0"
+                  : (preview.find((row) => !row.paid)?.amountInput ?? totalAmount)
+              }
             />
             <input name="recurringDay" type="hidden" value={recurringDay} />
             <input
@@ -237,23 +347,28 @@ export function DebtCreateForm({
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <p className="text-sm text-ink/50">
-              Preview · {kind === "RECURRING" ? "Recorrente" : "Parcelada"}
+              Preview ·{" "}
+              {kind === "RECURRING"
+                ? "Recorrente"
+                : kind === "VARIABLE"
+                  ? "Mensal variável"
+                  : "Parcelada"}
             </p>
             <h3 className="font-display text-2xl">{name}</h3>
             <p className="mt-1 text-sm text-ink/60">
-              {kind === "RECURRING"
-                ? "As já pagas entram no histórico; a próxima fica em aberto. O cron segue gerando depois."
-                : "Mudou valor ou data? As parcelas de baixo acompanham. O total vira a soma."}
+              {kind === "VARIABLE"
+                ? "Ajuste o valor de cada mês. O cron abre a próxima com a última cobrança (ou a estimativa)."
+                : kind === "RECURRING"
+                  ? "As já pagas entram no histórico; a próxima fica em aberto. O cron segue gerando depois."
+                  : "Mudou valor ou data? As parcelas de baixo acompanham. O total vira a soma."}
             </p>
           </div>
           <div className="text-right">
-            <p className="text-sm text-ink/50">
-              {kind === "RECURRING" ? "Em aberto" : "Total"}
-            </p>
+            <p className="text-sm text-ink/50">{isMonthly ? "Em aberto" : "Total"}</p>
             <p className="font-display text-2xl">
-              {formatBRL(kind === "RECURRING" ? previewOpenCents : previewTotalCents)}
+              {formatBRL(isMonthly ? previewOpenCents : previewTotalCents)}
             </p>
-            {kind === "RECURRING" && preview.some((row) => row.paid) ? (
+            {isMonthly && preview.some((row) => row.paid) ? (
               <p className="mt-1 text-xs text-ink/45">
                 {preview.filter((row) => row.paid).length} já paga
                 {preview.filter((row) => row.paid).length === 1 ? "" : "s"} ·{" "}
@@ -317,7 +432,7 @@ export function DebtCreateForm({
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-2 sm:grid-cols-2">
+      <div className="grid gap-2 sm:grid-cols-3">
         <button
           className={`rounded-2xl border px-3 py-3 text-left ${
             kind === "INSTALLMENT" ? "border-pine bg-pine-soft/50" : "border-line bg-white/60"
@@ -326,7 +441,7 @@ export function DebtCreateForm({
           type="button"
         >
           <span className="block text-sm font-medium text-ink">Parcelada</span>
-          <span className="mt-0.5 block text-xs text-ink/55">Financiamento, cartão, N vezes</span>
+          <span className="mt-0.5 block text-xs text-ink/55">N vezes, valor definido</span>
         </button>
         <button
           className={`rounded-2xl border px-3 py-3 text-left ${
@@ -336,7 +451,17 @@ export function DebtCreateForm({
           type="button"
         >
           <span className="block text-sm font-medium text-ink">Recorrente</span>
-          <span className="mt-0.5 block text-xs text-ink/55">Plano de saúde, mensalidade</span>
+          <span className="mt-0.5 block text-xs text-ink/55">Mesmo valor todo mês</span>
+        </button>
+        <button
+          className={`rounded-2xl border px-3 py-3 text-left ${
+            kind === "VARIABLE" ? "border-pine bg-pine-soft/50" : "border-line bg-white/60"
+          }`}
+          onClick={() => setKind("VARIABLE")}
+          type="button"
+        >
+          <span className="block text-sm font-medium text-ink">Mensal variável</span>
+          <span className="mt-0.5 block text-xs text-ink/55">Caixa, cartão, valor muda</span>
         </button>
       </div>
 
@@ -345,44 +470,81 @@ export function DebtCreateForm({
         <input
           className="field"
           onChange={(event) => setName(event.target.value)}
-          placeholder={kind === "RECURRING" ? "Plano de saúde, academia…" : "Cartão, financiamento, loja"}
+          placeholder={
+            kind === "VARIABLE"
+              ? "Caixa, cartão…"
+              : kind === "RECURRING"
+                ? "Plano de saúde, academia…"
+                : "Financiamento, loja"
+          }
           value={name}
         />
       </label>
 
       {kind === "INSTALLMENT" ? (
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="block space-y-1.5">
+              <span className="text-sm text-ink/70">Parcelas</span>
+              <input
+                className="field"
+                max={360}
+                min={1}
+                onChange={(event) => {
+                  const next = event.target.value;
+                  setInstallmentCount(next);
+                  if (installmentValue.trim()) {
+                    syncTotalFromParcel(installmentValue, next);
+                  } else if (totalAmount.trim()) {
+                    syncParcelFromTotal(totalAmount, next);
+                  }
+                }}
+                type="number"
+                value={installmentCount}
+              />
+            </label>
+            <label className="block space-y-1.5">
+              <span className="text-sm text-ink/70">Valor da parcela</span>
+              <input
+                className="field"
+                onChange={(event) => syncTotalFromParcel(event.target.value, installmentCount)}
+                placeholder="535,42"
+                value={installmentValue}
+              />
+            </label>
+          </div>
           <label className="block space-y-1.5">
-            <span className="text-sm text-ink/70">Valor total</span>
+            <span className="text-sm text-ink/70">
+              Valor total{totalFromCalc ? " (calculado)" : ""}
+            </span>
             <input
               className="field"
-              onChange={(event) => setTotalAmount(event.target.value)}
-              placeholder="6425,00"
+              onChange={(event) => syncParcelFromTotal(event.target.value, installmentCount)}
+              placeholder="0 ou 6425,00"
               value={totalAmount}
             />
-          </label>
-          <label className="block space-y-1.5">
-            <span className="text-sm text-ink/70">Parcelas</span>
-            <input
-              className="field"
-              max={360}
-              min={1}
-              onChange={(event) => setInstallmentCount(event.target.value)}
-              type="number"
-              value={installmentCount}
-            />
+            <span className="mt-1 block text-xs text-ink/50">
+              Não sabe o total? Coloque 0, informe parcelas e o valor de cada uma — a gente calcula.
+            </span>
           </label>
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="block space-y-1.5">
-            <span className="text-sm text-ink/70">Valor da parcela</span>
+            <span className="text-sm text-ink/70">
+              {kind === "VARIABLE" ? "Estimativa (opcional)" : "Valor da parcela"}
+            </span>
             <input
               className="field"
               onChange={(event) => setTotalAmount(event.target.value)}
-              placeholder="500,00"
+              placeholder={kind === "VARIABLE" ? "750,00 ou 0" : "500,00"}
               value={totalAmount}
             />
+            {kind === "VARIABLE" ? (
+              <span className="mt-1 block text-xs text-ink/50">
+                Sugestão inicial. Nos meses seguintes o sistema usa a última cobrança; você ajusta.
+              </span>
+            ) : null}
           </label>
           <label className="block space-y-1.5">
             <span className="text-sm text-ink/70">Já pagas</span>
@@ -456,9 +618,10 @@ export function DebtCreateForm({
           type="checkbox"
         />
         <span>
-          <span className="block text-sm font-medium text-ink">Empréstimo</span>
+          <span className="block text-sm font-medium text-ink">Baixa automática</span>
           <span className="mt-0.5 block text-xs text-ink/55">
-            Já desconta na conta; no vencimento a parcela fica paga sozinha.
+            Empréstimo / débito. Desligado por padrão. Mensal (recorrente/variável): parcela do cron
+            já nasce paga; parcelada: baixa no vencimento.
           </span>
         </span>
       </label>
@@ -488,13 +651,15 @@ export function DebtCreateForm({
         />
       </label>
       <p className="text-xs text-ink/55">
-        {kind === "RECURRING"
-          ? "Se já pagou algumas, informe quantas: elas entram como pagas nos meses anteriores e a próxima fica aberta."
-          : "No próximo passo você vê as parcelas, ajusta valores e o total acompanha a soma."}
+        {kind === "VARIABLE"
+          ? "Ideal pra Caixa ou cartão: todo mês abre uma cobrança; você coloca o valor real e paga."
+          : kind === "RECURRING"
+            ? "Se já pagou algumas, informe quantas: elas entram como pagas nos meses anteriores e a próxima fica aberta."
+            : "No próximo passo você vê as parcelas, ajusta valores e o total acompanha a soma."}
       </p>
       {(localError || state.error) ? <FormError message={localError ?? state.error!} /> : null}
       <button className="btn-primary w-full" onClick={buildPreview} type="button">
-        {kind === "RECURRING" ? "Ver cobranças" : "Ver parcelas"}
+        {isMonthly ? "Ver cobranças" : "Ver parcelas"}
       </button>
     </div>
   );

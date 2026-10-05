@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "DebtKind" ADD VALUE 'VARIABLE';

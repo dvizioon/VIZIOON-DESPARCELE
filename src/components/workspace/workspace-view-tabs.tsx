@@ -23,6 +23,7 @@ export function WorkspaceViewTabs({
   return (
     <PillTrack
       className="mb-5 flex w-full gap-1 rounded-full bg-white/80 p-1 shadow-sm"
+      pillClassName="bg-pine-soft shadow-sm"
       watch={view}
     >
       {TABS.map((tab) => {
@@ -32,7 +33,7 @@ export function WorkspaceViewTabs({
         return (
           <Link
             className={`nav-link relative z-10 flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 py-2 text-[11px] font-medium sm:min-h-0 sm:flex-row sm:gap-1.5 sm:px-2 sm:text-sm ${
-              active ? "text-ink" : "text-ink/55"
+              active ? "font-semibold text-pine-dark" : "text-ink/55"
             }`}
             data-pill-active={active ? "true" : "false"}
             href={href}
@@ -41,7 +42,7 @@ export function WorkspaceViewTabs({
             <AppIcon name={tab.icon} className="size-4" />
             <span className="truncate sm:hidden">{tab.shortLabel}</span>
             <span className="hidden truncate sm:inline">{tab.label}</span>
-            <span className={active ? "text-ink/45" : "text-ink/35"}>{counts[tab.value]}</span>
+            <span className={active ? "text-pine/60" : "text-ink/35"}>{counts[tab.value]}</span>
           </Link>
         );
       })}

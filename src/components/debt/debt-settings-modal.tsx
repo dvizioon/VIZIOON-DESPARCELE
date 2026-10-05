@@ -228,9 +228,9 @@ function DebtSettingsDialog({
             <div className="mt-6 space-y-3 border-t border-line pt-5">
               <ToggleRow
                 checked={payAuto}
-                description="No vencimento a parcela é marcada como paga sozinha."
+                description="Empréstimo / débito. Recorrente: parcela do cron já nasce paga. Parcelada: baixa no vencimento."
                 disabled={togglePending}
-                label="Empréstimo"
+                label="Baixa automática"
                 onChange={(next) => {
                   setPayAuto(next);
                   setTogglePending(true);
@@ -266,12 +266,12 @@ function DebtSettingsDialog({
                   });
                 }}
               />
-              {kind === "RECURRING" ? (
+              {kind === "RECURRING" || kind === "VARIABLE" ? (
                 <ToggleRow
                   checked={paused}
                   description="Para de gerar a cobrança do mês até você despausar."
                   disabled={togglePending}
-                  label="Pausar recorrência"
+                  label={kind === "VARIABLE" ? "Pausar mensal variável" : "Pausar recorrência"}
                   onChange={(next) => {
                     setPaused(next);
                     setTogglePending(true);

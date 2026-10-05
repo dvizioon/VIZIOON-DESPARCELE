@@ -64,10 +64,12 @@ export class PrismaDebtRepository implements DebtRepository {
   async listRecurringActive(): Promise<DebtWithInstallments[]> {
     const rows = await prisma.debt.findMany({
       where: {
-        kind: "RECURRING",
         recurringPausedAt: null,
-        recurringAmount: { not: null },
         recurringDay: { not: null },
+        OR: [
+          { kind: "RECURRING", recurringAmount: { not: null } },
+          { kind: "VARIABLE" },
+        ],
       },
       include: debtInclude,
       orderBy: { createdAt: "asc" },
@@ -168,6 +170,10 @@ export class PrismaDebtRepository implements DebtRepository {
             number: draft.number,
             amount: centsToDecimalString(draft.amountCents),
             dueDate: draft.dueDate,
+            status: draft.status ?? "PENDING",
+            paidAt: draft.status === "PAID" ? (draft.paidAt ?? draft.dueDate) : null,
+            paidByUserId: draft.status === "PAID" ? (draft.paidByUserId ?? null) : null,
+            reminderDisabled: draft.status === "PAID",
           },
         },
       },

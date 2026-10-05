@@ -3,6 +3,11 @@
 import { useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { DebtBars } from "@/components/dashboard/debt-bars";
+import {
+  AgendaStatusChart,
+  KindMixChart,
+  MonthUpcomingColumnChart,
+} from "@/components/dashboard/google-charts";
 import { Scoreboard } from "@/components/dashboard/scoreboard";
 import { CreateDebtModal } from "@/components/forms/create-debt-modal";
 import { CountUpMoney } from "@/components/motion/count-up";
@@ -168,6 +173,36 @@ export function WorkspaceDashboard({ data }: { data: DashboardView }) {
         </FilterGroup>
       </div>
 
+      <section className="grid gap-3 lg:grid-cols-3" data-reveal>
+        <article className="sheet">
+          <p className="mb-2 flex items-center gap-2 text-sm text-ink/55">
+            <AppIcon name="tabler:chart-pie" className="size-4" />
+            Por tipo
+          </p>
+          <KindMixChart slices={visibleSlices} />
+        </article>
+        <article className="sheet">
+          <p className="mb-2 flex items-center gap-2 text-sm text-ink/55">
+            <AppIcon name="tabler:calendar-stats" className="size-4" />
+            Agenda
+          </p>
+          <AgendaStatusChart upcoming={data.upcoming.filter((item) =>
+            matchesOwner(item.ownerId, data.currentUserId, ownerFilter),
+          )} />
+        </article>
+        <article className="sheet">
+          <p className="mb-2 flex items-center gap-2 text-sm text-ink/55">
+            <AppIcon name="tabler:chart-bar" className="size-4" />
+            Vence neste mês
+          </p>
+          <MonthUpcomingColumnChart
+            upcoming={data.upcoming.filter((item) =>
+              matchesOwner(item.ownerId, data.currentUserId, ownerFilter),
+            )}
+          />
+        </article>
+      </section>
+
       <div className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
         <section className="sheet" data-reveal>
           <div className="mb-4 flex items-center justify-between gap-3">
@@ -279,7 +314,9 @@ function FilterChip({
 }) {
   return (
     <button
-      className={`nav-link relative z-10 shrink-0 snap-start ${active ? "text-ink" : ""}`}
+      className={`nav-link relative z-10 shrink-0 snap-start ${
+        active ? "font-semibold text-pine-dark" : ""
+      }`}
       data-pill-active={active ? "true" : "false"}
       onClick={onClick}
       type="button"

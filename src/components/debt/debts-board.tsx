@@ -144,10 +144,10 @@ export function DebtsBoard({
         <label className="relative min-w-[12rem] flex-1 sm:max-w-sm">
           <AppIcon
             name="tabler:search"
-            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink/40"
+            className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-ink/40"
           />
           <input
-            className="field w-full pl-9"
+            className="field-search"
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Buscar por nome"
             value={query}
@@ -157,19 +157,19 @@ export function DebtsBoard({
         <div className="flex flex-wrap gap-2">
           <FilterPills watch={monthFilter}>
             <FilterChip active={monthFilter === "all"} onClick={() => setMonthFilter("all")}>
-              No mês: todas
+              No mês
             </FilterChip>
             <FilterChip
               active={monthFilter === "due_month"}
               onClick={() => setMonthFilter("due_month")}
             >
-              Vence no mês
+              Vence
             </FilterChip>
             <FilterChip
               active={monthFilter === "paid_month"}
               onClick={() => setMonthFilter("paid_month")}
             >
-              Pagas no mês
+              Pagas
             </FilterChip>
           </FilterPills>
 
@@ -185,12 +185,6 @@ export function DebtsBoard({
           </FilterPills>
         </div>
       </div>
-
-      {canDrag ? (
-        <p className="text-xs text-ink/45">Arraste pelo ícone para reordenar.</p>
-      ) : filtersActive && canEdit ? (
-        <p className="text-xs text-ink/45">Limpe busca/filtro do mês para reordenar.</p>
-      ) : null}
 
       {error ? <p className="text-sm text-clay">{error}</p> : null}
 
@@ -313,7 +307,7 @@ function SortableDebt({
         debt={debt}
         dragHandle={
           <button
-            className="rounded-full p-2 text-ink/40 hover:bg-white hover:text-ink"
+            className="mt-1 rounded-xl p-1.5 text-ink/35 hover:bg-white hover:text-ink"
             type="button"
             {...attributes}
             {...listeners}
@@ -350,7 +344,8 @@ function DebtItem({
   variant: "list" | "card";
   dragHandle: ReactNode;
 }) {
-  const paidCount = debt.installmentCount - debt.remainingCount;
+  const paidCount = debt.paidCount ?? debt.installmentCount - debt.remainingCount;
+  const paidCents = debt.paidCents ?? Math.max(0, debt.totalAmountCents - debt.remainingCents);
   const progress = Math.round((paidCount / debt.installmentCount) * 100);
   const overdue = debt.nextDueDate
     ? new Date(debt.nextDueDate).setHours(0, 0, 0, 0) < new Date().setHours(0, 0, 0, 0)
@@ -376,77 +371,88 @@ function DebtItem({
 
   if (variant === "card") {
     return (
-      <div className="sheet relative h-full overflow-hidden">
-        <div className="absolute right-2 top-2 z-10 flex items-center gap-0.5">
-          {dragHandle}
-          {settings}
-        </div>
-        <Link className="block pr-16" href={`/w/${workspaceId}/debts/${debt.id}`}>
-          <p className="font-display text-2xl leading-tight">{debt.name}</p>
-          <p className="mt-1 text-sm text-ink/55">
-            {shared ? `${debt.ownerName} · ` : ""}
-            {debt.remainingCents === 0 ? "Quitada" : formatBRL(debt.remainingCents) + " resta"}
-          </p>
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            <DebtBadges debt={debt} isAdmin={isAdmin} overdue={overdue} paidCount={paidCount} />
-          </div>
-          <div className="mt-4">
-            <div className="usage-track relative h-2.5 overflow-hidden rounded-full">
-              <div
-                className="progress-fill h-full rounded-full bg-gradient-to-r from-pine via-[#148576] to-moss"
-                style={{ width: `${progress}%` }}
-              />
+      <div className="sheet relative flex h-full gap-1 overflow-hidden">
+        {dragHandle ? <div className="shrink-0 self-start">{dragHandle}</div> : null}
+        <div className="min-w-0 flex-1">
+          <div className="absolute right-2 top-2 z-10">{settings}</div>
+          <Link className="block pr-10" href={`/w/${workspaceId}/debts/${debt.id}`}>
+            <p className="font-display text-2xl leading-tight">{debt.name}</p>
+            {shared ? <p className="mt-1 text-sm text-ink/55">{debt.ownerName}</p> : null}
+            <p className={`text-sm text-ink/55 ${shared ? "" : "mt-1"}`}>
+              {debt.remainingCents === 0
+                ? "Quitada"
+                : `${formatBRL(debt.remainingCents)} resta`}
+            </p>
+            {paidCents > 0 ? (
+              <p className="text-sm text-moss">
+                Já pago {formatBRL(paidCents)} ({paidCount}/{debt.installmentCount})
+              </p>
+            ) : null}
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              <DebtBadges debt={debt} isAdmin={isAdmin} overdue={overdue} paidCount={paidCount} />
             </div>
-            <p className="mt-1.5 text-[11px] text-ink/45">{progress}% · {formatBRL(debt.totalAmountCents)}</p>
-          </div>
-        </Link>
+            <div className="mt-4">
+              <div className="usage-track relative h-2.5 overflow-hidden rounded-full">
+                <div
+                  className="progress-fill h-full rounded-full bg-gradient-to-r from-pine via-[#148576] to-moss"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+              <p className="mt-1.5 text-[11px] text-ink/45">
+                {progress}% · {formatBRL(debt.totalAmountCents)}
+              </p>
+            </div>
+          </Link>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="sheet relative">
-      <div className="absolute right-3 top-3 z-10 flex items-center gap-0.5">
-        {dragHandle}
-        {settings}
-      </div>
-      <Link className="block pr-16" href={`/w/${workspaceId}/debts/${debt.id}`}>
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="font-display text-2xl">{debt.name}</p>
-            <p className="mt-1 text-sm text-ink/55">
-              {shared ? `${debt.ownerName} · ` : ""}
-              cadastro de {debt.createdByName}
-            </p>
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              <DebtBadges debt={debt} isAdmin={isAdmin} overdue={overdue} paidCount={paidCount} />
+    <div className="sheet relative flex gap-1">
+      {dragHandle ? <div className="shrink-0 self-start">{dragHandle}</div> : null}
+      <div className="min-w-0 flex-1">
+        <div className="absolute right-3 top-3 z-10">{settings}</div>
+        <Link className="block pr-12" href={`/w/${workspaceId}/debts/${debt.id}`}>
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="font-display text-2xl">{debt.name}</p>
+              {shared ? <p className="mt-1 text-sm text-ink/55">{debt.ownerName}</p> : null}
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                <DebtBadges debt={debt} isAdmin={isAdmin} overdue={overdue} paidCount={paidCount} />
+              </div>
+            </div>
+            <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
+              <AmountTag
+                hint={`${debt.installmentCount}x`}
+                label="Total"
+                muted
+                value={formatBRL(debt.totalAmountCents)}
+              />
+              <AmountTag
+                hint={`${paidCount} parcela${paidCount === 1 ? "" : "s"}`}
+                label="Já pago"
+                value={formatBRL(paidCents)}
+              />
+              <AmountTag
+                highlight
+                hint={debt.remainingCents === 0 ? "Tudo pago" : `${debt.remainingCount} em aberto`}
+                label={debt.remainingCents === 0 ? "Quitada" : "Restante"}
+                value={formatBRL(debt.remainingCents)}
+              />
             </div>
           </div>
-          <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
-            <AmountTag
-              hint={`${debt.installmentCount}x`}
-              label="Total"
-              muted
-              value={formatBRL(debt.totalAmountCents)}
-            />
-            <AmountTag
-              highlight
-              hint={debt.remainingCents === 0 ? "Tudo pago" : `${debt.remainingCount} em aberto`}
-              label={debt.remainingCents === 0 ? "Quitada" : "Restante"}
-              value={formatBRL(debt.remainingCents)}
-            />
+          <div className="mt-4">
+            <div className="usage-track relative h-3 overflow-hidden rounded-full">
+              <div
+                className="progress-fill h-full rounded-full bg-gradient-to-r from-pine via-[#148576] to-moss"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+            <p className="mt-1.5 text-[11px] text-ink/45">{progress}% do total</p>
           </div>
-        </div>
-        <div className="mt-4">
-          <div className="usage-track relative h-3 overflow-hidden rounded-full">
-            <div
-              className="progress-fill h-full rounded-full bg-gradient-to-r from-pine via-[#148576] to-moss"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-          <p className="mt-1.5 text-[11px] text-ink/45">{progress}% do total</p>
-        </div>
-      </Link>
+        </Link>
+      </div>
     </div>
   );
 }
@@ -469,9 +475,14 @@ function DebtBadges({
           {debt.recurringPaused ? "Recorrente pausada" : "Recorrente"}
         </DebtBadge>
       ) : null}
+      {debt.kind === "VARIABLE" ? (
+        <DebtBadge icon="tabler:chart-dots" tone="pine">
+          {debt.recurringPaused ? "Variável pausada" : "Mensal variável"}
+        </DebtBadge>
+      ) : null}
       {debt.autoPay ? (
         <DebtBadge icon="tabler:building-bank" tone="pine">
-          Empréstimo
+          Baixa auto
         </DebtBadge>
       ) : null}
       {isAdmin && debt.hideMode !== "NONE" ? (
@@ -501,11 +512,11 @@ function DebtBadges({
       ) : null}
       {debt.paidThisMonthCount > 0 ? (
         <DebtBadge icon="tabler:checks" tone="pine">
-          {debt.paidThisMonthCount} paga{debt.paidThisMonthCount === 1 ? "" : "s"} no mês
+          {formatBRL(debt.paidThisMonthCents)} este mês
         </DebtBadge>
       ) : null}
       <DebtBadge icon="tabler:layers-subtract" tone="plain">
-        {paidCount}/{debt.installmentCount} paga{paidCount === 1 ? "" : "s"}
+        {paidCount}/{debt.installmentCount} pagas
       </DebtBadge>
     </>
   );
@@ -574,7 +585,9 @@ function FilterChip({
 }) {
   return (
     <button
-      className={`nav-link relative z-10 shrink-0 snap-start ${active ? "text-ink" : ""}`}
+      className={`nav-link relative z-10 shrink-0 snap-start ${
+        active ? "font-semibold text-pine-dark" : ""
+      }`}
       data-pill-active={active ? "true" : "false"}
       onClick={onClick}
       type="button"

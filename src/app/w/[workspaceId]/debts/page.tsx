@@ -164,7 +164,9 @@ function FilterLink({
 }) {
   return (
     <Link
-      className={`nav-link relative z-10 shrink-0 ${active ? "text-ink" : ""}`}
+      className={`nav-link relative z-10 shrink-0 ${
+        active ? "font-semibold text-pine-dark" : ""
+      }`}
       data-pill-active={active ? "true" : "false"}
       href={href}
     >

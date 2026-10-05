@@ -56,6 +56,10 @@ body {
   @apply w-full rounded-2xl border border-line bg-white px-4 py-3 text-ink outline-none transition focus:border-pine;
 }
 
+.field-search {
+  @apply w-full rounded-2xl border border-line bg-white py-3 pl-10 pr-4 text-ink outline-none transition focus:border-pine;
+}
+
 .btn-primary {
   @apply inline-flex items-center justify-center gap-2 rounded-full bg-pine px-5 py-3 text-sm font-semibold text-white transition duration-300 hover:bg-pine-dark active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60;
 }

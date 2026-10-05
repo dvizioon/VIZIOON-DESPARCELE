@@ -122,7 +122,11 @@ async function processOneTask(
       created = result.createdCount;
       message =
         created > 0
-          ? `${created} parcela(s) recorrente(s) gerada(s)`
+          ? `${created} parcela(s) recorrente(s) gerada(s)${
+              result.paidOnCreateCount > 0
+                ? ` · ${result.paidOnCreateCount} já paga(s) (baixa auto)`
+                : ""
+            }`
           : "Nenhuma parcela recorrente nova";
     } else {
       // import dinâmico: evita puxar nodemailer no grafo do instrumentation/webpack

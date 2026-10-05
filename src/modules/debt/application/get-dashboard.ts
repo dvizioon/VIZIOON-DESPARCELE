@@ -67,6 +67,7 @@ export function buildDashboard(
   access: WorkspaceAccess,
   debts: DebtWithInstallments[],
   now = new Date(),
+  options?: { allPending?: boolean },
 ): DashboardData {
   const monthStart = startOfMonth(now);
   const monthEnd = endOfMonth(now);
@@ -75,7 +76,7 @@ export function buildDashboard(
   const upcoming: UpcomingInstallment[] = debts.flatMap((debt) =>
     debt.installments
       .filter((item) => item.status === "PENDING")
-      .filter((item) => item.dueDate <= monthEnd)
+      .filter((item) => (options?.allPending ? true : item.dueDate <= monthEnd))
       .map((item) => ({
         installmentId: item.id,
         debtId: debt.id,
@@ -231,8 +232,12 @@ export function toDebtCard(debt: DebtWithInstallments, now = new Date()) {
     createdByName: debt.createdByName,
     remainingCents: remainingAmountCents(debt.installments),
     totalAmountCents: debt.totalAmountCents,
+    paidCents: debt.installments
+      .filter((item) => item.status === "PAID")
+      .reduce((sum, item) => sum + item.amountCents, 0),
     remainingCount: remainingInstallments(debt.installments),
     installmentCount: debt.installmentCount,
+    paidCount: debt.installments.filter((item) => item.status === "PAID").length,
     nextAmountCents: next?.amountCents ?? 0,
     nextDueDate: next?.dueDate ?? null,
     nextNumber: next?.number ?? null,

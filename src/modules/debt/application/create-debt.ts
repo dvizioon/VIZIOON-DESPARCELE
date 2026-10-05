@@ -17,7 +17,7 @@ export interface CreateDebtInput {
   remindersEnabled?: boolean;
   recurringAmountCents?: number;
   recurringDay?: number;
-  /** Quantas cobranças já pagas ao cadastrar recorrente (0–120). */
+  /** Quantas cobranças já pagas ao cadastrar mensal (0–120). */
   alreadyPaidCount?: number;
   ownerId: string;
   firstDueDate: Date;
@@ -25,6 +25,13 @@ export interface CreateDebtInput {
   installmentDueDates?: Date[];
   installmentPaidFlags?: boolean[];
   totalAmountCents?: number;
+}
+
+function parseKind(value: DebtKind | undefined): DebtKind {
+  if (value === "RECURRING" || value === "VARIABLE") {
+    return value;
+  }
+  return "INSTALLMENT";
 }
 
 export async function createDebt(
@@ -47,10 +54,10 @@ export async function createDebt(
     return fail("INVALID_NAME", "Informe o nome da divida");
   }
 
-  const kind: DebtKind = input.kind === "RECURRING" ? "RECURRING" : "INSTALLMENT";
+  const kind = parseKind(input.kind);
 
-  if (kind === "RECURRING") {
-    return createRecurringDebt(input, name, debts);
+  if (kind === "RECURRING" || kind === "VARIABLE") {
+    return createMonthlyDebt(input, name, kind, debts);
   }
 
   if (input.installmentCount < 1 || input.installmentCount > 360) {
@@ -108,15 +115,25 @@ export async function createDebt(
   return ok(debt);
 }
 
-async function createRecurringDebt(
+async function createMonthlyDebt(
   input: CreateDebtInput,
   name: string,
+  kind: "RECURRING" | "VARIABLE",
   debts: DebtRepository,
 ): Promise<Result<DebtWithInstallments>> {
-  const amountCents = input.recurringAmountCents ?? input.totalAmountCents ?? 0;
-  if (amountCents < 100) {
+  const rawAmount = input.recurringAmountCents ?? input.totalAmountCents ?? 0;
+  const variable = kind === "VARIABLE";
+
+  // Recorrente exige valor fixo; variável aceita estimativa 0 (usa R$ 0,01 nas linhas)
+  if (!variable && rawAmount < 100) {
     return fail("INVALID_AMOUNT", "Valor mensal minimo de R$ 1,00");
   }
+  if (variable && rawAmount < 0) {
+    return fail("INVALID_AMOUNT", "Estimativa invalida");
+  }
+
+  const amountCents = variable ? Math.max(rawAmount, 0) : rawAmount;
+  const lineAmountCents = Math.max(amountCents, 1);
 
   const day = input.recurringDay ?? input.firstDueDate.getUTCDate();
   if (!Number.isInteger(day) || day < 1 || day > 31) {
@@ -155,7 +172,7 @@ async function createRecurringDebt(
     });
   } else {
     installments = buildRecurringInstallments({
-      amountCents,
+      amountCents: lineAmountCents,
       nextDue,
       alreadyPaid,
       actorId: input.actorId,
@@ -172,16 +189,17 @@ async function createRecurringDebt(
   }
 
   const totalAmountCents = installments.reduce((sum, item) => sum + item.amountCents, 0);
+  const estimateCents = amountCents > 0 ? amountCents : null;
 
   const debt = await debts.create({
     workspaceId: input.workspaceId,
     name,
     totalAmountCents,
     installmentCount: installments.length,
-    kind: "RECURRING",
+    kind,
     autoPay: Boolean(input.autoPay),
     remindersEnabled: Boolean(input.remindersEnabled),
-    recurringAmountCents: amountCents,
+    recurringAmountCents: variable ? estimateCents : amountCents,
     recurringDay: day,
     ownerId: input.ownerId,
     createdById: input.actorId,
@@ -220,4 +238,20 @@ export function buildRecurringInstallments(input: {
   });
 
   return rows;
+}
+
+/** Valor sugerido para nova cobrança VARIABLE/RECURRING. */
+export function suggestMonthlyAmountCents(debt: {
+  kind: DebtKind;
+  recurringAmountCents: number | null;
+  installments: { amountCents: number; number: number }[];
+}): number {
+  const last = [...debt.installments].sort((a, b) => b.number - a.number)[0];
+  if (last && last.amountCents >= 1) {
+    return last.amountCents;
+  }
+  if (debt.recurringAmountCents != null && debt.recurringAmountCents >= 1) {
+    return debt.recurringAmountCents;
+  }
+  return 1;
 }
