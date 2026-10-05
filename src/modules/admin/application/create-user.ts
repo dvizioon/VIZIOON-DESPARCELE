@@ -52,6 +52,7 @@ export async function createUserByAdmin(
     email,
     passwordHash: await hash(password, 10),
     systemRole: role,
+    emailVerified: true,
   });
 
   return ok(toPublicUser(user));

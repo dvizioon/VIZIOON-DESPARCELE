@@ -1,5 +1,8 @@
 export type SystemRole = "MEMBER" | "ADMIN";
 
+export const EMAIL_VERIFY_GRACE_MS = 24 * 60 * 60 * 1000;
+export const EMAIL_VERIFY_TOKEN_TTL_MS = 48 * 60 * 60 * 1000;
+
 export interface User {
   id: string;
   name: string;
@@ -7,6 +10,8 @@ export interface User {
   passwordHash: string;
   phone: string | null;
   avatarUrl: string | null;
+  emailVerifiedAt: Date | null;
+  createdAt: Date;
   systemRole: SystemRole;
   disabledAt: Date | null;
 }
@@ -17,6 +22,8 @@ export interface PublicUser {
   email: string;
   phone: string | null;
   avatarUrl: string | null;
+  emailVerifiedAt: Date | null;
+  createdAt: Date;
   systemRole: SystemRole;
 }
 
@@ -27,8 +34,25 @@ export function toPublicUser(user: User): PublicUser {
     email: user.email,
     phone: user.phone,
     avatarUrl: user.avatarUrl,
+    emailVerifiedAt: user.emailVerifiedAt,
+    createdAt: user.createdAt,
     systemRole: user.systemRole,
   };
+}
+
+/** Sem verificação e já passou da janela de 24h → só entra depois de verificar. */
+export function mustVerifyEmail(
+  user: Pick<User, "emailVerifiedAt" | "createdAt">,
+  now = new Date(),
+): boolean {
+  if (user.emailVerifiedAt) {
+    return false;
+  }
+  return now.getTime() - user.createdAt.getTime() > EMAIL_VERIFY_GRACE_MS;
+}
+
+export function isEmailVerified(user: Pick<User, "emailVerifiedAt">): boolean {
+  return user.emailVerifiedAt != null;
 }
 
 export function isSystemAdmin(role: SystemRole): boolean {

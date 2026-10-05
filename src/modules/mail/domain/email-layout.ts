@@ -105,18 +105,31 @@ export const WELCOME_MAIL_HTML = mailLayout({
   footerNote: "Enviado em {{data}} para {{email}}.",
 });
 
+export const EMAIL_VERIFICATION_MAIL_HTML = mailLayout({
+  preheader: "Confirme seu e-mail no Desparcele — vale 48 horas.",
+  eyebrow: "Verificação",
+  title: "Confirme seu e-mail",
+  paragraphs: [
+    "Oi, {{nome}}. Confirme que <strong>{{email}}</strong> é seu.",
+    "Você já pode usar o app por 24 horas. Depois disso, só entra depois de verificar.",
+    "O botão vale por 48 horas. Se não foi você, ignore este e-mail.",
+  ],
+  ctaLabel: "Verificar e-mail",
+  ctaHref: "{{link}}",
+  footerNote: "Pedido em {{data}} para {{email}}.",
+});
+
 export const PASSWORD_RESET_MAIL_HTML = mailLayout({
   preheader: "Pedido de senha nova no Desparcele — só você usa este link.",
   eyebrow: "Senha",
   title: "Criar uma senha nova",
   paragraphs: [
     "Recebemos um pedido para redefinir a senha da conta <strong>{{email}}</strong>.",
-    "Finalidade deste e-mail: permitir que <strong>você</strong> escolha uma senha nova. Ninguém altera a senha sem este link.",
     "O botão vale por 1 hora. Se você não pediu, ignore este e-mail — sua senha continua a mesma.",
   ],
   ctaLabel: "Criar senha nova",
   ctaHref: "{{link}}",
-  footerNote: "Pedido feito em {{data}} para {{email}}. Uso exclusivo para redefinição de senha.",
+  footerNote: "Pedido feito em {{data}} para {{email}}.",
 });
 
 export const WORKSPACE_INVITE_MAIL_HTML = mailLayout({

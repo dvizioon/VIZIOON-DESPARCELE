@@ -1,4 +1,5 @@
 import {
+  EMAIL_VERIFICATION_MAIL_HTML,
   INSTALLMENT_REMINDER_MAIL_HTML,
   PASSWORD_RESET_MAIL_HTML,
   WELCOME_MAIL_HTML,
@@ -7,6 +8,7 @@ import {
 
 export type EmailPurposeId =
   | "welcome"
+  | "email_verification"
   | "password_reset"
   | "workspace_invite"
   | "installment_reminder";
@@ -57,10 +59,32 @@ export const EMAIL_PURPOSES: EmailPurposeDefinition[] = [
     },
   },
   {
+    id: "email_verification",
+    label: "Verificar e-mail",
+    description:
+      "Enviado no cadastro. Confirma o e-mail. Sem verificar em 24h, só entra depois de confirmar.",
+    placeholders: [
+      LOGO,
+      { key: "nome", label: "Nome", description: "Nome completo da pessoa" },
+      { key: "email", label: "E-mail", description: "E-mail da conta" },
+      { key: "link", label: "Link", description: "Link para confirmar o e-mail (vale 48h)" },
+      { key: "data", label: "Data", description: "Data do envio" },
+    ],
+    defaultSubject: "Confirme seu e-mail no Desparcele",
+    defaultBody: EMAIL_VERIFICATION_MAIL_HTML,
+    defaultFormat: "HTML",
+    sample: {
+      nome: "Ana Silva",
+      email: "ana@desparcele.app",
+      data: "14/09/2026",
+      link: "http://localhost:7250/verificar-email?token=exemplo",
+    },
+  },
+  {
     id: "password_reset",
     label: "Redefinir senha",
     description:
-      "Finalidade: só para a pessoa redefinir a própria senha. Enviado quando alguém pede em Esqueci minha senha. O admin edita o texto aqui; o app usa este template.",
+      "Enviado quando a pessoa pede para redefinir a senha (Esqueci minha senha ou perfil).",
     placeholders: [
       LOGO,
       { key: "nome", label: "Nome", description: "Nome completo da pessoa" },

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth, signOut } from "@/auth";
-import { isSystemAdmin } from "@/modules/auth/domain/user";
+import { isSystemAdmin, mustVerifyEmail } from "@/modules/auth/domain/user";
 import { PrismaUserRepository } from "@/modules/auth/infrastructure/prisma-user-repository";
 
 export async function getSessionUser() {
@@ -17,7 +17,7 @@ export async function getSessionUser() {
   };
 }
 
-export async function requireUser() {
+export async function requireUser(options?: { allowUnverified?: boolean }) {
   const user = await getSessionUser();
   if (!user) {
     redirect("/login");
@@ -32,12 +32,18 @@ export async function requireUser() {
     await signOut({ redirectTo: "/login?desativada=1" });
   }
 
+  if (!options?.allowUnverified && mustVerifyEmail(stored)) {
+    redirect("/verificar-email");
+  }
+
   return {
     ...user,
     name: stored.name,
     email: stored.email,
     phone: stored.phone,
     avatarUrl: stored.avatarUrl,
+    emailVerifiedAt: stored.emailVerifiedAt,
+    createdAt: stored.createdAt,
     systemRole: stored.systemRole,
   };
 }

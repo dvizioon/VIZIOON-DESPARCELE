@@ -75,6 +75,22 @@ export async function registerAction(
   }
 
   const origin = await getAppOrigin();
+  const { issueEmailVerification } = await import("@/modules/auth/application/verify-email");
+  const issued = await issueEmailVerification(result.value.id, users);
+  if (issued.ok) {
+    void dispatchMail(
+      "email_verification",
+      issued.value.email,
+      {
+        nome: issued.value.name,
+        email: issued.value.email,
+        data: formatMailDate(),
+        link: `${origin}/verificar-email?token=${issued.value.token}`,
+      },
+      getRepositories().mail,
+    ).catch(() => undefined);
+  }
+
   void dispatchMail(
     "welcome",
     result.value.email,
@@ -82,7 +98,7 @@ export async function registerAction(
       nome: result.value.name,
       email: result.value.email,
       data: formatMailDate(),
-      link: `${origin}/login`,
+      link: `${origin}/workspaces`,
     },
     getRepositories().mail,
   ).catch(() => undefined);
@@ -272,4 +288,42 @@ export async function closeAccountAction(): Promise<ActionState> {
 
   await signOut({ redirectTo: "/login?desativada=1" });
   redirect("/login?desativada=1");
+}
+
+export async function resendEmailVerificationAction(
+  _prev: ActionState,
+  _formData: FormData,
+): Promise<ActionState> {
+  const user = await requireUser({ allowUnverified: true });
+  const { users, mail } = getRepositories();
+  const { issueEmailVerification } = await import("@/modules/auth/application/verify-email");
+  const issued = await issueEmailVerification(user.id, users);
+  if (!issued.ok) {
+    return { error: issued.error.message };
+  }
+
+  const origin = await getAppOrigin();
+  void dispatchMail(
+    "email_verification",
+    issued.value.email,
+    {
+      nome: issued.value.name,
+      email: issued.value.email,
+      data: formatMailDate(),
+      link: `${origin}/verificar-email?token=${issued.value.token}`,
+    },
+    mail,
+  ).catch(() => undefined);
+
+  return { error: null, ok: true, message: "Enviamos um novo e-mail de verificação." };
+}
+
+export async function confirmEmailVerificationAction(token: string): Promise<ActionState> {
+  const { users } = getRepositories();
+  const { verifyEmailWithToken } = await import("@/modules/auth/application/verify-email");
+  const result = await verifyEmailWithToken(token, users);
+  if (!result.ok) {
+    return { error: result.error.message };
+  }
+  return { error: null, ok: true, message: "E-mail verificado." };
 }

@@ -61,9 +61,6 @@ export function ProfileForm({
           <div className="min-w-0 flex-1">
             <p className="font-display text-2xl">{name}</p>
             <p className="text-sm text-ink/55">{email}</p>
-            <p className="mt-1 text-xs text-ink/45">
-              Sem foto, o avatar é gerado automaticamente (boring-avatars).
-            </p>
           </div>
         </div>
 
@@ -139,10 +136,7 @@ export function ProfileForm({
 
       <section className="sheet space-y-3" data-reveal>
         <h2 className="font-display text-2xl">Senha</h2>
-        <p className="text-sm text-ink/60">
-          Enviamos um e-mail com link para você criar uma senha nova. Finalidade: só redefinir a sua
-          senha.
-        </p>
+        <p className="text-sm text-ink/60">Enviamos um e-mail com o link para redefinir a senha.</p>
         <form action={passwordAction}>
           <button className="btn-ghost inline-flex items-center gap-2" disabled={passwordPending} type="submit">
             <AppIcon className="size-4" name="tabler:mail" />

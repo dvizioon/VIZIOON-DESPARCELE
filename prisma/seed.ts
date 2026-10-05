@@ -36,6 +36,7 @@ async function main(): Promise<void> {
       email: adminEmail.toLowerCase(),
       passwordHash: await hash(adminPassword, 10),
       systemRole: "ADMIN",
+      emailVerifiedAt: new Date(),
     },
   });
 
@@ -44,6 +45,7 @@ async function main(): Promise<void> {
       name: "Ana Souza",
       email: "ana@desparcele.app",
       passwordHash: await hash("ana12345", 10),
+      emailVerifiedAt: new Date(),
     },
   });
 

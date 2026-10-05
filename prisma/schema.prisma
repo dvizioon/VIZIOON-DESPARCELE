@@ -65,29 +65,44 @@ enum DebtHideMode {
 }
 
 model User {
-  id           String     @id @default(cuid())
-  name         String
-  email        String     @unique
-  passwordHash String
-  phone        String?
-  avatarUrl    String?
-  systemRole   SystemRole @default(MEMBER)
-  disabledAt   DateTime?
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  id              String     @id @default(cuid())
+  name            String
+  email           String     @unique
+  passwordHash    String
+  phone           String?
+  avatarUrl       String?
+  emailVerifiedAt DateTime?
+  systemRole      SystemRole @default(MEMBER)
+  disabledAt      DateTime?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
 
-  ownedWorkspaces  Workspace[]          @relation("WorkspaceOwner")
+  ownedWorkspaces  Workspace[]              @relation("WorkspaceOwner")
   memberships      WorkspaceMember[]
-  sentInvites      WorkspaceInvite[]     @relation("InviteSender")
-  ownedDebts       Debt[]               @relation("DebtOwner")
-  createdDebts     Debt[]               @relation("DebtCreator")
-  paidInstallments Installment[]        @relation("InstallmentPayer")
+  sentInvites      WorkspaceInvite[]         @relation("InviteSender")
+  ownedDebts       Debt[]                   @relation("DebtOwner")
+  createdDebts     Debt[]                   @relation("DebtCreator")
+  paidInstallments Installment[]            @relation("InstallmentPayer")
   notes            DebtNote[]
   passwordResets   PasswordResetToken[]
+  emailVerifications EmailVerificationToken[]
   hiddenDebts      DebtHiddenFrom[]
 }
 
 model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model EmailVerificationToken {
   id        String   @id @default(cuid())
   userId    String
   tokenHash String   @unique

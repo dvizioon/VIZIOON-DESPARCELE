@@ -8,7 +8,8 @@ export default auth((request) => {
     pathname === "/login" ||
     pathname === "/register" ||
     pathname === "/recuperar-senha" ||
-    pathname === "/redefinir-senha";
+    pathname === "/redefinir-senha" ||
+    pathname === "/verificar-email";
 
   if (!isLoggedIn && !isPublic) {
     const login = new URL("/login", origin);
@@ -16,7 +17,7 @@ export default auth((request) => {
     return Response.redirect(login);
   }
 
-  if (isLoggedIn && isPublic) {
+  if (isLoggedIn && (pathname === "/login" || pathname === "/register" || pathname === "/recuperar-senha" || pathname === "/redefinir-senha")) {
     return Response.redirect(new URL("/workspaces", origin));
   }
 

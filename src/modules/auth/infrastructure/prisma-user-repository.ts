@@ -20,6 +20,7 @@ export class PrismaUserRepository implements UserRepository {
         email: input.email,
         passwordHash: input.passwordHash,
         systemRole: input.systemRole ?? "MEMBER",
+        emailVerifiedAt: input.emailVerified ? new Date() : null,
       },
     });
     return mapUser(row);
@@ -47,6 +48,14 @@ export class PrismaUserRepository implements UserRepository {
     const row = await prisma.user.update({
       where: { id: userId },
       data: { avatarUrl },
+    });
+    return mapUser(row);
+  }
+
+  async markEmailVerified(userId: string): Promise<User> {
+    const row = await prisma.user.update({
+      where: { id: userId },
+      data: { emailVerifiedAt: new Date() },
     });
     return mapUser(row);
   }
@@ -79,6 +88,32 @@ export class PrismaUserRepository implements UserRepository {
   async deletePasswordResets(userId: string): Promise<void> {
     await prisma.passwordResetToken.deleteMany({ where: { userId } });
   }
+
+  async replaceEmailVerification(
+    userId: string,
+    tokenHash: string,
+    expiresAt: Date,
+  ): Promise<void> {
+    await prisma.emailVerificationToken.deleteMany({ where: { userId } });
+    await prisma.emailVerificationToken.create({
+      data: { userId, tokenHash, expiresAt },
+    });
+  }
+
+  async findEmailVerification(
+    tokenHash: string,
+  ): Promise<{ userId: string; expiresAt: Date } | null> {
+    const row = await prisma.emailVerificationToken.findUnique({ where: { tokenHash } });
+    if (!row) {
+      return null;
+    }
+
+    return { userId: row.userId, expiresAt: row.expiresAt };
+  }
+
+  async deleteEmailVerifications(userId: string): Promise<void> {
+    await prisma.emailVerificationToken.deleteMany({ where: { userId } });
+  }
 }
 
 function mapUser(row: {
@@ -88,6 +123,8 @@ function mapUser(row: {
   passwordHash: string;
   phone: string | null;
   avatarUrl: string | null;
+  emailVerifiedAt: Date | null;
+  createdAt: Date;
   systemRole: "MEMBER" | "ADMIN";
   disabledAt: Date | null;
 }): User {
@@ -98,6 +135,8 @@ function mapUser(row: {
     passwordHash: row.passwordHash,
     phone: row.phone,
     avatarUrl: row.avatarUrl,
+    emailVerifiedAt: row.emailVerifiedAt,
+    createdAt: row.createdAt,
     systemRole: isSeedMasterAdmin(row.email) ? "ADMIN" : row.systemRole,
     disabledAt: row.disabledAt,
   };

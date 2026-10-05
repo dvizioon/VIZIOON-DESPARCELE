@@ -102,6 +102,7 @@ async function seedMasterUser() {
         name,
         passwordHash: await hash(password, 10),
         systemRole: "ADMIN",
+        emailVerifiedAt: new Date(),
       },
     });
     console.log(`[seed] Usuário inicial criado: ${email}`);
