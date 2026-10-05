@@ -251,7 +251,7 @@ function DebtSettingsDialog({
                 checked={reminders}
                 disabled={togglePending}
                 label="Avisar por e-mail"
-                tip="Avisa antes do vencimento e se atrasar. O admin precisa ter o cron de e-mail ligado."
+                tip="Avisa antes do vencimento e se atrasar."
                 onChange={(next) => {
                   setReminders(next);
                   setTogglePending(true);

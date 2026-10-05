@@ -157,6 +157,25 @@ export function DebtCreateForm({
           dueDate: toCalendarInputValue(nextDue),
           paid: false,
         });
+
+        // Se o próximo ficou no passado, abre cobranças até o mês atual
+        const now = new Date();
+        const currentKey = now.getFullYear() * 12 + now.getMonth();
+        while (rows.length < 121) {
+          const last = rows[rows.length - 1]!;
+          const lastDue = parseDateInput(last.dueDate);
+          const lastKey = lastDue.getUTCFullYear() * 12 + lastDue.getUTCMonth();
+          if (lastKey >= currentKey) {
+            break;
+          }
+          rows.push({
+            number: rows.length + 1,
+            amountInput,
+            dueDate: toCalendarInputValue(addMonths(lastDue, 1)),
+            paid: false,
+          });
+        }
+
         setPreview(rows);
         setStep("preview");
         return;
@@ -297,6 +316,58 @@ export function DebtCreateForm({
     });
   }
 
+  function renumber(rows: PreviewRow[]): PreviewRow[] {
+    return rows.map((row, index) => ({ ...row, number: index + 1 }));
+  }
+
+  function addChargeBefore() {
+    setPreview((rows) => {
+      if (rows.length >= 120 || rows.length === 0) {
+        return rows;
+      }
+      try {
+        const first = rows[0]!;
+        const base = parseDateInput(first.dueDate);
+        const row: PreviewRow = {
+          number: 1,
+          amountInput: first.amountInput,
+          dueDate: toCalendarInputValue(addMonths(base, -1)),
+          paid: isMonthly ? true : false,
+        };
+        return renumber([row, ...rows]);
+      } catch {
+        return rows;
+      }
+    });
+  }
+
+  function addChargeAfter() {
+    setPreview((rows) => {
+      if (rows.length >= 120 || rows.length === 0) {
+        return rows;
+      }
+      try {
+        const last = rows[rows.length - 1]!;
+        const base = parseDateInput(last.dueDate);
+        const row: PreviewRow = {
+          number: rows.length + 1,
+          amountInput: last.amountInput,
+          dueDate: toCalendarInputValue(addMonths(base, 1)),
+          paid: false,
+        };
+        return renumber([...rows, row]);
+      } catch {
+        return rows;
+      }
+    });
+  }
+
+  function togglePaid(index: number) {
+    setPreview((rows) =>
+      rows.map((row, i) => (i === index ? { ...row, paid: !row.paid } : row)),
+    );
+  }
+
   const amountsHidden = preview
     .map((row) => {
       try {
@@ -380,18 +451,21 @@ export function DebtCreateForm({
           {preview.map((row, index) => (
             <li
               className="grid grid-cols-[auto_auto_1fr_7rem] items-center gap-2 rounded-xl px-1 py-1.5 sm:grid-cols-[4rem_auto_1fr_8rem]"
-              key={row.number}
+              key={`${row.number}-${row.dueDate}`}
             >
               <span className="text-sm font-medium text-ink/70">#{row.number}</span>
-              {row.paid ? (
-                <span className="rounded-full bg-pine-soft px-2 py-0.5 text-[11px] font-medium text-pine-dark">
-                  Paga
-                </span>
-              ) : (
-                <span className="rounded-full bg-line/60 px-2 py-0.5 text-[11px] font-medium text-ink/55">
-                  Aberta
-                </span>
-              )}
+              <button
+                className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                  row.paid
+                    ? "bg-pine-soft text-pine-dark"
+                    : "bg-line/60 text-ink/55"
+                }`}
+                disabled={busy}
+                onClick={() => togglePaid(index)}
+                type="button"
+              >
+                {row.paid ? "Paga" : "Aberta"}
+              </button>
               <DatePicker
                 compact
                 disabled={busy}
@@ -407,6 +481,25 @@ export function DebtCreateForm({
             </li>
           ))}
         </ul>
+
+        <div className="flex items-center justify-center gap-2">
+          <button
+            className="btn-ghost px-4 py-2 text-sm"
+            disabled={busy || preview.length >= 120}
+            onClick={addChargeBefore}
+            type="button"
+          >
+            Antes
+          </button>
+          <button
+            className="btn-ghost px-4 py-2 text-sm"
+            disabled={busy || preview.length >= 120}
+            onClick={addChargeAfter}
+            type="button"
+          >
+            Depois
+          </button>
+        </div>
 
         {(localError || state.error) ? <FormError message={localError ?? state.error!} /> : null}
 
@@ -565,7 +658,10 @@ export function DebtCreateForm({
             />
           </label>
           <label className="block space-y-1.5">
-            <span className="text-sm text-ink/70">Próximo vencimento</span>
+            <span className="flex items-center gap-1.5 text-sm text-ink/70">
+              Próximo vencimento
+              <Tip content="Data da próxima cobrança em aberto. Se ficar no passado, a lista abre os meses até hoje." />
+            </span>
             <DatePicker onChange={setFirstDueDate} value={firstDueDate} />
           </label>
         </div>
@@ -607,7 +703,7 @@ export function DebtCreateForm({
           checked={remindersEnabled}
           label="Avisar por e-mail"
           onChange={setRemindersEnabled}
-          tip="Avisa antes do vencimento e se atrasar. O admin precisa ter o cron de e-mail ligado."
+          tip="Avisa antes do vencimento e se atrasar."
         />
       </div>
 
