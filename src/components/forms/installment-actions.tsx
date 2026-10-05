@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import {
+  deleteInstallmentAction,
   markPaidAction,
   removeReceiptAction,
   revertPaidAction,
@@ -20,9 +21,11 @@ type InstallmentActionsProps = {
   receiptUrl: string | null;
   reminderDisabled?: boolean;
   remindersOnDebt?: boolean;
+  /** Impede apagar a última cobrança da dívida. */
+  canDelete?: boolean;
 };
 
-type ConfirmKind = "receipt" | "unpay" | null;
+type ConfirmKind = "receipt" | "unpay" | "delete" | null;
 
 export function InstallmentActions({
   workspaceId,
@@ -32,6 +35,7 @@ export function InstallmentActions({
   receiptUrl,
   reminderDisabled = false,
   remindersOnDebt = false,
+  canDelete = true,
 }: InstallmentActionsProps) {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -48,6 +52,60 @@ export function InstallmentActions({
       setError(result.error);
     }
   }
+
+  const deleteButton = canDelete ? (
+    <button
+      className="btn-ghost text-clay"
+      disabled={pending}
+      onClick={() => setConfirm("delete")}
+      type="button"
+    >
+      <AppIcon name="tabler:trash" className="size-4" />
+      Excluir
+    </button>
+  ) : null;
+
+  const confirmDialog = (
+    <ConfirmDialog
+      cancelLabel={confirm === "delete" ? "Manter" : "Cancelar"}
+      confirmLabel={
+        confirm === "receipt"
+          ? "Remover comprovante"
+          : confirm === "unpay"
+            ? "Desmarcar"
+            : "Excluir cobrança"
+      }
+      danger
+      description={
+        confirm === "receipt"
+          ? "O arquivo some. A parcela continua marcada como paga."
+          : confirm === "unpay"
+            ? "A parcela volta para pendente e o comprovante some."
+            : "A cobrança some da lista e as demais são renumeradas. Não dá para desfazer."
+      }
+      open={confirm !== null}
+      pending={pending}
+      title={
+        confirm === "receipt"
+          ? "Remover este comprovante?"
+          : confirm === "unpay"
+            ? "Desmarcar esta parcela?"
+            : "Excluir esta cobrança?"
+      }
+      onCancel={() => setConfirm(null)}
+      onConfirm={() => {
+        if (confirm === "receipt") {
+          void run(() => removeReceiptAction(workspaceId, debtId, installmentId));
+          return;
+        }
+        if (confirm === "unpay") {
+          void run(() => revertPaidAction(workspaceId, debtId, installmentId));
+          return;
+        }
+        void run(() => deleteInstallmentAction(workspaceId, debtId, installmentId));
+      }}
+    />
+  );
 
   if (!paid) {
     return (
@@ -66,6 +124,9 @@ export function InstallmentActions({
           <button className="btn-primary sm:w-auto" disabled={pending} type="submit">
             {pending ? "Salvando..." : "Marcar paga"}
           </button>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {deleteButton}
         </div>
         {remindersOnDebt ? (
           <label className="flex cursor-pointer items-center gap-2 text-sm text-ink/65">
@@ -96,6 +157,7 @@ export function InstallmentActions({
           </label>
         ) : null}
         {error ? <FormError message={error} /> : null}
+        {confirmDialog}
       </form>
     );
   }
@@ -124,29 +186,10 @@ export function InstallmentActions({
           <AppIcon name="tabler:arrow-back-up" className="size-4" />
           Desmarcar paga
         </button>
+        {deleteButton}
       </div>
       {error ? <FormError message={error} /> : null}
-      <ConfirmDialog
-        confirmLabel={confirm === "receipt" ? "Remover comprovante" : "Desmarcar"}
-        danger
-        description={
-          confirm === "receipt"
-            ? "O arquivo some. A parcela continua marcada como paga."
-            : "A parcela volta para pendente e o comprovante some."
-        }
-        open={confirm !== null}
-        pending={pending}
-        title={confirm === "receipt" ? "Remover este comprovante?" : "Desmarcar esta parcela?"}
-        onCancel={() => setConfirm(null)}
-        onConfirm={() => {
-          if (confirm === "receipt") {
-            void run(() => removeReceiptAction(workspaceId, debtId, installmentId));
-            return;
-          }
-
-          void run(() => revertPaidAction(workspaceId, debtId, installmentId));
-        }}
-      />
+      {confirmDialog}
     </div>
   );
 }

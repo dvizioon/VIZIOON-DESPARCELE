@@ -12,6 +12,7 @@ import {
 import { FormError } from "@/components/forms/auth-forms";
 import { useDialogMotion } from "@/components/motion/use-dialog-motion";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { FancyCheckbox } from "@/components/ui/fancy-checkbox";
 import { AppIcon } from "@/components/ui/icon";
 import { HiddenScroll } from "@/components/ui/hidden-scroll";
 import { Portal } from "@/components/ui/portal";
@@ -128,6 +129,7 @@ function DebtSettingsDialog({
   const [mode, setMode] = useState<DebtHideMode>(hideMode);
   const [selected, setSelected] = useState<string[]>(hiddenUserIds);
   const [confirm, setConfirm] = useState(false);
+  const [ackDelete, setAckDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [pending, setPending] = useState(false);

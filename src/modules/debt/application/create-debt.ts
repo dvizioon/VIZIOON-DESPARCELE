@@ -17,7 +17,7 @@ export interface CreateDebtInput {
   remindersEnabled?: boolean;
   recurringAmountCents?: number;
   recurringDay?: number;
-  /** Quantas cobranças já pagas ao cadastrar mensal (0–120). */
+  /** Quantas cobranças/parcelas já pagas ao cadastrar (0–120). */
   alreadyPaidCount?: number;
   ownerId: string;
   firstDueDate: Date;
@@ -81,22 +81,46 @@ export async function createDebt(
       return fail("INVALID_DATES", "Quantidade de datas nao bate com as parcelas");
     }
     totalAmountCents = input.installmentAmountsCents.reduce((sum, value) => sum + value, 0);
-    installments = input.installmentAmountsCents.map((amountCents, index) => ({
-      number: index + 1,
-      amountCents,
-      dueDate:
-        input.installmentDueDates?.[index] ?? addMonths(input.firstDueDate, index),
-    }));
+    installments = input.installmentAmountsCents.map((amountCents, index) => {
+      const paid = Boolean(input.installmentPaidFlags?.[index]);
+      const dueDate =
+        input.installmentDueDates?.[index] ?? addMonths(input.firstDueDate, index);
+      return {
+        number: index + 1,
+        amountCents,
+        dueDate,
+        status: paid ? ("PAID" as const) : ("PENDING" as const),
+        paidAt: paid ? dueDate : null,
+        paidByUserId: paid ? input.actorId : null,
+      };
+    });
   } else {
     totalAmountCents = input.totalAmountCents ?? 0;
     if (totalAmountCents < 100) {
       return fail("INVALID_AMOUNT", "Valor minimo de R$ 1,00");
     }
+    const alreadyPaid = Math.min(
+      input.installmentCount - 1,
+      Math.max(0, Math.floor(input.alreadyPaidCount ?? 0)),
+    );
     installments = generateInstallments(
       totalAmountCents,
       input.installmentCount,
       input.firstDueDate,
-    );
+    ).map((item, index) => {
+      const paid = index < alreadyPaid;
+      return {
+        ...item,
+        status: paid ? ("PAID" as const) : ("PENDING" as const),
+        paidAt: paid ? item.dueDate : null,
+        paidByUserId: paid ? input.actorId : null,
+      };
+    });
+  }
+
+  const pendingCount = installments.filter((item) => item.status !== "PAID").length;
+  if (pendingCount < 1) {
+    return fail("INVALID_COUNT", "Deixe ao menos uma parcela em aberto");
   }
 
   const debt = await debts.create({

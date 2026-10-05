@@ -209,6 +209,7 @@ export default async function DebtDetailPage({ params }: DebtDetailPageProps) {
 
                 {canEdit ? (
                   <InstallmentActions
+                    canDelete={debt.installments.length > 1}
                     debtId={debtId}
                     installmentId={item.id}
                     paid={paid}

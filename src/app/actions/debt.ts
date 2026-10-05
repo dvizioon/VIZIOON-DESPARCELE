@@ -220,6 +220,34 @@ export async function removeReceiptAction(
   return { error: null };
 }
 
+export async function deleteInstallmentAction(
+  workspaceId: string,
+  debtId: string,
+  installmentId: string,
+): Promise<ActionState> {
+  const user = await requireUser();
+  const { installments, debts, workspaces, storage } = getRepositories();
+  const { deleteInstallment } = await import(
+    "@/modules/installment/application/delete-installment"
+  );
+
+  const result = await deleteInstallment(
+    installmentId,
+    user.id,
+    installments,
+    debts,
+    workspaces,
+    storage,
+  );
+
+  if (!result.ok) {
+    return { error: result.error.message };
+  }
+
+  await revalidateDebtPaths(workspaceId, debtId);
+  return { error: null };
+}
+
 export async function deleteDebtAction(
   workspaceId: string,
   debtId: string,

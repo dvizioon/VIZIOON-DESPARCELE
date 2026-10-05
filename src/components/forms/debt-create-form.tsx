@@ -230,20 +230,26 @@ export function DebtCreateForm({
       }
 
       const due = parseDateInput(firstDueDate);
+      const paidCount = Number(alreadyPaidCount);
+      if (!Number.isInteger(paidCount) || paidCount < 0 || paidCount >= count) {
+        setLocalError("Já pagas deve ser menor que o total de parcelas");
+        return;
+      }
+
       const rows = equalParcels
         ? Array.from({ length: count }, (_, index) => ({
             id: newPreviewRowId(),
             number: index + 1,
             amountInput: centsToInput(perCents!),
             dueDate: toCalendarInputValue(addMonths(due, index)),
-            paid: false,
+            paid: index < paidCount,
           }))
-        : generateInstallments(totalCents, count, due).map((item) => ({
+        : generateInstallments(totalCents, count, due).map((item, index) => ({
             id: newPreviewRowId(),
             number: item.number,
             amountInput: centsToInput(item.amountCents),
             dueDate: toCalendarInputValue(item.dueDate),
-            paid: false,
+            paid: index < paidCount,
           }));
       setPreview(rows);
       setStep("preview");
@@ -322,6 +328,11 @@ export function DebtCreateForm({
         <input name="installmentAmounts" type="hidden" value={amountsHidden} />
         <input name="installmentDueDates" type="hidden" value={preview.map((r) => r.dueDate).join(",")} />
         <input name="installmentPaidFlags" type="hidden" value={paidHidden} />
+        <input
+          name="alreadyPaidCount"
+          type="hidden"
+          value={String(preview.filter((row) => row.paid).length)}
+        />
         {isMonthly ? (
           <>
             <input
@@ -336,11 +347,6 @@ export function DebtCreateForm({
               }
             />
             <input name="recurringDay" type="hidden" value={recurringDay} />
-            <input
-              name="alreadyPaidCount"
-              type="hidden"
-              value={String(preview.filter((row) => row.paid).length)}
-            />
           </>
         ) : null}
 
@@ -453,7 +459,7 @@ export function DebtCreateForm({
 
       {kind === "INSTALLMENT" ? (
         <div className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-3">
             <label className="block space-y-1.5">
               <span className="text-sm text-ink/70">Parcelas</span>
               <input
@@ -471,6 +477,20 @@ export function DebtCreateForm({
                 }}
                 type="number"
                 value={installmentCount}
+              />
+            </label>
+            <label className="block space-y-1.5">
+              <span className="flex items-center gap-1.5 text-sm text-ink/70">
+                Já pagas
+                <Tip content="Quantas parcelas já foram pagas. Elas entram marcadas e você ainda pode ajustar ou excluir na prévia." />
+              </span>
+              <input
+                className="field"
+                max={359}
+                min={0}
+                onChange={(event) => setAlreadyPaidCount(event.target.value)}
+                type="number"
+                value={alreadyPaidCount}
               />
             </label>
             <label className="block space-y-1.5">

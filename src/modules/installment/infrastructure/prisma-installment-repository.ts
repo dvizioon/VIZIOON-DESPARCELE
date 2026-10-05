@@ -96,6 +96,46 @@ export class PrismaInstallmentRepository implements InstallmentRepository {
       ),
     );
   }
+
+  async deleteAndRenumber(installmentId: string): Promise<void> {
+    await prisma.$transaction(async (tx) => {
+      const current = await tx.installment.findUnique({ where: { id: installmentId } });
+      if (!current) {
+        return;
+      }
+
+      const debtId = current.debtId;
+      await tx.installment.delete({ where: { id: installmentId } });
+
+      const remaining = await tx.installment.findMany({
+        where: { debtId },
+        orderBy: { number: "asc" },
+      });
+
+      // Evita conflito no @@unique([debtId, number])
+      for (let i = 0; i < remaining.length; i += 1) {
+        await tx.installment.update({
+          where: { id: remaining[i]!.id },
+          data: { number: 10_000 + i },
+        });
+      }
+      for (let i = 0; i < remaining.length; i += 1) {
+        await tx.installment.update({
+          where: { id: remaining[i]!.id },
+          data: { number: i + 1 },
+        });
+      }
+
+      const totalCents = remaining.reduce((sum, row) => sum + toCents(row.amount.toString()), 0);
+      await tx.debt.update({
+        where: { id: debtId },
+        data: {
+          installmentCount: remaining.length,
+          totalAmount: centsToDecimalString(totalCents),
+        },
+      });
+    });
+  }
 }
 
 export function mapInstallment(row: {
