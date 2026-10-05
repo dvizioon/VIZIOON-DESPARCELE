@@ -59,12 +59,13 @@ export const EMAIL_PURPOSES: EmailPurposeDefinition[] = [
   {
     id: "password_reset",
     label: "Redefinir senha",
-    description: "Pedido de senha nova.",
+    description:
+      "Finalidade: só para a pessoa redefinir a própria senha. Enviado quando alguém pede em Esqueci minha senha. O admin edita o texto aqui; o app usa este template.",
     placeholders: [
       LOGO,
       { key: "nome", label: "Nome", description: "Nome completo da pessoa" },
       { key: "email", label: "E-mail", description: "E-mail da conta" },
-      { key: "link", label: "Link", description: "Link para criar a senha nova" },
+      { key: "link", label: "Link", description: "Link para criar a senha nova (vale 1 hora)" },
       { key: "data", label: "Data", description: "Data do pedido" },
     ],
     defaultSubject: "Redefinir senha no Desparcele",
@@ -80,7 +81,8 @@ export const EMAIL_PURPOSES: EmailPurposeDefinition[] = [
   {
     id: "workspace_invite",
     label: "Convite para espaço",
-    description: "Quando alguém entra num espaço compartilhado.",
+    description:
+      "Finalidade: avisar o convite. A pessoa NÃO entra sozinha — precisa aceitar na tela Espaços (LGPD).",
     placeholders: [
       LOGO,
       { key: "nome", label: "Nome", description: "Quem foi convidado" },
@@ -88,10 +90,10 @@ export const EMAIL_PURPOSES: EmailPurposeDefinition[] = [
       { key: "workspace", label: "Espaço", description: "Nome do espaço" },
       { key: "convidadoPor", label: "Quem convidou", description: "Nome de quem enviou o convite" },
       { key: "papel", label: "Papel", description: "Editor, visualizador ou admin" },
-      { key: "link", label: "Link", description: "Link do espaço" },
+      { key: "link", label: "Link", description: "Link da tela Espaços (aceitar convite)" },
       { key: "data", label: "Data", description: "Data do convite" },
     ],
-    defaultSubject: "Você entrou no espaço {{workspace}}",
+    defaultSubject: "Convite para o espaço {{workspace}}",
     defaultBody: WORKSPACE_INVITE_MAIL_HTML,
     defaultFormat: "HTML",
     sample: {

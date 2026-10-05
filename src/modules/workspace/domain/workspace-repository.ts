@@ -1,5 +1,6 @@
 import type {
   Workspace,
+  WorkspaceInvite,
   WorkspaceMember,
   WorkspaceRole,
   WorkspaceSummary,
@@ -13,6 +14,14 @@ export interface CreateWorkspaceInput {
   ownerId: string;
 }
 
+export interface CreateWorkspaceInviteInput {
+  workspaceId: string;
+  email: string;
+  role: WorkspaceRole;
+  invitedById: string;
+  expiresAt?: Date | null;
+}
+
 export interface WorkspaceRepository {
   create(input: CreateWorkspaceInput): Promise<Workspace>;
   findById(id: string): Promise<Workspace | null>;
@@ -22,6 +31,11 @@ export interface WorkspaceRepository {
   addMember(workspaceId: string, userId: string, role: WorkspaceRole): Promise<void>;
   updateMemberRole(workspaceId: string, userId: string, role: WorkspaceRole): Promise<void>;
   removeMember(workspaceId: string, userId: string): Promise<void>;
+  createInvite(input: CreateWorkspaceInviteInput): Promise<WorkspaceInvite>;
+  findInviteById(id: string): Promise<WorkspaceInvite | null>;
+  listPendingInvitesByEmail(email: string): Promise<WorkspaceInvite[]>;
+  listPendingInvitesByWorkspace(workspaceId: string): Promise<WorkspaceInvite[]>;
+  deleteInvite(id: string): Promise<void>;
   rename(workspaceId: string, name: string): Promise<void>;
   archive(workspaceId: string): Promise<void>;
   unarchive(workspaceId: string): Promise<void>;

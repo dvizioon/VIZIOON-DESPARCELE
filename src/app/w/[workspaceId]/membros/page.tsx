@@ -4,6 +4,7 @@ import { Reveal } from "@/components/motion/reveal";
 import { AppIcon } from "@/components/ui/icon";
 import { DeleteWorkspaceButton } from "@/components/workspace/delete-workspace-button";
 import { MemberRoleForm } from "@/components/workspace/member-role-form";
+import { PendingInvitesAdmin } from "@/components/workspace/pending-invites-admin";
 import { RemoveMemberButton } from "@/components/workspace/remove-member-button";
 import { requireWorkspaceAccess } from "@/modules/workspace/application/require-workspace-access";
 import { isAdmin, roleLabel } from "@/modules/workspace/domain/workspace";
@@ -17,11 +18,8 @@ type MembersPageProps = {
 export default async function MembersPage({ params }: MembersPageProps) {
   const { workspaceId } = await params;
   const user = await requireUser();
-  const access = await requireWorkspaceAccess(
-    workspaceId,
-    user.id,
-    new PrismaWorkspaceRepository(),
-  );
+  const repo = new PrismaWorkspaceRepository();
+  const access = await requireWorkspaceAccess(workspaceId, user.id, repo);
 
   if (!access.ok || access.value.workspace.type !== "SHARED") {
     notFound();
@@ -29,6 +27,7 @@ export default async function MembersPage({ params }: MembersPageProps) {
 
   const { members, member, workspace } = access.value;
   const admin = isAdmin(member);
+  const pendingInvites = admin ? await repo.listPendingInvitesByWorkspace(workspaceId) : [];
 
   return (
     <Reveal className="space-y-5">
@@ -76,10 +75,20 @@ export default async function MembersPage({ params }: MembersPageProps) {
       </ul>
 
       {admin ? (
-        <div className="sheet" data-reveal>
-          <h3 className="mb-3 font-display text-2xl">Convidar</h3>
-          <InviteForm workspaceId={workspaceId} />
-        </div>
+        <>
+          <PendingInvitesAdmin
+            invites={pendingInvites.map((item) => ({
+              id: item.id,
+              email: item.email,
+              role: item.role,
+              invitedByName: item.invitedByName,
+            }))}
+          />
+          <div className="sheet" data-reveal>
+            <h3 className="mb-3 font-display text-2xl">Convidar</h3>
+            <InviteForm workspaceId={workspaceId} />
+          </div>
+        </>
       ) : (
         <p className="text-sm text-ink/55" data-reveal>Somente o administrador convida, altera papeis e remove pessoas.</p>
       )}

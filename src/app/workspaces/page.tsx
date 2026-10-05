@@ -4,8 +4,10 @@ import { CreateWorkspaceModal } from "@/components/forms/create-workspace-modal"
 import { AppIcon } from "@/components/ui/icon";
 import { ArchiveWorkspaceButton } from "@/components/workspace/archive-workspace-button";
 import { DeleteWorkspaceButton } from "@/components/workspace/delete-workspace-button";
+import { PendingWorkspaceInvites } from "@/components/workspace/pending-workspace-invites";
 import { WorkspaceTrashList } from "@/components/workspace/workspace-trash-list";
 import { Reveal } from "@/components/motion/reveal";
+import { normalizeEmail } from "@/modules/auth/domain/user";
 import {
   isAdmin,
   parseWorkspaceListView,
@@ -24,14 +26,29 @@ export default async function WorkspacesPage({ searchParams }: WorkspacesPagePro
   const { view: rawView } = await searchParams;
   const view = parseWorkspaceListView(rawView);
   const user = await requireUser();
-  const workspaces = await new PrismaWorkspaceRepository().listByUser(user.id);
+  const repo = new PrismaWorkspaceRepository();
+  const workspaces = await repo.listByUser(user.id);
+  const pendingInvites =
+    view === "todos" ? await repo.listPendingInvitesByEmail(normalizeEmail(user.email)) : [];
   const todos = workspaces.filter((item) => workspaceListBucket(item) === "todos");
   const arquivados = workspaces.filter((item) => workspaceListBucket(item) === "arquivados");
   const lixeira = workspaces.filter((item) => workspaceListBucket(item) === "lixeira");
   const current = view === "arquivados" ? arquivados : view === "lixeira" ? lixeira : todos;
 
   return (
-    <Reveal>
+    <Reveal className="space-y-5">
+      {view === "todos" ? (
+        <PendingWorkspaceInvites
+          invites={pendingInvites.map((item) => ({
+            id: item.id,
+            workspaceId: item.workspaceId,
+            workspaceName: item.workspaceName,
+            role: item.role,
+            invitedByName: item.invitedByName,
+          }))}
+        />
+      ) : null}
+
       {view === "lixeira" ? (
         lixeira.length > 0 ? (
           <WorkspaceTrashList
@@ -57,7 +74,7 @@ export default async function WorkspacesPage({ searchParams }: WorkspacesPagePro
             <WorkspaceRow archived={view === "arquivados"} key={workspace.id} workspace={workspace} />
           ))}
         </ul>
-      ) : (
+      ) : pendingInvites.length === 0 ? (
         <EmptyState
           icon={view === "arquivados" ? "tabler:archive-off" : "tabler:home-plus"}
           title={view === "arquivados" ? "Nenhum espaço arquivado" : "Nenhum espaço ativo"}
@@ -68,7 +85,7 @@ export default async function WorkspacesPage({ searchParams }: WorkspacesPagePro
           }
           action={view === "todos" ? <CreateWorkspaceModal triggerLabel="Criar primeiro espaço" /> : null}
         />
-      )}
+      ) : null}
     </Reveal>
   );
 }

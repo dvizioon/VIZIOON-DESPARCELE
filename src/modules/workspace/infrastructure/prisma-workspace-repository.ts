@@ -4,10 +4,12 @@ import { toCents } from "@/shared/utils/money";
 import type { WorkspaceInsights } from "../domain/workspace-insights";
 import type {
   CreateWorkspaceInput,
+  CreateWorkspaceInviteInput,
   WorkspaceRepository,
 } from "../domain/workspace-repository";
 import type {
   Workspace,
+  WorkspaceInvite,
   WorkspaceMember,
   WorkspaceRole,
   WorkspaceSummary,
@@ -97,6 +99,75 @@ export class PrismaWorkspaceRepository implements WorkspaceRepository {
     await prisma.workspaceMember.delete({
       where: { workspaceId_userId: { workspaceId, userId } },
     });
+  }
+
+  async createInvite(input: CreateWorkspaceInviteInput): Promise<WorkspaceInvite> {
+    const row = await prisma.workspaceInvite.upsert({
+      where: {
+        workspaceId_email: {
+          workspaceId: input.workspaceId,
+          email: input.email,
+        },
+      },
+      create: {
+        workspaceId: input.workspaceId,
+        email: input.email,
+        role: input.role,
+        invitedById: input.invitedById,
+        expiresAt: input.expiresAt ?? null,
+      },
+      update: {
+        role: input.role,
+        invitedById: input.invitedById,
+        expiresAt: input.expiresAt ?? null,
+        createdAt: new Date(),
+      },
+      include: {
+        workspace: true,
+        invitedBy: true,
+      },
+    });
+
+    return mapInvite(row);
+  }
+
+  async findInviteById(id: string): Promise<WorkspaceInvite | null> {
+    const row = await prisma.workspaceInvite.findUnique({
+      where: { id },
+      include: { workspace: true, invitedBy: true },
+    });
+    return row ? mapInvite(row) : null;
+  }
+
+  async listPendingInvitesByEmail(email: string): Promise<WorkspaceInvite[]> {
+    const now = new Date();
+    const rows = await prisma.workspaceInvite.findMany({
+      where: {
+        email,
+        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+        workspace: { deletedAt: null },
+      },
+      include: { workspace: true, invitedBy: true },
+      orderBy: { createdAt: "desc" },
+    });
+    return rows.map(mapInvite);
+  }
+
+  async listPendingInvitesByWorkspace(workspaceId: string): Promise<WorkspaceInvite[]> {
+    const now = new Date();
+    const rows = await prisma.workspaceInvite.findMany({
+      where: {
+        workspaceId,
+        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+      },
+      include: { workspace: true, invitedBy: true },
+      orderBy: { createdAt: "desc" },
+    });
+    return rows.map(mapInvite);
+  }
+
+  async deleteInvite(id: string): Promise<void> {
+    await prisma.workspaceInvite.delete({ where: { id } });
   }
 
   async rename(workspaceId: string, name: string): Promise<void> {
@@ -324,5 +395,29 @@ function mapMember(row: {
     role: row.role,
     userName: row.user.name,
     userEmail: row.user.email,
+  };
+}
+
+function mapInvite(row: {
+  id: string;
+  workspaceId: string;
+  email: string;
+  role: WorkspaceRole;
+  invitedById: string;
+  createdAt: Date;
+  expiresAt: Date | null;
+  workspace: { name: string };
+  invitedBy: { name: string };
+}): WorkspaceInvite {
+  return {
+    id: row.id,
+    workspaceId: row.workspaceId,
+    workspaceName: row.workspace.name,
+    email: row.email,
+    role: row.role,
+    invitedById: row.invitedById,
+    invitedByName: row.invitedBy.name,
+    createdAt: row.createdAt,
+    expiresAt: row.expiresAt,
   };
 }

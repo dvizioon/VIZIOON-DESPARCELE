@@ -106,33 +106,35 @@ export const WELCOME_MAIL_HTML = mailLayout({
 });
 
 export const PASSWORD_RESET_MAIL_HTML = mailLayout({
-  preheader: "Pedido de senha nova no Desparcele.",
+  preheader: "Pedido de senha nova no Desparcele — só você usa este link.",
   eyebrow: "Senha",
   title: "Criar uma senha nova",
   paragraphs: [
-    "Alguém pediu uma senha nova para <strong>{{email}}</strong>.",
-    "Se foi você, o botão abaixo vale por 1 hora. Se não foi, pode ignorar este e-mail.",
+    "Recebemos um pedido para redefinir a senha da conta <strong>{{email}}</strong>.",
+    "Finalidade deste e-mail: permitir que <strong>você</strong> escolha uma senha nova. Ninguém altera a senha sem este link.",
+    "O botão vale por 1 hora. Se você não pediu, ignore este e-mail — sua senha continua a mesma.",
   ],
   ctaLabel: "Criar senha nova",
   ctaHref: "{{link}}",
-  footerNote: "Pedido feito em {{data}}.",
+  footerNote: "Pedido feito em {{data}} para {{email}}. Uso exclusivo para redefinição de senha.",
 });
 
 export const WORKSPACE_INVITE_MAIL_HTML = mailLayout({
-  preheader: "Você entrou no espaço {{workspace}}.",
-  eyebrow: "Espaço",
-  title: "Você entrou em {{workspace}}",
+  preheader: "Convite para o espaço {{workspace}} — você decide se entra.",
+  eyebrow: "Convite",
+  title: "Convite para {{workspace}}",
   paragraphs: [
-    "<strong>{{convidadoPor}}</strong> te colocou no espaço compartilhado.",
-    "Por lá vocês veem as dívidas, as parcelas e o que já foi pago.",
+    "<strong>{{convidadoPor}}</strong> convidou você para o espaço compartilhado.",
+    "Por LGPD, ninguém te coloca direto: entre no Desparcele, marque que concorda e aceite o convite na tela inicial.",
+    "Se você ainda não tem conta, crie com este e-mail e o convite aparece em Espaços.",
   ],
   facts: [
     { label: "Espaço", value: "{{workspace}}" },
-    { label: "Seu papel", value: "{{papel}}" },
+    { label: "Papel sugerido", value: "{{papel}}" },
   ],
-  ctaLabel: "Abrir o espaço",
+  ctaLabel: "Ver convites",
   ctaHref: "{{link}}",
-  footerNote: "Convite enviado em {{data}} para {{email}}.",
+  footerNote: "Convite enviado em {{data}} para {{email}}. Só você pode aceitar.",
 });
 
 export const INSTALLMENT_REMINDER_MAIL_HTML = mailLayout({

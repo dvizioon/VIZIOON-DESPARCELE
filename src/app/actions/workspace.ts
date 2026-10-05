@@ -77,26 +77,81 @@ export async function inviteMemberAction(
     return { error: result.error.message };
   }
 
-  const workspace = await workspaces.findById(workspaceId);
-  const invitedEmail = String(formData.get("email") ?? "");
+  const invitedEmail = result.value.invite.email;
   void dispatchMail(
     "workspace_invite",
     invitedEmail,
     {
-      nome: result.value.name,
+      nome: result.value.userName,
       email: invitedEmail,
-      workspace: workspace?.name ?? "Espaco",
+      workspace: result.value.invite.workspaceName,
       convidadoPor: user.name,
       papel: roleLabel(role),
       data: formatMailDate(),
-      link: `${await getAppOrigin()}/w/${workspaceId}`,
+      link: `${await getAppOrigin()}/workspaces`,
     },
     getRepositories().mail,
   ).catch(() => undefined);
 
   revalidatePath(`/w/${workspaceId}`);
   revalidatePath(`/w/${workspaceId}/membros`);
-  return { error: null };
+  revalidatePath("/workspaces");
+  return { error: null, ok: true, message: "Convite enviado. A pessoa precisa aceitar." };
+}
+
+export async function acceptWorkspaceInviteAction(inviteId: string): Promise<ActionState> {
+  const user = await requireUser();
+  const { workspaces } = getRepositories();
+  const { acceptWorkspaceInvite } = await import(
+    "@/modules/workspace/application/invite-member"
+  );
+
+  const result = await acceptWorkspaceInvite(inviteId, user.id, user.email, workspaces);
+  if (!result.ok) {
+    return { error: result.error.message };
+  }
+
+  revalidatePath("/workspaces");
+  revalidatePath(`/w/${result.value.workspaceId}`);
+  revalidatePath(`/w/${result.value.workspaceId}/membros`);
+  return { error: null, ok: true };
+}
+
+export async function declineWorkspaceInviteAction(inviteId: string): Promise<ActionState> {
+  const user = await requireUser();
+  const { workspaces } = getRepositories();
+  const { declineWorkspaceInvite } = await import(
+    "@/modules/workspace/application/invite-member"
+  );
+
+  const result = await declineWorkspaceInvite(inviteId, user.email, workspaces);
+  if (!result.ok) {
+    return { error: result.error.message };
+  }
+
+  revalidatePath("/workspaces");
+  return { error: null, ok: true };
+}
+
+/** Admin cancela convite pendente (antes da pessoa aceitar). */
+export async function cancelWorkspaceInviteAction(inviteId: string): Promise<ActionState> {
+  const user = await requireUser();
+  const { workspaces } = getRepositories();
+
+  const invite = await workspaces.findInviteById(inviteId);
+  if (!invite) {
+    return { error: "Convite nao encontrado" };
+  }
+
+  const actor = await workspaces.findMember(invite.workspaceId, user.id);
+  if (!actor || !isAdmin(actor)) {
+    return { error: "So o admin pode cancelar convites" };
+  }
+
+  await workspaces.deleteInvite(inviteId);
+  revalidatePath("/workspaces");
+  revalidatePath(`/w/${invite.workspaceId}/membros`);
+  return { error: null, ok: true };
 }
 
 export async function changeMemberRoleAction(

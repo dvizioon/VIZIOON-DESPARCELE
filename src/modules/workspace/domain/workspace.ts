@@ -21,6 +21,18 @@ export interface WorkspaceMember {
   userEmail: string;
 }
 
+export interface WorkspaceInvite {
+  id: string;
+  workspaceId: string;
+  workspaceName: string;
+  email: string;
+  role: WorkspaceRole;
+  invitedById: string;
+  invitedByName: string;
+  createdAt: Date;
+  expiresAt: Date | null;
+}
+
 export interface WorkspaceSummary extends Workspace {
   role: WorkspaceRole;
   memberCount: number;

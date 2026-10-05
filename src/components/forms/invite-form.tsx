@@ -15,6 +15,10 @@ export function InviteForm({ workspaceId }: { workspaceId: string }) {
 
   return (
     <form action={formAction} className="space-y-3">
+      <p className="text-xs text-ink/55">
+        A pessoa recebe o e-mail e precisa aceitar o convite em Espaços. Ninguém entra no workspace
+        sem aceitar.
+      </p>
       <div className="grid gap-3 sm:grid-cols-[1fr_180px_auto]">
         <input
           className="field min-w-0"
@@ -39,6 +43,9 @@ export function InviteForm({ workspaceId }: { workspaceId: string }) {
         </button>
       </div>
       {state.error ? <FormError message={state.error} /> : null}
+      {state.ok && !state.error ? (
+        <p className="text-sm text-moss">{state.message ?? "Convite enviado."}</p>
+      ) : null}
     </form>
   );
 }

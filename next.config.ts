@@ -29,7 +29,6 @@ const allowedDevOrigins = Array.from(
 const nextConfig: NextConfig = {
   output: "standalone",
   allowedDevOrigins,
-  transpilePackages: ["@svar-ui/react-calendar", "@svar-ui/calendar-store", "@svar-ui/react-core"],
   // nodemailer usa fs/stream/crypto — não pode ir pro bundle do instrumentation/webpack
   serverExternalPackages: ["@prisma/client", "prisma", "nodemailer"],
   experimental: {

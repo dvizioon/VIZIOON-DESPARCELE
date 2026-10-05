@@ -76,6 +76,7 @@ model User {
 
   ownedWorkspaces  Workspace[]          @relation("WorkspaceOwner")
   memberships      WorkspaceMember[]
+  sentInvites      WorkspaceInvite[]     @relation("InviteSender")
   ownedDebts       Debt[]               @relation("DebtOwner")
   createdDebts     Debt[]               @relation("DebtCreator")
   paidInstallments Installment[]        @relation("InstallmentPayer")
@@ -109,6 +110,7 @@ model Workspace {
 
   owner   User              @relation("WorkspaceOwner", fields: [ownerId], references: [id], onDelete: Restrict)
   members WorkspaceMember[]
+  invites WorkspaceInvite[]
   debts   Debt[]
 
   @@index([ownerId])
@@ -127,6 +129,24 @@ model WorkspaceMember {
 
   @@id([workspaceId, userId])
   @@index([userId])
+}
+
+/** Convite pendente — a pessoa precisa aceitar (LGPD). Não cria membership sozinho. */
+model WorkspaceInvite {
+  id          String        @id @default(cuid())
+  workspaceId String
+  email       String
+  role        WorkspaceRole @default(EDITOR)
+  invitedById String
+  createdAt   DateTime      @default(now())
+  expiresAt   DateTime?
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  invitedBy User      @relation("InviteSender", fields: [invitedById], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, email])
+  @@index([email])
+  @@index([expiresAt])
 }
 
 model Debt {

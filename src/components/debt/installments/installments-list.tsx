@@ -1,27 +1,14 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { FormError } from "@/components/forms/auth-forms";
 import { AppIcon } from "@/components/ui/icon";
+import { InstallmentsCalendar } from "./installments-calendar";
 import { InstallmentsListView } from "./installments-list-view";
 import { InstallmentsPipeline } from "./installments-pipeline";
 import { InstallmentsToolbar } from "./installments-toolbar";
 import { INFINITE_STEP } from "./constants";
 import type { InstallmentListItem } from "./types";
 import { useInstallmentsBoard } from "./use-installments-board";
-
-const InstallmentsSvarCalendar = dynamic(
-  () =>
-    import("./installments-svar-calendar").then((mod) => mod.InstallmentsSvarCalendar),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="flex h-[min(40rem,70vh)] w-full items-center justify-center rounded-3xl border border-line bg-white/60 text-sm text-ink/50">
-        Carregando calendário…
-      </div>
-    ),
-  },
-);
 
 export type { InstallmentListItem } from "./types";
 
@@ -86,7 +73,7 @@ export function InstallmentsList({
       ) : null}
 
       {board.view === "calendar" ? (
-        <InstallmentsSvarCalendar highlightId={board.highlightId} items={board.filtered} />
+        <InstallmentsCalendar highlightId={board.highlightId} items={board.filtered} />
       ) : null}
 
       {board.view === "pipeline" ? (
