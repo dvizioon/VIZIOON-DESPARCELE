@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { InviteForm } from "@/components/forms/invite-form";
 import { Reveal } from "@/components/motion/reveal";
-import { AppIcon } from "@/components/ui/icon";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { DeleteWorkspaceButton } from "@/components/workspace/delete-workspace-button";
 import { MemberRoleForm } from "@/components/workspace/member-role-form";
 import { PendingInvitesAdmin } from "@/components/workspace/pending-invites-admin";
@@ -39,14 +39,16 @@ export default async function MembersPage({ params }: MembersPageProps) {
       </div>
       <ul className="grid gap-3">
         {members.map((item) => (
-          <li className="sheet flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between" data-reveal key={item.userId}>
-            <div className="flex items-center gap-3">
-              <span className="flex size-10 items-center justify-center rounded-full bg-pine-soft text-pine-dark">
-                <AppIcon name="tabler:user" className="size-5" />
-              </span>
-              <div>
-                <p className="font-medium">{item.userName}</p>
-                <p className="text-sm text-ink/55">{item.userEmail}</p>
+          <li
+            className="sheet flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+            data-reveal
+            key={item.userId}
+          >
+            <div className="flex min-w-0 items-center gap-3">
+              <UserAvatar avatarUrl={item.userAvatarUrl} name={item.userName} size={40} />
+              <div className="min-w-0">
+                <p className="truncate font-medium">{item.userName}</p>
+                <p className="truncate text-sm text-ink/55">{item.userEmail}</p>
               </div>
             </div>
             {admin ? (
@@ -90,7 +92,9 @@ export default async function MembersPage({ params }: MembersPageProps) {
           </div>
         </>
       ) : (
-        <p className="text-sm text-ink/55" data-reveal>Somente o administrador convida, altera papeis e remove pessoas.</p>
+        <p className="text-sm text-ink/55" data-reveal>
+          Somente o administrador convida, altera papeis e remove pessoas.
+        </p>
       )}
     </Reveal>
   );

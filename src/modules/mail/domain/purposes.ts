@@ -106,7 +106,7 @@ export const EMAIL_PURPOSES: EmailPurposeDefinition[] = [
     id: "workspace_invite",
     label: "Convite para espaço",
     description:
-      "Finalidade: avisar o convite. A pessoa NÃO entra sozinha — precisa aceitar na tela Espaços (LGPD).",
+      "Avisa o convite. A pessoa precisa aceitar na tela Espaços para entrar.",
     placeholders: [
       LOGO,
       { key: "nome", label: "Nome", description: "Quem foi convidado" },

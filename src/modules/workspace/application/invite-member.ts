@@ -11,12 +11,12 @@ export interface InviteMemberInput {
   role: "EDITOR" | "VIEWER" | "ADMIN";
 }
 
-/** Cria convite pendente. Não adiciona no espaço até a pessoa aceitar (LGPD). */
+/** Cria convite pendente. Não adiciona no espaço até a pessoa aceitar. */
 export async function inviteMember(
   input: InviteMemberInput,
   workspaces: WorkspaceRepository,
   users: UserRepository,
-): Promise<Result<{ invite: WorkspaceInvite; userName: string }>> {
+): Promise<Result<{ invite: WorkspaceInvite; userName: string; hasAccount: boolean }>> {
   const actor = await workspaces.findMember(input.workspaceId, input.actorId);
   if (!actor || !isAdmin(actor)) {
     return fail("FORBIDDEN", "So o admin pode convidar");
@@ -62,6 +62,7 @@ export async function inviteMember(
   return ok({
     invite,
     userName: user?.name ?? email.split("@")[0] ?? "pessoa",
+    hasAccount: Boolean(user),
   });
 }
 

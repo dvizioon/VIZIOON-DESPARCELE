@@ -29,7 +29,7 @@ export function PendingWorkspaceInvites({ invites }: { invites: PendingInviteCar
       <div>
         <p className="font-display text-2xl">Convites</p>
         <p className="mt-1 text-sm text-ink/60">
-          Marque que concorda e entre no espaço. Ninguém te coloca direto — você aceita.
+          Marque que concorda e entre no espaço. Você escolhe aceitar o convite.
         </p>
       </div>
       <ul className="grid gap-3">

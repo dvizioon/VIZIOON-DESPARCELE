@@ -96,7 +96,13 @@ export async function inviteMemberAction(
   revalidatePath(`/w/${workspaceId}`);
   revalidatePath(`/w/${workspaceId}/membros`);
   revalidatePath("/workspaces");
-  return { error: null, ok: true, message: "Convite enviado. A pessoa precisa aceitar." };
+  return {
+    error: null,
+    ok: true,
+    message: result.value.hasAccount
+      ? "Convite enviado. A pessoa precisa aceitar em Espaços."
+      : "Essa pessoa ainda não tem conta, mas o convite foi enviado. Quando ela se cadastrar com este e-mail, o convite aparece em Espaços.",
+  };
 }
 
 export async function acceptWorkspaceInviteAction(inviteId: string): Promise<ActionState> {

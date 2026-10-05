@@ -138,7 +138,7 @@ export const WORKSPACE_INVITE_MAIL_HTML = mailLayout({
   title: "Convite para {{workspace}}",
   paragraphs: [
     "<strong>{{convidadoPor}}</strong> convidou você para o espaço compartilhado.",
-    "Por LGPD, ninguém te coloca direto: entre no Desparcele, marque que concorda e aceite o convite na tela inicial.",
+    "Para entrar, abra o Desparcele e aceite o convite na tela inicial.",
     "Se você ainda não tem conta, crie com este e-mail e o convite aparece em Espaços.",
   ],
   facts: [
