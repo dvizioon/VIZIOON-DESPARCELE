@@ -24,6 +24,22 @@ export interface DashboardUpcomingView {
   kind: DebtKind;
 }
 
+export interface DashboardPaidView {
+  installmentId: string;
+  debtId: string;
+  debtName: string;
+  ownerId: string;
+  ownerName: string;
+  paidByUserId: string | null;
+  paidByName: string | null;
+  number: number;
+  amountCents: number;
+  dueDate: string;
+  paidAt: string | null;
+  autoPay: boolean;
+  kind: DebtKind;
+}
+
 export interface DashboardView {
   workspaceId: string;
   workspaceName: string;
@@ -46,6 +62,7 @@ export interface DashboardView {
     reason: string;
   } | null;
   upcoming: DashboardUpcomingView[];
+  paidHistory: DashboardPaidView[];
   scores: {
     userId: string;
     name: string;
@@ -106,6 +123,21 @@ export function toDashboardView(data: DashboardData): DashboardView {
       amountCents: item.amountCents,
       dueDate: item.dueDate.toISOString(),
       overdue: item.overdue,
+      autoPay: item.autoPay,
+      kind: item.kind,
+    })),
+    paidHistory: data.paidHistory.map((item) => ({
+      installmentId: item.installmentId,
+      debtId: item.debtId,
+      debtName: item.debtName,
+      ownerId: item.ownerId,
+      ownerName: item.ownerName,
+      paidByUserId: item.paidByUserId,
+      paidByName: item.paidByName,
+      number: item.number,
+      amountCents: item.amountCents,
+      dueDate: item.dueDate.toISOString(),
+      paidAt: item.paidAt ? item.paidAt.toISOString() : null,
       autoPay: item.autoPay,
       kind: item.kind,
     })),

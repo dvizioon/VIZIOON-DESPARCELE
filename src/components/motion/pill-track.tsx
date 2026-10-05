@@ -30,24 +30,28 @@ export function PillTrack({
     const place = (animate: boolean) => {
       const active = wrap.querySelector<HTMLElement>("[data-pill-active='true']");
       if (!active) {
+        gsap.set(pill, { opacity: 0 });
         return;
       }
 
-      const wrapBox = wrap.getBoundingClientRect();
-      const box = active.getBoundingClientRect();
-      if (box.width < 2 || box.height < 2) {
+      // offset* é relativo ao wrap (position: relative) — estável com scroll/transform no ancestral
+      const width = active.offsetWidth;
+      const height = active.offsetHeight;
+      if (width < 2 || height < 2) {
         return;
       }
 
       const next = {
-        x: box.left - wrapBox.left + wrap.scrollLeft,
-        y: box.top - wrapBox.top + wrap.scrollTop,
-        width: box.width,
-        height: box.height,
+        left: active.offsetLeft,
+        top: active.offsetTop,
+        width,
+        height,
         opacity: 1,
+        x: 0,
+        y: 0,
       };
 
-      if (animate && !reduce) {
+      if (animate && !reduce && readyRef.current) {
         gsap.to(pill, {
           ...next,
           duration: 0.42,
@@ -65,8 +69,26 @@ export function PillTrack({
     place(animateMove);
 
     const raf = window.requestAnimationFrame(() => place(false));
+    const raf2 = window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => place(false));
+    });
+
     const observer = new ResizeObserver(() => place(false));
     observer.observe(wrap);
+    for (const child of Array.from(wrap.children)) {
+      if (child instanceof HTMLElement && child !== pill) {
+        observer.observe(child);
+      }
+    }
+
+    const mutations = new MutationObserver(() => place(false));
+    mutations.observe(wrap, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["data-pill-active", "class"],
+    });
+
     void document.fonts?.ready.then(() => place(false));
 
     const onResize = () => place(false);
@@ -74,7 +96,9 @@ export function PillTrack({
 
     return () => {
       window.cancelAnimationFrame(raf);
+      window.cancelAnimationFrame(raf2);
       observer.disconnect();
+      mutations.disconnect();
       window.removeEventListener("resize", onResize);
     };
   }, [watch]);
@@ -83,8 +107,9 @@ export function PillTrack({
     <div className={`relative ${className}`} ref={wrapRef}>
       <span
         aria-hidden
-        className={`pointer-events-none absolute left-0 top-0 rounded-full opacity-0 ${pillClassName}`}
+        className={`pointer-events-none absolute rounded-full opacity-0 ${pillClassName}`}
         ref={pillRef}
+        style={{ left: 0, top: 0 }}
       />
       {children}
     </div>

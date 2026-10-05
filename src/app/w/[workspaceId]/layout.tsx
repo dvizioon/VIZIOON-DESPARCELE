@@ -41,6 +41,7 @@ export default async function WorkspaceLayout({ children, params }: WorkspaceLay
   const navItems = [
     { href: base, icon: "tabler:layout-dashboard", label: "Início" },
     { href: `${base}/mes`, icon: "tabler:calendar-month", label: "Mês" },
+    { href: `${base}/pagas`, icon: "tabler:circle-check", label: "Pagas" },
     { href: `${base}/debts`, icon: "tabler:list", label: "Dívidas" },
     ...(workspace.type === "SHARED"
       ? [{ href: `${base}/membros`, icon: "tabler:users", label: "Pessoas" }]

@@ -23,6 +23,22 @@ export interface UpcomingInstallment {
   kind: DebtKind;
 }
 
+export interface PaidInstallmentRow {
+  installmentId: string;
+  debtId: string;
+  debtName: string;
+  ownerId: string;
+  ownerName: string;
+  paidByUserId: string | null;
+  paidByName: string | null;
+  number: number;
+  amountCents: number;
+  dueDate: Date;
+  paidAt: Date | null;
+  autoPay: boolean;
+  kind: DebtKind;
+}
+
 export interface MemberScore {
   userId: string;
   name: string;
@@ -58,6 +74,7 @@ export interface DashboardData {
   progressPercent: number;
   suggestion: PrioritySuggestion | null;
   upcoming: UpcomingInstallment[];
+  paidHistory: PaidInstallmentRow[];
   scores: MemberScore[];
   slices: DebtSlice[];
   debts: DebtWithInstallments[];
@@ -93,6 +110,31 @@ export function buildDashboard(
   );
 
   upcoming.sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
+
+  const paidHistory: PaidInstallmentRow[] = debts.flatMap((debt) =>
+    debt.installments
+      .filter((item) => item.status === "PAID")
+      .map((item) => ({
+        installmentId: item.id,
+        debtId: debt.id,
+        debtName: debt.name,
+        ownerId: debt.ownerId,
+        ownerName: debt.ownerName,
+        paidByUserId: item.paidByUserId,
+        paidByName: item.paidByName,
+        number: item.number,
+        amountCents: item.amountCents,
+        dueDate: item.dueDate,
+        paidAt: item.paidAt,
+        autoPay: debt.autoPay,
+        kind: debt.kind,
+      })),
+  );
+  paidHistory.sort((a, b) => {
+    const aTime = (a.paidAt ?? a.dueDate).getTime();
+    const bTime = (b.paidAt ?? b.dueDate).getTime();
+    return bTime - aTime;
+  });
 
   const monthPending = upcoming.filter((item) => item.dueDate >= monthStart);
   const overdue = upcoming.filter((item) => item.overdue);
@@ -193,6 +235,7 @@ export function buildDashboard(
     progressPercent,
     suggestion: calculatePriority(debts),
     upcoming,
+    paidHistory,
     scores,
     slices,
     debts,
