@@ -9,6 +9,7 @@ type FancyCheckboxProps = {
   onChange: (next: boolean) => void;
   tip?: string;
   disabled?: boolean;
+  className?: string;
 };
 
 export function FancyCheckbox({
@@ -17,6 +18,7 @@ export function FancyCheckbox({
   onChange,
   tip,
   disabled = false,
+  className = "",
 }: FancyCheckboxProps) {
   return (
     <button
@@ -25,7 +27,7 @@ export function FancyCheckbox({
         checked
           ? "border-pine/40 bg-pine-soft/70 text-pine-dark shadow-sm"
           : "border-line bg-white/70 text-ink/75 hover:border-pine/25 hover:bg-white"
-      } ${disabled ? "cursor-not-allowed opacity-50" : ""}`}
+      } ${disabled ? "cursor-not-allowed opacity-50" : ""} ${className}`}
       disabled={disabled}
       onClick={() => onChange(!checked)}
       role="checkbox"

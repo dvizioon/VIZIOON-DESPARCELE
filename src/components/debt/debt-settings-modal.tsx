@@ -229,8 +229,9 @@ function DebtSettingsDialog({
             </form>
 
             <div className="mt-6 space-y-3 border-t border-line pt-5">
-              <ToggleRow
+              <FancyCheckbox
                 checked={payAuto}
+                className="w-full"
                 disabled={togglePending}
                 label="Baixa automática"
                 tip="Empréstimo ou débito. Mensal: parcela do cron já nasce paga. Parcelada: baixa no vencimento."
@@ -249,8 +250,9 @@ function DebtSettingsDialog({
                   });
                 }}
               />
-              <ToggleRow
+              <FancyCheckbox
                 checked={reminders}
+                className="w-full"
                 disabled={togglePending}
                 label="Avisar por e-mail"
                 tip="Avisa antes do vencimento e se atrasar."
@@ -270,8 +272,9 @@ function DebtSettingsDialog({
                 }}
               />
               {kind === "RECURRING" || kind === "VARIABLE" ? (
-                <ToggleRow
+                <FancyCheckbox
                   checked={paused}
+                  className="w-full"
                   disabled={togglePending}
                   label={kind === "VARIABLE" ? "Pausar mensal variável" : "Pausar recorrência"}
                   tip="Para de gerar a cobrança do mês até você despausar."
@@ -385,7 +388,20 @@ function DebtSettingsDialog({
               <p className="text-sm text-ink/60">
                 Apagar tira a dívida, as parcelas, as notas e os comprovantes. Isso não volta.
               </p>
-              <button className="btn-ghost w-full text-clay" onClick={() => setConfirm(true)} type="button">
+              <FancyCheckbox
+                checked={ackDelete}
+                className="w-full"
+                disabled={deleting}
+                label="Quero apagar esta dívida"
+                tip="Marque para liberar o botão. Ainda vai pedir uma confirmação."
+                onChange={setAckDelete}
+              />
+              <button
+                className="btn-ghost w-full text-clay disabled:opacity-40"
+                disabled={!ackDelete || deleting}
+                onClick={() => setConfirm(true)}
+                type="button"
+              >
                 <AppIcon name="tabler:trash" className="size-4" />
                 Apagar dívida
               </button>
@@ -414,34 +430,5 @@ function DebtSettingsDialog({
         }}
       />
     </Portal>
-  );
-}
-
-function ToggleRow({
-  checked,
-  label,
-  tip,
-  disabled,
-  onChange,
-}: {
-  checked: boolean;
-  label: string;
-  tip: string;
-  disabled: boolean;
-  onChange: (next: boolean) => void;
-}) {
-  return (
-    <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-line bg-white/60 px-3 py-3">
-      <input
-        checked={checked}
-        className="mt-1 size-4 accent-[var(--pine)]"
-        disabled={disabled}
-        onChange={(event) => onChange(event.target.checked)}
-        type="checkbox"
-      />
-      <span className="pt-0.5 text-sm font-medium text-ink">
-        <LabelWithTip label={label} tip={tip} />
-      </span>
-    </label>
   );
 }
