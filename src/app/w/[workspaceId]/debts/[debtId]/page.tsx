@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import { InstallmentActions } from "@/components/forms/installment-actions";
 import { NoteComposer } from "@/components/notes/note-composer";
 import { NoteList } from "@/components/notes/note-list";
 import { DebtSettingsModal } from "@/components/debt/debt-settings-modal";
@@ -57,7 +56,8 @@ export default async function DebtDetailPage({ params }: DebtDetailPageProps) {
   const paidCents = debt.installments
     .filter((item) => item.status === "PAID")
     .reduce((sum, item) => sum + item.amountCents, 0);
-  const progress = Math.round((paidCount / debt.installmentCount) * 100);
+  const progress =
+    debt.installmentCount > 0 ? Math.round((paidCount / debt.installmentCount) * 100) : 0;
   const members = access.value.members.map((item) => ({
     userId: item.userId,
     userName: item.userName,
@@ -194,20 +194,7 @@ export default async function DebtDetailPage({ params }: DebtDetailPageProps) {
             receiptUrl: item.receiptUrl,
             reminderDisabled: item.reminderDisabled,
           }))}
-          renderActions={(item, canDelete) =>
-            canEdit ? (
-              <InstallmentActions
-                canDelete={canDelete}
-                debtId={debtId}
-                installmentId={item.id}
-                paid={item.paid}
-                receiptUrl={item.receiptUrl}
-                reminderDisabled={item.reminderDisabled}
-                remindersOnDebt={debt.remindersEnabled}
-                workspaceId={workspaceId}
-              />
-            ) : null
-          }
+          remindersOnDebt={debt.remindersEnabled}
           workspaceId={workspaceId}
         />
       </section>

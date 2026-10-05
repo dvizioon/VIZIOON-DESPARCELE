@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import {
   DndContext,
   PointerSensor,
@@ -18,6 +18,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { addInstallmentAction, reorderInstallmentsAction } from "@/app/actions/debt";
+import { InstallmentActions } from "@/components/forms/installment-actions";
 import { FormError } from "@/components/forms/auth-forms";
 import { AppIcon } from "@/components/ui/icon";
 import { MonthBadge } from "@/components/ui/month-badge";
@@ -41,13 +42,13 @@ export function InstallmentsList({
   debtId,
   installments,
   canEdit,
-  renderActions,
+  remindersOnDebt,
 }: {
   workspaceId: string;
   debtId: string;
   installments: InstallmentListItem[];
   canEdit: boolean;
-  renderActions: (item: InstallmentListItem, canDelete: boolean) => ReactNode;
+  remindersOnDebt: boolean;
 }) {
   const router = useRouter();
   const [items, setItems] = useState(installments);
@@ -132,9 +133,11 @@ export function InstallmentsList({
               {items.map((item) => (
                 <SortableInstallmentCard
                   canDelete={items.length > 1}
+                  debtId={debtId}
                   item={item}
                   key={item.id}
-                  renderActions={renderActions}
+                  remindersOnDebt={remindersOnDebt}
+                  workspaceId={workspaceId}
                 />
               ))}
             </ul>
@@ -156,11 +159,15 @@ export function InstallmentsList({
 function SortableInstallmentCard({
   item,
   canDelete,
-  renderActions,
+  workspaceId,
+  debtId,
+  remindersOnDebt,
 }: {
   item: InstallmentListItem;
   canDelete: boolean;
-  renderActions: (item: InstallmentListItem, canDelete: boolean) => ReactNode;
+  workspaceId: string;
+  debtId: string;
+  remindersOnDebt: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.id,
@@ -187,7 +194,16 @@ function SortableInstallmentCard({
         </button>
       </div>
       <InstallmentCardBody item={item} />
-      {renderActions(item, canDelete)}
+      <InstallmentActions
+        canDelete={canDelete}
+        debtId={debtId}
+        installmentId={item.id}
+        paid={item.paid}
+        receiptUrl={item.receiptUrl}
+        reminderDisabled={item.reminderDisabled}
+        remindersOnDebt={remindersOnDebt}
+        workspaceId={workspaceId}
+      />
     </li>
   );
 }
