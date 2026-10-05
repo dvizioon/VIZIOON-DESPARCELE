@@ -22,6 +22,7 @@ import { addInstallmentAction, reorderInstallmentsAction } from "@/app/actions/d
 import { InstallmentActions } from "@/components/forms/installment-actions";
 import { FormError } from "@/components/forms/auth-forms";
 import { FilterPills } from "@/components/motion/filter-pills";
+import { FancyCheckbox } from "@/components/ui/fancy-checkbox";
 import { AppIcon } from "@/components/ui/icon";
 import { MonthBadge } from "@/components/ui/month-badge";
 import { formatBRL } from "@/shared/utils/money";
@@ -55,8 +56,14 @@ export type InstallmentListItem = {
 };
 
 type ViewMode = "list" | "calendar" | "pipeline";
+type StatusFilter = "all" | "open" | "paid" | "overdue";
+type ListMode = "paged" | "infinite";
 
 const VIEW_KEY = "desparcele.installments.view";
+const LIST_MODE_KEY = "desparcele.installments.listMode";
+const FILTER_KEY = "desparcele.installments.filter";
+const PAGE_SIZE = 10;
+const INFINITE_STEP = 10;
 
 function parseItemDate(value: string): Date {
   return new Date(value.includes("T") ? value : `${value}T12:00:00.000Z`);
@@ -70,6 +77,19 @@ function isOverdue(item: InstallmentListItem, now = new Date()): boolean {
   const todayUtc = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
   const dueUtc = Date.UTC(due.getUTCFullYear(), due.getUTCMonth(), due.getUTCDate());
   return dueUtc < todayUtc;
+}
+
+function matchesFilter(item: InstallmentListItem, filter: StatusFilter): boolean {
+  if (filter === "all") {
+    return true;
+  }
+  if (filter === "paid") {
+    return item.paid;
+  }
+  if (filter === "overdue") {
+    return isOverdue(item);
+  }
+  return !item.paid;
 }
 
 export function InstallmentsList({
@@ -90,10 +110,16 @@ export function InstallmentsList({
   const [error, setError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [view, setView] = useState<ViewMode>("list");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [listMode, setListMode] = useState<ListMode>("paged");
+  const [listConfigOpen, setListConfigOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const [visibleCount, setVisibleCount] = useState(INFINITE_STEP);
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const [blinkId, setBlinkId] = useState<string | null>(null);
   const highlightTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const blinkTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const configRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     setItems(installments);
@@ -101,9 +127,22 @@ export function InstallmentsList({
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem(VIEW_KEY);
-      if (saved === "list" || saved === "calendar" || saved === "pipeline") {
-        setView(saved);
+      const savedView = localStorage.getItem(VIEW_KEY);
+      if (savedView === "list" || savedView === "calendar" || savedView === "pipeline") {
+        setView(savedView);
+      }
+      const savedMode = localStorage.getItem(LIST_MODE_KEY);
+      if (savedMode === "paged" || savedMode === "infinite") {
+        setListMode(savedMode);
+      }
+      const savedFilter = localStorage.getItem(FILTER_KEY);
+      if (
+        savedFilter === "all" ||
+        savedFilter === "open" ||
+        savedFilter === "paid" ||
+        savedFilter === "overdue"
+      ) {
+        setStatusFilter(savedFilter);
       }
     } catch {
       // ignore
@@ -111,12 +150,30 @@ export function InstallmentsList({
   }, []);
 
   useEffect(() => {
+    if (!listConfigOpen) {
+      return;
+    }
+    function onPointerDown(event: MouseEvent) {
+      if (!configRef.current?.contains(event.target as Node)) {
+        setListConfigOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onPointerDown);
+    return () => document.removeEventListener("mousedown", onPointerDown);
+  }, [listConfigOpen]);
+
+  useEffect(() => {
+    setPage(1);
+    setVisibleCount(INFINITE_STEP);
+  }, [statusFilter, listMode]);
+
+  useEffect(() => {
     if (!highlightId) {
       return;
     }
     const node = document.getElementById(`installment-${highlightId}`);
     node?.scrollIntoView({ behavior: "smooth", block: "center" });
-  }, [highlightId, items, view]);
+  }, [highlightId, items, view, page, visibleCount]);
 
   useEffect(() => {
     return () => {
@@ -131,10 +188,81 @@ export function InstallmentsList({
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
+  const filtered = useMemo(
+    () => items.filter((item) => matchesFilter(item, statusFilter)),
+    [items, statusFilter],
+  );
+
+  useEffect(() => {
+    if (!highlightId) {
+      return;
+    }
+    const index = filtered.findIndex((item) => item.id === highlightId);
+    if (index < 0) {
+      return;
+    }
+    if (listMode === "paged") {
+      setPage(Math.floor(index / PAGE_SIZE) + 1);
+    } else {
+      setVisibleCount((count) => Math.max(count, index + 1));
+    }
+  }, [highlightId, filtered, listMode]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+
+  const visibleItems = useMemo(() => {
+    if (view !== "list") {
+      return filtered;
+    }
+    if (listMode === "infinite") {
+      return filtered.slice(0, visibleCount);
+    }
+    const start = (safePage - 1) * PAGE_SIZE;
+    return filtered.slice(start, start + PAGE_SIZE);
+  }, [filtered, view, listMode, visibleCount, safePage]);
+
+  const canDrag = canEdit && view === "list" && statusFilter === "all" && listMode === "infinite";
+
+  const pipeline = useMemo(() => {
+    const overdue: InstallmentListItem[] = [];
+    const open: InstallmentListItem[] = [];
+    const paid: InstallmentListItem[] = [];
+    for (const item of filtered) {
+      if (item.paid) {
+        paid.push(item);
+      } else if (isOverdue(item)) {
+        overdue.push(item);
+      } else {
+        open.push(item);
+      }
+    }
+    return { overdue, open, paid };
+  }, [filtered]);
+
   function changeView(next: ViewMode) {
     setView(next);
     try {
       localStorage.setItem(VIEW_KEY, next);
+    } catch {
+      // ignore
+    }
+  }
+
+  function changeFilter(next: StatusFilter) {
+    setStatusFilter(next);
+    try {
+      localStorage.setItem(FILTER_KEY, next);
+    } catch {
+      // ignore
+    }
+  }
+
+  function changeListMode(next: ListMode) {
+    setListMode(next);
+    setListConfigOpen(false);
+    try {
+      localStorage.setItem(LIST_MODE_KEY, next);
     } catch {
       // ignore
     }
@@ -154,7 +282,7 @@ export function InstallmentsList({
   }
 
   async function onDragEnd(event: DragEndEvent) {
-    if (!canEdit || view !== "list") {
+    if (!canDrag) {
       return;
     }
     const { active, over } = event;
@@ -199,26 +327,11 @@ export function InstallmentsList({
     }
     if (result.installmentId) {
       changeView("list");
+      changeFilter("all");
       markNew(result.installmentId);
     }
     router.refresh();
   }
-
-  const pipeline = useMemo(() => {
-    const overdue: InstallmentListItem[] = [];
-    const open: InstallmentListItem[] = [];
-    const paid: InstallmentListItem[] = [];
-    for (const item of items) {
-      if (item.paid) {
-        paid.push(item);
-      } else if (isOverdue(item)) {
-        overdue.push(item);
-      } else {
-        open.push(item);
-      }
-    }
-    return { overdue, open, paid };
-  }, [items]);
 
   return (
     <div className="space-y-3">
@@ -237,16 +350,85 @@ export function InstallmentsList({
             Pipeline
           </ViewChip>
         </FilterPills>
+
+        {view === "list" ? (
+          <div className="relative" ref={configRef}>
+            <button
+              aria-label="Configurar lista"
+              className="btn-ghost px-3 py-2"
+              onClick={() => setListConfigOpen((open) => !open)}
+              type="button"
+            >
+              <AppIcon className="size-4" name="tabler:settings" />
+              Lista
+            </button>
+            {listConfigOpen ? (
+              <div className="absolute right-0 z-20 mt-2 w-64 space-y-2 rounded-2xl border border-line bg-card p-3 shadow-sheet">
+                <p className="text-xs font-medium text-ink/60">Como mostrar a lista</p>
+                <FancyCheckbox
+                  checked={listMode === "paged"}
+                  className="w-full"
+                  label="Paginada"
+                  tip="Padrão. Mostra de 10 em 10 com páginas."
+                  onChange={(next) => {
+                    if (next) {
+                      changeListMode("paged");
+                    }
+                  }}
+                />
+                <FancyCheckbox
+                  checked={listMode === "infinite"}
+                  className="w-full"
+                  label="Infinita"
+                  tip="Carrega mais parcelas ao descer, sem páginas."
+                  onChange={(next) => {
+                    if (next) {
+                      changeListMode("infinite");
+                    }
+                  }}
+                />
+              </div>
+            ) : null}
+          </div>
+        ) : null}
       </div>
+
+      <FilterPills watch={statusFilter}>
+        <ViewChip active={statusFilter === "all"} onClick={() => changeFilter("all")}>
+          Todas
+        </ViewChip>
+        <ViewChip active={statusFilter === "open"} onClick={() => changeFilter("open")}>
+          Abertas
+        </ViewChip>
+        <ViewChip active={statusFilter === "paid"} onClick={() => changeFilter("paid")}>
+          Pagas
+        </ViewChip>
+        <ViewChip active={statusFilter === "overdue"} onClick={() => changeFilter("overdue")}>
+          Atrasadas
+        </ViewChip>
+      </FilterPills>
+
+      <p className="text-xs text-ink/50">
+        {filtered.length} parcela{filtered.length === 1 ? "" : "s"}
+        {statusFilter !== "all" ? " no filtro" : ""}
+        {view === "list" && listMode === "paged"
+          ? ` · página ${safePage} de ${totalPages}`
+          : null}
+      </p>
 
       {error ? <FormError message={error} /> : null}
 
       {view === "list" ? (
-        canEdit ? (
+        filtered.length === 0 ? (
+          <div className="sheet text-sm text-ink/55">Nenhuma parcela neste filtro.</div>
+        ) : canDrag ? (
           <DndContext collisionDetection={closestCenter} onDragEnd={onDragEnd} sensors={sensors}>
-            <SortableContext items={items.map((item) => item.id)} strategy={verticalListSortingStrategy}>
+            <SortableContext
+              items={visibleItems.map((item) => item.id)}
+              strategy={verticalListSortingStrategy}
+            >
               <ul className="grid gap-3">
-                {items.map((item) => (
+                {visibleItems.map((item) => (
                   <SortableInstallmentCard
                     blink={blinkId === item.id}
                     canDelete={items.length > 1}
@@ -263,59 +445,113 @@ export function InstallmentsList({
           </DndContext>
         ) : (
           <ul className="grid gap-3">
-            {items.map((item) => (
+            {visibleItems.map((item) => (
               <li
                 className={`sheet ${blinkId === item.id ? "installment-blink" : ""}`}
                 id={`installment-${item.id}`}
                 key={item.id}
               >
                 <InstallmentCardBody isNew={highlightId === item.id} item={item} />
+                {canEdit ? (
+                  <InstallmentActions
+                    canDelete={items.length > 1}
+                    debtId={debtId}
+                    installmentId={item.id}
+                    paid={item.paid}
+                    receiptUrl={item.receiptUrl}
+                    reminderDisabled={item.reminderDisabled}
+                    remindersOnDebt={remindersOnDebt}
+                    workspaceId={workspaceId}
+                  />
+                ) : null}
               </li>
             ))}
           </ul>
         )
       ) : null}
 
+      {view === "list" && listMode === "paged" && filtered.length > PAGE_SIZE ? (
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <button
+            className="btn-ghost px-3 py-2"
+            disabled={safePage <= 1}
+            onClick={() => setPage((value) => Math.max(1, value - 1))}
+            type="button"
+          >
+            <AppIcon className="size-4" name="tabler:chevron-left" />
+            Anterior
+          </button>
+          <span className="text-sm text-ink/60">
+            {safePage} / {totalPages}
+          </span>
+          <button
+            className="btn-ghost px-3 py-2"
+            disabled={safePage >= totalPages}
+            onClick={() => setPage((value) => Math.min(totalPages, value + 1))}
+            type="button"
+          >
+            Próxima
+            <AppIcon className="size-4" name="tabler:chevron-right" />
+          </button>
+        </div>
+      ) : null}
+
+      {view === "list" && listMode === "infinite" && visibleCount < filtered.length ? (
+        <div className="flex justify-center">
+          <button
+            className="btn-ghost"
+            onClick={() => setVisibleCount((count) => count + INFINITE_STEP)}
+            type="button"
+          >
+            Carregar mais
+          </button>
+        </div>
+      ) : null}
+
       {view === "calendar" ? (
-        <InstallmentsSvarCalendar highlightId={highlightId} items={items} />
+        <InstallmentsSvarCalendar highlightId={highlightId} items={filtered} />
       ) : null}
 
       {view === "pipeline" ? (
-        <div className="grid gap-3 lg:grid-cols-3">
-          <PipelineColumn
-            blinkId={blinkId}
-            highlightId={highlightId}
-            items={pipeline.overdue}
-            title="Atrasadas"
-            tone="clay"
-          />
-          <PipelineColumn
-            blinkId={blinkId}
-            highlightId={highlightId}
-            items={pipeline.open}
-            title="Em aberto"
-            tone="ink"
-          />
-          <PipelineColumn
-            blinkId={blinkId}
-            highlightId={highlightId}
-            items={pipeline.paid}
-            title="Pagas"
-            tone="moss"
-          />
-        </div>
+        filtered.length === 0 ? (
+          <div className="sheet text-sm text-ink/55">Nenhuma parcela neste filtro.</div>
+        ) : (
+          <div className="grid gap-3 lg:grid-cols-3">
+            <PipelineColumn
+              blinkId={blinkId}
+              highlightId={highlightId}
+              items={pipeline.overdue}
+              title="Atrasadas"
+              tone="clay"
+            />
+            <PipelineColumn
+              blinkId={blinkId}
+              highlightId={highlightId}
+              items={pipeline.open}
+              title="Em aberto"
+              tone="ink"
+            />
+            <PipelineColumn
+              blinkId={blinkId}
+              highlightId={highlightId}
+              items={pipeline.paid}
+              title="Pagas"
+              tone="moss"
+            />
+          </div>
+        )
       ) : null}
 
       {canEdit ? (
         <div className="flex justify-center pt-1">
           <button
-            aria-label="Adicionar parcela"
-            className="inline-flex size-12 items-center justify-center rounded-full border border-pine/30 bg-pine-soft/40 text-pine-dark shadow-sm transition hover:bg-pine-soft disabled:opacity-40"
+            className="inline-flex items-center gap-2 rounded-full border border-pine/30 bg-pine-soft/40 px-5 py-3 text-sm font-medium text-pine-dark shadow-sm transition hover:bg-pine-soft disabled:opacity-40"
             disabled={adding || items.length >= 360}
             onClick={() => void addOne()}
             type="button"
           >
-            <AppIcon className="size-6" name="tabler:plus" />
+            <AppIcon className="size-5" name="tabler:plus" />
+            {adding ? "Adicionando..." : "Adicionar"}
           </button>
         </div>
       ) : null}
