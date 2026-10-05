@@ -1,10 +1,15 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
-import { batchUpdateInstallmentsAction } from "@/app/actions/debt";
+import { useEffect, useMemo, useState } from "react";
+import {
+  batchDeleteInstallmentsAction,
+  batchUpdateInstallmentsAction,
+} from "@/app/actions/debt";
 import { FormError } from "@/components/forms/auth-forms";
 import { useDialogMotion } from "@/components/motion/use-dialog-motion";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { FancyCheckbox } from "@/components/ui/fancy-checkbox";
 import { AppIcon } from "@/components/ui/icon";
 import { MonthBadge } from "@/components/ui/month-badge";
 import { HiddenScroll } from "@/components/ui/hidden-scroll";
@@ -61,17 +66,25 @@ function BatchDialog({
   onClose: () => void;
 }) {
   const router = useRouter();
+  const [rows, setRows] = useState(installments);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [amount, setAmount] = useState("");
   const [dueDay, setDueDay] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [ackDelete, setAckDelete] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
-  useDialogMotion(onClose, pending);
+  useEffect(() => {
+    setRows(installments);
+  }, [installments]);
 
-  const allIds = useMemo(() => installments.map((item) => item.id), [installments]);
+  useDialogMotion(onClose, pending || confirmDelete);
+
+  const allIds = useMemo(() => rows.map((item) => item.id), [rows]);
   const allSelected = selected.size > 0 && selected.size === allIds.length;
+  const canDeleteSelected = selected.size > 0 && selected.size < rows.length;
 
   function toggle(id: string) {
     setSelected((prev) => {
@@ -85,8 +98,8 @@ function BatchDialog({
     });
   }
 
-  function toggleAll() {
-    setSelected(allSelected ? new Set() : new Set(allIds));
+  function toggleAll(next: boolean) {
+    setSelected(next ? new Set(allIds) : new Set());
   }
 
   return (
@@ -95,7 +108,7 @@ function BatchDialog({
         <div
           className="dialog-overlay absolute inset-0 bg-ink/45 backdrop-blur-sm"
           onClick={() => {
-            if (!pending) {
+            if (!pending && !confirmDelete) {
               onClose();
             }
           }}
@@ -124,39 +137,35 @@ function BatchDialog({
           </div>
 
           <HiddenScroll className="px-5 pb-5 sm:px-6">
-            <div className="mb-3 flex items-center justify-between gap-2">
-              <button className="btn-ghost text-xs" onClick={toggleAll} type="button">
-                {allSelected ? "Limpar seleção" : "Selecionar todas"}
-              </button>
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <FancyCheckbox
+                checked={allSelected}
+                disabled={pending || rows.length === 0}
+                label={allSelected ? "Limpar seleção" : "Selecionar todas"}
+                onChange={toggleAll}
+              />
               <span className="text-xs text-ink/55">{selected.size} selecionada(s)</span>
             </div>
 
-            <ul className="mb-5 max-h-56 space-y-1 overflow-y-auto rounded-2xl border border-line bg-white/50 p-2">
-              {installments.map((item) => {
+            <ul className="mb-5 max-h-56 space-y-2 overflow-y-auto rounded-2xl border border-line bg-white/50 p-2">
+              {rows.map((item) => {
                 const checked = selected.has(item.id);
                 const due = parseDateInput(item.dueDate);
                 return (
-                  <li key={item.id}>
-                    <label className="flex cursor-pointer items-center gap-3 rounded-xl px-2 py-2 hover:bg-white">
-                      <input
-                        checked={checked}
-                        className="size-4 accent-[var(--pine)]"
-                        onChange={() => toggle(item.id)}
-                        type="checkbox"
-                      />
-                      <span className="min-w-0 flex-1">
-                        <span className="flex flex-wrap items-center gap-2 text-sm font-medium">
-                          Parcela {item.number}
-                          <MonthBadge date={due} />
-                          {item.status === "PAID" ? (
-                            <span className="text-xs text-moss">paga</span>
-                          ) : null}
-                        </span>
-                        <span className="mt-0.5 block text-xs text-ink/55">
-                          {formatDateFull(due)} · {formatBRL(item.amountCents)}
-                        </span>
+                  <li className="rounded-xl px-1 py-1 hover:bg-white/80" key={item.id}>
+                    <FancyCheckbox
+                      checked={checked}
+                      className="w-full"
+                      disabled={pending}
+                      label={`Parcela ${item.number}${item.status === "PAID" ? " · paga" : ""}`}
+                      onChange={() => toggle(item.id)}
+                    />
+                    <div className="mt-1 flex flex-wrap items-center gap-2 px-1 text-xs text-ink/55">
+                      <MonthBadge date={due} />
+                      <span>
+                        {formatDateFull(due)} · {formatBRL(item.amountCents)}
                       </span>
-                    </label>
+                    </div>
                   </li>
                 );
               })}
@@ -222,9 +231,57 @@ function BatchDialog({
                 {pending ? "Aplicando..." : "Aplicar nas selecionadas"}
               </button>
             </form>
+
+            <div className="mt-5 space-y-3 border-t border-line pt-4">
+              <FancyCheckbox
+                checked={ackDelete}
+                className="w-full"
+                disabled={pending || !canDeleteSelected}
+                label="Quero excluir as selecionadas"
+                tip="Marque para liberar a exclusão em lote. Deixe ao menos uma parcela."
+                onChange={setAckDelete}
+              />
+              <button
+                className="btn-ghost w-full text-clay disabled:opacity-40"
+                disabled={pending || !ackDelete || !canDeleteSelected}
+                onClick={() => setConfirmDelete(true)}
+                type="button"
+              >
+                <AppIcon className="size-4" name="tabler:trash" />
+                Excluir selecionadas
+              </button>
+            </div>
           </HiddenScroll>
         </section>
       </div>
+
+      <ConfirmDialog
+        cancelLabel="Manter"
+        confirmLabel="Excluir"
+        danger
+        description={`${selected.size} parcela(s) somem da dívida. As restantes são renumeradas. Não dá para desfazer.`}
+        open={confirmDelete}
+        pending={pending}
+        title="Excluir parcelas selecionadas?"
+        onCancel={() => setConfirmDelete(false)}
+        onConfirm={() => {
+          setPending(true);
+          setError(null);
+          void batchDeleteInstallmentsAction(workspaceId, debtId, [...selected]).then((result) => {
+            setPending(false);
+            setConfirmDelete(false);
+            if (result.error) {
+              setError(result.error);
+              return;
+            }
+            setInfo(result.message ?? "Excluídas.");
+            setSelected(new Set());
+            setAckDelete(false);
+            setRows((prev) => prev.filter((row) => !selected.has(row.id)));
+            router.refresh();
+          });
+        }}
+      />
     </Portal>
   );
 }

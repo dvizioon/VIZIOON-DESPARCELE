@@ -112,19 +112,7 @@ export class PrismaInstallmentRepository implements InstallmentRepository {
         orderBy: { number: "asc" },
       });
 
-      // Evita conflito no @@unique([debtId, number])
-      for (let i = 0; i < remaining.length; i += 1) {
-        await tx.installment.update({
-          where: { id: remaining[i]!.id },
-          data: { number: 10_000 + i },
-        });
-      }
-      for (let i = 0; i < remaining.length; i += 1) {
-        await tx.installment.update({
-          where: { id: remaining[i]!.id },
-          data: { number: i + 1 },
-        });
-      }
+      await renumberInstallments(tx, debtId, remaining.map((row) => row.id));
 
       const totalCents = remaining.reduce((sum, row) => sum + toCents(row.amount.toString()), 0);
       await tx.debt.update({
@@ -134,6 +122,93 @@ export class PrismaInstallmentRepository implements InstallmentRepository {
           totalAmount: centsToDecimalString(totalCents),
         },
       });
+    });
+  }
+
+  async deleteManyAndRenumber(debtId: string, installmentIds: string[]): Promise<void> {
+    const uniqueIds = [...new Set(installmentIds)];
+    if (uniqueIds.length === 0) {
+      return;
+    }
+
+    await prisma.$transaction(async (tx) => {
+      const existing = await tx.installment.findMany({
+        where: { debtId },
+        orderBy: { number: "asc" },
+      });
+      const toDelete = new Set(
+        existing.filter((row) => uniqueIds.includes(row.id)).map((row) => row.id),
+      );
+      if (toDelete.size === 0) {
+        return;
+      }
+      if (existing.length - toDelete.size < 1) {
+        throw new Error("LAST_INSTALLMENT");
+      }
+
+      await tx.installment.deleteMany({
+        where: { debtId, id: { in: [...toDelete] } },
+      });
+
+      const remaining = await tx.installment.findMany({
+        where: { debtId },
+        orderBy: { number: "asc" },
+      });
+
+      await renumberInstallments(tx, debtId, remaining.map((row) => row.id));
+
+      const totalCents = remaining.reduce((sum, row) => sum + toCents(row.amount.toString()), 0);
+      await tx.debt.update({
+        where: { id: debtId },
+        data: {
+          installmentCount: remaining.length,
+          totalAmount: centsToDecimalString(totalCents),
+        },
+      });
+    });
+  }
+
+  async reorderByIds(debtId: string, orderedIds: string[]): Promise<void> {
+    await prisma.$transaction(async (tx) => {
+      const existing = await tx.installment.findMany({
+        where: { debtId },
+        orderBy: { number: "asc" },
+      });
+      if (existing.length !== orderedIds.length) {
+        throw new Error("INVALID_ORDER");
+      }
+      const existingIds = new Set(existing.map((row) => row.id));
+      if (orderedIds.some((id) => !existingIds.has(id))) {
+        throw new Error("INVALID_ORDER");
+      }
+
+      await renumberInstallments(tx, debtId, orderedIds);
+    });
+  }
+}
+
+async function renumberInstallments(
+  tx: {
+    installment: {
+      update: (args: {
+        where: { id: string };
+        data: { number: number };
+      }) => Promise<unknown>;
+    };
+  },
+  _debtId: string,
+  orderedIds: string[],
+): Promise<void> {
+  for (let i = 0; i < orderedIds.length; i += 1) {
+    await tx.installment.update({
+      where: { id: orderedIds[i]! },
+      data: { number: 10_000 + i },
+    });
+  }
+  for (let i = 0; i < orderedIds.length; i += 1) {
+    await tx.installment.update({
+      where: { id: orderedIds[i]! },
+      data: { number: i + 1 },
     });
   }
 }

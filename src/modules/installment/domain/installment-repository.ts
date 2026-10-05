@@ -16,4 +16,6 @@ export interface InstallmentRepository {
   updateDueDates(updates: Array<{ id: string; dueDate: Date }>): Promise<void>;
   /** Apaga a cobrança, renumerar as restantes e atualiza total/qtd da dívida. */
   deleteAndRenumber(installmentId: string): Promise<void>;
+  deleteManyAndRenumber(debtId: string, installmentIds: string[]): Promise<void>;
+  reorderByIds(debtId: string, orderedIds: string[]): Promise<void>;
 }

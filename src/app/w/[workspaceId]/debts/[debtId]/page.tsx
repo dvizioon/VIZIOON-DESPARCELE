@@ -4,9 +4,9 @@ import { NoteComposer } from "@/components/notes/note-composer";
 import { NoteList } from "@/components/notes/note-list";
 import { DebtSettingsModal } from "@/components/debt/debt-settings-modal";
 import { InstallmentsBatchModal } from "@/components/debt/installments-batch-modal";
+import { InstallmentsList } from "@/components/debt/installments-list";
 import { Reveal } from "@/components/motion/reveal";
 import { AppIcon } from "@/components/ui/icon";
-import { MonthBadge } from "@/components/ui/month-badge";
 import { isDebtHidden, isDebtVisibleTo } from "@/modules/debt/domain/debt";
 import { PrismaDebtRepository } from "@/modules/debt/infrastructure/prisma-debt-repository";
 import {
@@ -18,7 +18,7 @@ import { requireWorkspaceAccess } from "@/modules/workspace/application/require-
 import { canEditContent, isAdmin } from "@/modules/workspace/domain/workspace";
 import { PrismaWorkspaceRepository } from "@/modules/workspace/infrastructure/prisma-workspace-repository";
 import { requireUser } from "@/shared/auth/session";
-import { formatDateFull, toCalendarInputValue } from "@/shared/utils/date";
+import { toCalendarInputValue } from "@/shared/utils/date";
 import { formatBRL } from "@/shared/utils/money";
 
 type DebtDetailPageProps = {
@@ -180,49 +180,36 @@ export default async function DebtDetailPage({ params }: DebtDetailPageProps) {
           ) : null}
         </div>
 
-        <ul className="grid gap-3">
-          {debt.installments.map((item) => {
-            const paid = item.status === "PAID";
-
-            return (
-              <li className="sheet" key={item.id}>
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="flex flex-wrap items-center gap-2 font-medium">
-                      <AppIcon
-                        name={paid ? "tabler:circle-check" : "tabler:clock"}
-                        className={paid ? "size-5 text-moss" : "size-5 text-clay"}
-                      />
-                      Parcela {item.number}
-                      <MonthBadge date={item.dueDate} />
-                    </p>
-                    <p className="mt-1 text-sm text-ink/55">Vence {formatDateFull(item.dueDate)}</p>
-                    {paid ? (
-                      <p className="mt-1 text-sm text-moss">
-                        Paga por {item.paidByName ?? "alguem"}
-                        {item.paidAt ? ` em ${formatDateFull(item.paidAt)}` : ""}
-                      </p>
-                    ) : null}
-                  </div>
-                  <p className="font-display text-2xl">{formatBRL(item.amountCents)}</p>
-                </div>
-
-                {canEdit ? (
-                  <InstallmentActions
-                    canDelete={debt.installments.length > 1}
-                    debtId={debtId}
-                    installmentId={item.id}
-                    paid={paid}
-                    receiptUrl={item.receiptUrl}
-                    reminderDisabled={item.reminderDisabled}
-                    remindersOnDebt={debt.remindersEnabled}
-                    workspaceId={workspaceId}
-                  />
-                ) : null}
-              </li>
-            );
-          })}
-        </ul>
+        <InstallmentsList
+          canEdit={canEdit}
+          debtId={debtId}
+          installments={debt.installments.map((item) => ({
+            id: item.id,
+            number: item.number,
+            amountCents: item.amountCents,
+            dueDate: item.dueDate.toISOString(),
+            paid: item.status === "PAID",
+            paidByName: item.paidByName,
+            paidAt: item.paidAt?.toISOString() ?? null,
+            receiptUrl: item.receiptUrl,
+            reminderDisabled: item.reminderDisabled,
+          }))}
+          renderActions={(item, canDelete) =>
+            canEdit ? (
+              <InstallmentActions
+                canDelete={canDelete}
+                debtId={debtId}
+                installmentId={item.id}
+                paid={item.paid}
+                receiptUrl={item.receiptUrl}
+                reminderDisabled={item.reminderDisabled}
+                remindersOnDebt={debt.remindersEnabled}
+                workspaceId={workspaceId}
+              />
+            ) : null
+          }
+          workspaceId={workspaceId}
+        />
       </section>
     </Reveal>
   );

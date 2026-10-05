@@ -507,3 +507,81 @@ export async function batchUpdateInstallmentsAction(
     message: `${result.value.updated} parcela(s) atualizada(s)`,
   };
 }
+
+export async function addInstallmentAction(
+  workspaceId: string,
+  debtId: string,
+): Promise<ActionState> {
+  const user = await requireUser();
+  const { debts, workspaces } = getRepositories();
+  const { addDebtInstallment } = await import(
+    "@/modules/installment/application/manage-debt-installments"
+  );
+
+  const result = await addDebtInstallment(debtId, user.id, debts, workspaces);
+  if (!result.ok) {
+    return { error: result.error.message };
+  }
+
+  await revalidateDebtPaths(workspaceId, debtId);
+  return { error: null, ok: true };
+}
+
+export async function reorderInstallmentsAction(
+  workspaceId: string,
+  debtId: string,
+  orderedIds: string[],
+): Promise<ActionState> {
+  const user = await requireUser();
+  const { debts, installments, workspaces } = getRepositories();
+  const { reorderDebtInstallments } = await import(
+    "@/modules/installment/application/manage-debt-installments"
+  );
+
+  const result = await reorderDebtInstallments(
+    debtId,
+    user.id,
+    orderedIds,
+    debts,
+    installments,
+    workspaces,
+  );
+  if (!result.ok) {
+    return { error: result.error.message };
+  }
+
+  await revalidateDebtPaths(workspaceId, debtId);
+  return { error: null, ok: true };
+}
+
+export async function batchDeleteInstallmentsAction(
+  workspaceId: string,
+  debtId: string,
+  installmentIds: string[],
+): Promise<ActionState> {
+  const user = await requireUser();
+  const { debts, installments, workspaces, storage } = getRepositories();
+  const { batchDeleteInstallments } = await import(
+    "@/modules/installment/application/manage-debt-installments"
+  );
+
+  const result = await batchDeleteInstallments(
+    debtId,
+    user.id,
+    installmentIds,
+    debts,
+    installments,
+    workspaces,
+    storage,
+  );
+  if (!result.ok) {
+    return { error: result.error.message };
+  }
+
+  await revalidateDebtPaths(workspaceId, debtId);
+  return {
+    error: null,
+    ok: true,
+    message: `${result.value.deleted} parcela(s) excluída(s)`,
+  };
+}
