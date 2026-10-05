@@ -42,8 +42,9 @@ export function PaidMonth({ data }: { data: DashboardView }) {
         return false;
       }
 
-      const paidOn = new Date(item.paidAt ?? item.dueDate);
-      return paidOn.getMonth() === month && paidOn.getFullYear() === year;
+      // Conta do mês = vencimento no mês (não a data em que marcou/cadastrou como paga)
+      const due = new Date(item.dueDate);
+      return due.getUTCMonth() === month && due.getUTCFullYear() === year;
     });
   }, [data, ownerFilter, includeLoan, includeRecurring, includeVariable, month, year]);
 
@@ -118,8 +119,8 @@ export function PaidMonth({ data }: { data: DashboardView }) {
           <CountUpMoney cents={monthPaidCents} />
         </p>
         <p className="mt-1 text-sm text-ink/50">
-          {paidItems.length} parcela{paidItems.length === 1 ? "" : "s"} pagas · {paidDebtIds.size}{" "}
-          dívida{paidDebtIds.size === 1 ? "" : "s"}
+          {paidItems.length} parcela{paidItems.length === 1 ? "" : "s"} com vencimento neste mês já
+          baixadas · {paidDebtIds.size} dívida{paidDebtIds.size === 1 ? "" : "s"}
         </p>
       </div>
 
@@ -181,7 +182,9 @@ export function PaidMonth({ data }: { data: DashboardView }) {
       {heaviestDebts.length > 0 ? (
         <section className="sheet" data-reveal>
           <h3 className="font-display text-2xl">Contas mais puxadas</h3>
-          <p className="mt-1 text-sm text-ink/55">Ranking do que mais saiu do bolso neste mês.</p>
+          <p className="mt-1 text-sm text-ink/55">
+            Ranking do que mais pesou no vencimento deste mês (já baixado).
+          </p>
           <ol className="mt-4 space-y-2">
             {heaviestDebts.map((item, index) => (
               <li key={item.debtId}>
@@ -269,14 +272,17 @@ export function PaidMonth({ data }: { data: DashboardView }) {
                       {itemTag(item.autoPay, item.kind)}
                     </p>
                   </div>
-                  <div className="text-right">
-                    <p className="font-display text-xl text-pine-dark">
-                      {formatBRL(item.amountCents)}
-                    </p>
-                    <p className="text-sm text-ink/55">
-                      {formatDate(new Date(item.paidAt ?? item.dueDate))}
-                    </p>
-                  </div>
+                      <div className="text-right">
+                        <p className="font-display text-xl text-pine-dark">
+                          {formatBRL(item.amountCents)}
+                        </p>
+                        <p className="text-sm text-ink/55">
+                          Venceu {formatDate(new Date(item.dueDate))}
+                          {item.paidAt
+                            ? ` · baixa ${formatDate(new Date(item.paidAt))}`
+                            : ""}
+                        </p>
+                      </div>
                 </Link>
               </li>
             ))}
