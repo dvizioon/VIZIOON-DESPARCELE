@@ -33,6 +33,8 @@ const MONTHS = [
 
 const WEEKDAYS = ["S", "T", "Q", "Q", "S", "S", "D"];
 
+type PanelMode = "day" | "month" | "year";
+
 type DatePickerProps = {
   /** YYYY-MM-DD */
   value: string;
@@ -57,6 +59,7 @@ export function DatePicker({
   const menuRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
+  const [mode, setMode] = useState<PanelMode>("day");
   const [draft, setDraft] = useState(() => toDisplay(value));
   const [view, setView] = useState(() => viewFromValue(value));
   const [sheet, setSheet] = useState(() =>
@@ -66,8 +69,10 @@ export function DatePicker({
 
   useEffect(() => {
     setDraft(toDisplay(value));
-    setView(viewFromValue(value));
-  }, [value]);
+    if (!open) {
+      setView(viewFromValue(value));
+    }
+  }, [value, open]);
 
   useEffect(() => {
     const media = window.matchMedia("(max-width: 639px)");
@@ -83,6 +88,10 @@ export function DatePicker({
     }
     function onKey(event: KeyboardEvent) {
       if (event.key === "Escape") {
+        if (mode !== "day") {
+          setMode("day");
+          return;
+        }
         setOpen(false);
       }
     }
@@ -98,7 +107,6 @@ export function DatePicker({
       }
       setOpen(false);
     }
-    // Evita o mesmo clique que abriu já fechar o painel
     const timer = window.setTimeout(() => {
       window.addEventListener("mousedown", onPointer);
     }, 0);
@@ -108,7 +116,7 @@ export function DatePicker({
       window.removeEventListener("keydown", onKey);
       window.removeEventListener("mousedown", onPointer);
     };
-  }, [open]);
+  }, [open, mode]);
 
   useLayoutEffect(() => {
     if (!open || sheet) {
@@ -125,7 +133,7 @@ export function DatePicker({
       left = Math.max(12, window.innerWidth - width - 12);
     }
     const below = rect.bottom + 8;
-    const top = below + 360 > window.innerHeight ? Math.max(12, rect.top - 368) : below;
+    const top = below + 380 > window.innerHeight ? Math.max(12, rect.top - 388) : below;
     setMenuStyle({
       position: "fixed",
       top,
@@ -133,25 +141,33 @@ export function DatePicker({
       width,
       zIndex: 90,
     });
-  }, [open, sheet]);
-
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-    const timer = window.setTimeout(() => inputRef.current?.focus(), 40);
-    return () => window.clearTimeout(timer);
-  }, [open]);
+  }, [open, sheet, mode]);
 
   const cells = useMemo(() => buildCalendar(view.year, view.month), [view.year, view.month]);
+  const years = useMemo(() => {
+    const start = view.year - 6;
+    return Array.from({ length: 12 }, (_, index) => start + index);
+  }, [view.year]);
   const selected = safeParse(value);
   const label = selected ? formatDateFull(selected) : "Data";
+
+  function openPicker() {
+    if (disabled) {
+      return;
+    }
+    setView(viewFromValue(value));
+    setDraft(toDisplay(value));
+    setMode("day");
+    setOpen(true);
+    window.setTimeout(() => inputRef.current?.focus(), 40);
+  }
 
   function commitIso(iso: string, close = true) {
     onChange(iso);
     setDraft(toDisplay(iso));
     setView(viewFromValue(iso));
     if (close) {
+      setMode("day");
       setOpen(false);
     }
   }
@@ -160,7 +176,6 @@ export function DatePicker({
     commitIso(toCalendarInputValue(calendarDate(year, month, day)), true);
   }
 
-  /** Valida o que digitou sem fechar o calendário (blur / Ant / Prox). */
   function syncDraft(close = false) {
     const parsed = parseTypedDate(draft);
     if (!parsed) {
@@ -168,6 +183,18 @@ export function DatePicker({
       return;
     }
     commitIso(toCalendarInputValue(parsed), close);
+  }
+
+  function shiftView(delta: number) {
+    if (mode === "year") {
+      setView((current) => ({ ...current, year: current.year + delta * 12 }));
+      return;
+    }
+    if (mode === "month") {
+      setView((current) => ({ ...current, year: current.year + delta }));
+      return;
+    }
+    setView((current) => shiftMonth(current, delta));
   }
 
   const panel = (
@@ -196,66 +223,136 @@ export function DatePicker({
         value={draft}
       />
 
-      <div className="mb-2 flex items-center justify-between gap-2">
+      <div className="mb-2 flex items-center justify-between gap-1">
         <button
-          className="rounded-xl px-2.5 py-1.5 text-sm text-ink/60 hover:bg-white hover:text-ink"
+          className="rounded-xl px-2 py-1.5 text-sm text-ink/60 hover:bg-white hover:text-ink"
           onMouseDown={(event) => event.preventDefault()}
-          onClick={() => setView((current) => shiftMonth(current, -1))}
+          onClick={() => shiftView(-1)}
           type="button"
         >
           Ant
         </button>
-        <p className="text-sm font-medium text-ink">
-          {MONTHS[view.month]} {view.year}
-        </p>
+        <div className="flex min-w-0 items-center gap-1">
+          <button
+            className="rounded-xl px-2 py-1.5 text-sm font-medium text-ink hover:bg-white"
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => setMode((current) => (current === "month" ? "day" : "month"))}
+            type="button"
+          >
+            {(MONTHS[view.month] ?? "").slice(0, 3)}
+          </button>
+          <button
+            className="rounded-xl px-2 py-1.5 text-sm font-medium text-ink hover:bg-white"
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => setMode((current) => (current === "year" ? "day" : "year"))}
+            type="button"
+          >
+            {view.year}
+          </button>
+        </div>
         <button
-          className="rounded-xl px-2.5 py-1.5 text-sm text-ink/60 hover:bg-white hover:text-ink"
+          className="rounded-xl px-2 py-1.5 text-sm text-ink/60 hover:bg-white hover:text-ink"
           onMouseDown={(event) => event.preventDefault()}
-          onClick={() => setView((current) => shiftMonth(current, 1))}
+          onClick={() => shiftView(1)}
           type="button"
         >
           Prox
         </button>
       </div>
 
-      <div className="mb-1 grid grid-cols-7 gap-1">
-        {WEEKDAYS.map((day, index) => (
-          <span className="py-1 text-center text-[11px] text-ink/40" key={`${day}-${index}`}>
-            {day}
-          </span>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-7 gap-1">
-        {cells.map(({ cell, index }) => {
-          if (!cell) {
-            return <span key={`empty-${index}`} />;
-          }
-          const active =
-            selected != null &&
-            selected.getUTCFullYear() === cell.year &&
-            selected.getUTCMonth() === cell.month &&
-            selected.getUTCDate() === cell.day;
-          const today = isToday(cell.year, cell.month, cell.day);
-          return (
-            <button
-              className={`aspect-square rounded-xl text-sm transition-colors ${
-                active
-                  ? "bg-pine font-semibold text-white"
-                  : today
-                    ? "bg-pine-soft/80 text-pine-dark hover:bg-pine-soft"
+      {mode === "month" ? (
+        <div className="grid grid-cols-3 gap-1.5">
+          {MONTHS.map((name, index) => {
+            const active = index === view.month;
+            return (
+              <button
+                className={`rounded-xl px-2 py-2.5 text-sm transition-colors ${
+                  active
+                    ? "bg-pine text-white"
                     : "bg-white/70 text-ink/80 hover:bg-pine-soft hover:text-pine-dark"
-              }`}
-              key={`${cell.year}-${cell.month}-${cell.day}`}
-              onMouseDown={(event) => event.preventDefault()}
-              onClick={() => pickDay(cell.year, cell.month, cell.day)}
-              type="button"
-            >
-              {cell.day}
-            </button>
-          );
-        })}
-      </div>
+                }`}
+                key={name}
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => {
+                  setView((current) => ({ ...current, month: index }));
+                  setMode("day");
+                }}
+                type="button"
+              >
+                {name.slice(0, 3)}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+
+      {mode === "year" ? (
+        <div className="grid grid-cols-3 gap-1.5">
+          {years.map((year) => {
+            const active = year === view.year;
+            return (
+              <button
+                className={`rounded-xl px-2 py-2.5 text-sm transition-colors ${
+                  active
+                    ? "bg-pine text-white"
+                    : "bg-white/70 text-ink/80 hover:bg-pine-soft hover:text-pine-dark"
+                }`}
+                key={year}
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => {
+                  setView((current) => ({ ...current, year }));
+                  setMode("month");
+                }}
+                type="button"
+              >
+                {year}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+
+      {mode === "day" ? (
+        <>
+          <div className="mb-1 grid grid-cols-7 gap-1">
+            {WEEKDAYS.map((day, index) => (
+              <span className="py-1 text-center text-[11px] text-ink/40" key={`${day}-${index}`}>
+                {day}
+              </span>
+            ))}
+          </div>
+          <div className="grid grid-cols-7 gap-1">
+            {cells.map(({ cell, index }) => {
+              if (!cell) {
+                return <span key={`empty-${index}`} />;
+              }
+              const active =
+                selected != null &&
+                selected.getUTCFullYear() === cell.year &&
+                selected.getUTCMonth() === cell.month &&
+                selected.getUTCDate() === cell.day;
+              const today = isToday(cell.year, cell.month, cell.day);
+              return (
+                <button
+                  className={`aspect-square rounded-xl text-sm transition-colors ${
+                    active
+                      ? "bg-pine font-semibold text-white"
+                      : today
+                        ? "ring-1 ring-pine/40 text-pine-dark hover:bg-pine-soft"
+                        : "bg-white/70 text-ink/80 hover:bg-pine-soft hover:text-pine-dark"
+                  }`}
+                  key={`${cell.year}-${cell.month}-${cell.day}`}
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => pickDay(cell.year, cell.month, cell.day)}
+                  type="button"
+                >
+                  {cell.day}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      ) : null}
 
       <div className="mt-3 flex items-center justify-between gap-2 text-sm">
         <button
@@ -269,7 +366,14 @@ export function DatePicker({
         >
           Hoje
         </button>
-        <button className="text-ink/45 hover:text-ink" onClick={() => setOpen(false)} type="button">
+        <button
+          className="text-ink/45 hover:text-ink"
+          onClick={() => {
+            setMode("day");
+            setOpen(false);
+          }}
+          type="button"
+        >
           Fechar
         </button>
       </div>
@@ -287,9 +391,12 @@ export function DatePicker({
         }
         disabled={disabled}
         onClick={() => {
-          if (!disabled) {
-            setOpen((current) => !current);
+          if (open) {
+            setOpen(false);
+            setMode("day");
+            return;
           }
+          openPicker();
         }}
         type="button"
       >
@@ -302,7 +409,10 @@ export function DatePicker({
               <button
                 aria-label="Fechar"
                 className="absolute inset-0 cursor-default"
-                onClick={() => setOpen(false)}
+                onClick={() => {
+                  setMode("day");
+                  setOpen(false);
+                }}
                 type="button"
               />
               <div className="relative z-10 w-full">{panel}</div>

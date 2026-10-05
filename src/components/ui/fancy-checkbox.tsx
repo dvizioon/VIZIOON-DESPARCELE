@@ -1,12 +1,13 @@
 "use client";
 
 import { AppIcon } from "@/components/ui/icon";
+import { Tip } from "@/components/ui/tip";
 
 type FancyCheckboxProps = {
   checked: boolean;
   label: string;
   onChange: (next: boolean) => void;
-  hint?: string;
+  tip?: string;
   disabled?: boolean;
 };
 
@@ -14,7 +15,7 @@ export function FancyCheckbox({
   checked,
   label,
   onChange,
-  hint,
+  tip,
   disabled = false,
 }: FancyCheckboxProps) {
   return (
@@ -39,9 +40,9 @@ export function FancyCheckbox({
       >
         <AppIcon name="tabler:check" className="size-3.5" />
       </span>
-      <span className="min-w-0">
-        <span className="block text-sm font-medium leading-tight">{label}</span>
-        {hint ? <span className="mt-0.5 block text-[11px] text-ink/45">{hint}</span> : null}
+      <span className="inline-flex min-w-0 items-center gap-1.5">
+        <span className="text-sm font-medium leading-tight">{label}</span>
+        {tip ? <Tip content={tip} /> : null}
       </span>
     </button>
   );

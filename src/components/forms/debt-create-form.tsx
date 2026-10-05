@@ -7,7 +7,8 @@ import type { ActionState } from "@/app/actions/auth";
 import { FormError } from "@/components/forms/auth-forms";
 import { NoteEditor } from "@/components/notes/note-editor";
 import { DatePicker } from "@/components/ui/date-picker";
-import { LabelWithTip } from "@/components/ui/tip";
+import { FancyCheckbox } from "@/components/ui/fancy-checkbox";
+import { Tip } from "@/components/ui/tip";
 import { SearchSelect } from "@/components/ui/search-select";
 import type { DebtKind } from "@/modules/debt/domain/debt";
 import { generateInstallments } from "@/modules/installment/domain/generate-installments";
@@ -349,7 +350,6 @@ export function DebtCreateForm({
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <p className="text-sm text-ink/50">
-              Preview ·{" "}
               {kind === "RECURRING"
                 ? "Recorrente"
                 : kind === "VARIABLE"
@@ -357,13 +357,6 @@ export function DebtCreateForm({
                   : "Parcelada"}
             </p>
             <h3 className="font-display text-2xl">{name}</h3>
-            <p className="mt-1 text-sm text-ink/60">
-              {kind === "VARIABLE"
-                ? "Ajuste o valor de cada mês. O cron abre a próxima com a última cobrança (ou a estimativa)."
-                : kind === "RECURRING"
-                  ? "As já pagas entram no histórico; a próxima fica em aberto. O cron segue gerando depois."
-                  : "Mudou valor ou data? As parcelas de baixo acompanham. O total vira a soma."}
-            </p>
           </div>
           <div className="text-right">
             <p className="text-sm text-ink/50">{isMonthly ? "Em aberto" : "Total"}</p>
@@ -371,11 +364,14 @@ export function DebtCreateForm({
               {formatBRL(isMonthly ? previewOpenCents : previewTotalCents)}
             </p>
             {isMonthly && preview.some((row) => row.paid) ? (
-              <p className="mt-1 text-xs text-ink/45">
-                {preview.filter((row) => row.paid).length} já paga
-                {preview.filter((row) => row.paid).length === 1 ? "" : "s"} ·{" "}
-                {formatBRL(previewTotalCents)} no total
-              </p>
+              <div className="mt-1.5 flex flex-wrap justify-end gap-1.5">
+                <span className="rounded-full bg-line/50 px-2 py-0.5 text-[11px] text-ink/60">
+                  {preview.filter((row) => row.paid).length} pagas
+                </span>
+                <span className="rounded-full bg-line/50 px-2 py-0.5 text-[11px] text-ink/60">
+                  {formatBRL(previewTotalCents)}
+                </span>
+              </div>
             ) : null}
           </div>
         </div>
@@ -515,8 +511,9 @@ export function DebtCreateForm({
             </label>
           </div>
           <label className="block space-y-1.5">
-            <span className="text-sm text-ink/70">
+            <span className="flex items-center gap-1.5 text-sm text-ink/70">
               Valor total{totalFromCalc ? " (calculado)" : ""}
+              <Tip content="Pode deixar 0. Informe parcelas e o valor de cada uma. O total é calculado." />
             </span>
             <input
               className="field"
@@ -524,16 +521,16 @@ export function DebtCreateForm({
               placeholder="0 ou 6425,00"
               value={totalAmount}
             />
-            <span className="mt-1 block text-xs text-ink/50">
-              Não sabe o total? Coloque 0, informe parcelas e o valor de cada uma — a gente calcula.
-            </span>
           </label>
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="block space-y-1.5">
-            <span className="text-sm text-ink/70">
+            <span className="flex items-center gap-1.5 text-sm text-ink/70">
               {kind === "VARIABLE" ? "Estimativa (opcional)" : "Valor da parcela"}
+              {kind === "VARIABLE" ? (
+                <Tip content="Sugestão inicial. Nos meses seguintes usa a última cobrança. Você pode ajustar." />
+              ) : null}
             </span>
             <input
               className="field"
@@ -541,14 +538,12 @@ export function DebtCreateForm({
               placeholder={kind === "VARIABLE" ? "750,00 ou 0" : "500,00"}
               value={totalAmount}
             />
-            {kind === "VARIABLE" ? (
-              <span className="mt-1 block text-xs text-ink/50">
-                Sugestão inicial. Nos meses seguintes o sistema usa a última cobrança; você ajusta.
-              </span>
-            ) : null}
           </label>
           <label className="block space-y-1.5">
-            <span className="text-sm text-ink/70">Já pagas</span>
+            <span className="flex items-center gap-1.5 text-sm text-ink/70">
+              Já pagas
+              <Tip content="Quantas cobranças já passaram. Elas entram como pagas e a próxima fica aberta." />
+            </span>
             <input
               className="field"
               max={120}
@@ -601,38 +596,34 @@ export function DebtCreateForm({
         </label>
       ) : null}
 
-      <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-line bg-white/60 px-3 py-3">
-        <input
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+        <FancyCheckbox
           checked={autoPay}
-          className="mt-1 size-4 accent-[var(--pine)]"
-          onChange={(event) => setAutoPay(event.target.checked)}
-          type="checkbox"
+          label="Baixa automática"
+          onChange={setAutoPay}
+          tip="Empréstimo ou débito. Desligado por padrão. Mensal: parcela do cron já nasce paga. Parcelada: baixa no vencimento."
         />
-        <span className="pt-0.5 text-sm font-medium text-ink">
-          <LabelWithTip
-            label="Baixa automática"
-            tip="Empréstimo ou débito. Desligado por padrão. Mensal: parcela do cron já nasce paga. Parcelada: baixa no vencimento."
-          />
-        </span>
-      </label>
-
-      <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-line bg-white/60 px-3 py-3">
-        <input
+        <FancyCheckbox
           checked={remindersEnabled}
-          className="mt-1 size-4 accent-[var(--pine)]"
-          onChange={(event) => setRemindersEnabled(event.target.checked)}
-          type="checkbox"
+          label="Avisar por e-mail"
+          onChange={setRemindersEnabled}
+          tip="Avisa antes do vencimento e se atrasar. O admin precisa ter o cron de e-mail ligado."
         />
-        <span className="pt-0.5 text-sm font-medium text-ink">
-          <LabelWithTip
-            label="Avisar por e-mail"
-            tip="Avisa antes do vencimento e se atrasar. O admin precisa ter o cron de e-mail ligado."
-          />
-        </span>
-      </label>
+      </div>
 
       <label className="block space-y-1.5">
-        <span className="text-sm text-ink/70">Nota</span>
+        <span className="flex items-center gap-1.5 text-sm text-ink/70">
+          Nota
+          <Tip
+            content={
+              kind === "VARIABLE"
+                ? "Ideal pra Caixa ou cartão: todo mês abre uma cobrança; você coloca o valor real e paga."
+                : kind === "RECURRING"
+                  ? "Se já pagou algumas, informe em Já pagas. Elas entram nos meses anteriores e a próxima fica aberta."
+                  : "No próximo passo você vê as parcelas e ajusta valores. O total acompanha a soma."
+            }
+          />
+        </span>
         <NoteEditor
           height={180}
           placeholder="O que combina lembrar: acordo, loja, por que parcelou..."
@@ -640,13 +631,6 @@ export function DebtCreateForm({
           onChange={setNote}
         />
       </label>
-      <p className="text-xs text-ink/55">
-        {kind === "VARIABLE"
-          ? "Ideal pra Caixa ou cartão: todo mês abre uma cobrança; você coloca o valor real e paga."
-          : kind === "RECURRING"
-            ? "Se já pagou algumas, informe quantas: elas entram como pagas nos meses anteriores e a próxima fica aberta."
-            : "No próximo passo você vê as parcelas, ajusta valores e o total acompanha a soma."}
-      </p>
       {(localError || state.error) ? <FormError message={localError ?? state.error!} /> : null}
       <button className="btn-primary w-full" onClick={buildPreview} type="button">
         {isMonthly ? "Ver cobranças" : "Ver parcelas"}
