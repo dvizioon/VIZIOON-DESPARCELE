@@ -5,6 +5,8 @@ export interface User {
   name: string;
   email: string;
   passwordHash: string;
+  phone: string | null;
+  avatarUrl: string | null;
   systemRole: SystemRole;
   disabledAt: Date | null;
 }
@@ -13,6 +15,8 @@ export interface PublicUser {
   id: string;
   name: string;
   email: string;
+  phone: string | null;
+  avatarUrl: string | null;
   systemRole: SystemRole;
 }
 
@@ -21,6 +25,8 @@ export function toPublicUser(user: User): PublicUser {
     id: user.id,
     name: user.name,
     email: user.email,
+    phone: user.phone,
+    avatarUrl: user.avatarUrl,
     systemRole: user.systemRole,
   };
 }
@@ -73,4 +79,34 @@ export function isFullName(name: string): boolean {
     .filter((part) => part.replace(/[^\p{L}]/gu, "").length >= 2);
 
   return parts.length >= 2;
+}
+
+/** Telefone BR opcional: só dígitos, 10–11. */
+export function normalizePhone(value: string): string | null {
+  const digits = value.replace(/\D/g, "");
+  if (!digits) {
+    return null;
+  }
+  return digits;
+}
+
+export function isValidPhone(value: string | null): boolean {
+  if (value == null) {
+    return true;
+  }
+  return value.length >= 10 && value.length <= 13;
+}
+
+export function formatPhoneDisplay(value: string | null): string {
+  if (!value) {
+    return "";
+  }
+  const d = value.replace(/\D/g, "");
+  if (d.length === 11) {
+    return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+  }
+  if (d.length === 10) {
+    return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  }
+  return value;
 }

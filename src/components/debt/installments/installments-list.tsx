@@ -6,7 +6,6 @@ import { InstallmentsCalendar } from "./installments-calendar";
 import { InstallmentsListView } from "./installments-list-view";
 import { InstallmentsPipeline } from "./installments-pipeline";
 import { InstallmentsToolbar } from "./installments-toolbar";
-import { INFINITE_STEP } from "./constants";
 import type { InstallmentListItem } from "./types";
 import { useInstallmentsBoard } from "./use-installments-board";
 
@@ -40,10 +39,12 @@ export function InstallmentsList({
         listConfigOpen={board.listConfigOpen}
         listMode={board.listMode}
         pageLabel={board.pageLabel}
+        pageSize={board.pageSize}
         statusFilter={board.statusFilter}
         view={board.view}
         onFilterChange={board.changeFilter}
         onListModeChange={board.changeListMode}
+        onPageSizeChange={board.changePageSize}
         onToggleConfig={() => board.setListConfigOpen((open) => !open)}
         onViewChange={board.changeView}
       />
@@ -57,17 +58,19 @@ export function InstallmentsList({
           canDrag={board.canDrag}
           canEdit={canEdit}
           debtId={debtId}
+          hasMore={board.hasMore}
           highlightId={board.highlightId}
           items={board.visibleItems}
           listMode={board.listMode}
+          loadingMore={board.loadingMore}
           page={board.page}
+          pageSize={board.pageSize}
           remindersOnDebt={remindersOnDebt}
           totalCount={board.filtered.length}
           totalPages={board.totalPages}
-          visibleCount={board.visibleCount}
           workspaceId={workspaceId}
           onDragEnd={board.onDragEnd}
-          onLoadMore={() => board.setVisibleCount((count) => count + INFINITE_STEP)}
+          onLoadMore={board.loadMore}
           onPageChange={board.setPage}
         />
       ) : null}

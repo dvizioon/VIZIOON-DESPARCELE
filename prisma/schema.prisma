@@ -69,6 +69,8 @@ model User {
   name         String
   email        String     @unique
   passwordHash String
+  phone        String?
+  avatarUrl    String?
   systemRole   SystemRole @default(MEMBER)
   disabledAt   DateTime?
   createdAt    DateTime   @default(now())

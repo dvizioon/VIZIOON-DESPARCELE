@@ -4,6 +4,7 @@ import { AdminLink } from "@/components/layout/admin-link";
 import { LogoMark } from "@/components/brand/logo";
 import { CreateDebtModal } from "@/components/forms/create-debt-modal";
 import { CreateWorkspaceModal } from "@/components/forms/create-workspace-modal";
+import { ProfileHeaderLink } from "@/components/layout/profile-header-link";
 import { SignOutButton } from "@/components/layout/sign-out-button";
 import { WorkspaceNav } from "@/components/layout/workspace-nav";
 import { PageMotion } from "@/components/motion/page-motion";
@@ -75,7 +76,7 @@ export default async function WorkspaceLayout({ children, params }: WorkspaceLay
         <div className="flex items-center gap-2 sm:justify-end">
           {isSystemAdmin(user.systemRole) ? <AdminLink /> : null}
           <CreateWorkspaceModal triggerClassName="btn-ghost" triggerLabel="Novo" />
-          <span className="hidden max-w-[10rem] truncate text-sm text-ink/55 md:inline">{user.name}</span>
+          <ProfileHeaderLink avatarUrl={user.avatarUrl} name={user.name} />
           <SignOutButton />
         </div>
       </header>

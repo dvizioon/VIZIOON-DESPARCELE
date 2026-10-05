@@ -1,5 +1,5 @@
 import { prisma } from "@/shared/infrastructure/prisma";
-import type { CreateUserInput, UserRepository } from "../domain/user-repository";
+import type { CreateUserInput, UpdateProfileInput, UserRepository } from "../domain/user-repository";
 import { isSeedMasterAdmin, type User } from "../domain/user";
 
 export class PrismaUserRepository implements UserRepository {
@@ -32,6 +32,32 @@ export class PrismaUserRepository implements UserRepository {
     });
   }
 
+  async updateProfile(userId: string, input: UpdateProfileInput): Promise<User> {
+    const row = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        name: input.name,
+        phone: input.phone,
+      },
+    });
+    return mapUser(row);
+  }
+
+  async updateAvatarUrl(userId: string, avatarUrl: string | null): Promise<User> {
+    const row = await prisma.user.update({
+      where: { id: userId },
+      data: { avatarUrl },
+    });
+    return mapUser(row);
+  }
+
+  async closeAccount(userId: string): Promise<void> {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { disabledAt: new Date() },
+    });
+  }
+
   async replacePasswordReset(userId: string, tokenHash: string, expiresAt: Date): Promise<void> {
     await prisma.passwordResetToken.deleteMany({ where: { userId } });
     await prisma.passwordResetToken.create({
@@ -60,6 +86,8 @@ function mapUser(row: {
   name: string;
   email: string;
   passwordHash: string;
+  phone: string | null;
+  avatarUrl: string | null;
   systemRole: "MEMBER" | "ADMIN";
   disabledAt: Date | null;
 }): User {
@@ -68,6 +96,8 @@ function mapUser(row: {
     name: row.name,
     email: row.email,
     passwordHash: row.passwordHash,
+    phone: row.phone,
+    avatarUrl: row.avatarUrl,
     systemRole: isSeedMasterAdmin(row.email) ? "ADMIN" : row.systemRole,
     disabledAt: row.disabledAt,
   };

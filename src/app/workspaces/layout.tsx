@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { AdminLink } from "@/components/layout/admin-link";
 import { CreateWorkspaceModal } from "@/components/forms/create-workspace-modal";
+import { ProfileHeaderLink } from "@/components/layout/profile-header-link";
 import { SignOutButton } from "@/components/layout/sign-out-button";
 import { LogoMark } from "@/components/brand/logo";
 import { PageMotion } from "@/components/motion/page-motion";
@@ -31,6 +32,7 @@ export default async function WorkspacesLayout({ children }: { children: React.R
         <div className="flex items-center gap-2">
           {isSystemAdmin(user.systemRole) ? <AdminLink /> : null}
           <CreateWorkspaceModal triggerClassName="btn-primary flex-1 sm:flex-none" />
+          <ProfileHeaderLink avatarUrl={user.avatarUrl} name={user.name} showName={false} />
           <SignOutButton />
         </div>
       </header>

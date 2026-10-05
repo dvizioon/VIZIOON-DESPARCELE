@@ -4,6 +4,7 @@ import type { RefObject } from "react";
 import { FilterPills } from "@/components/motion/filter-pills";
 import { FancyCheckbox } from "@/components/ui/fancy-checkbox";
 import { AppIcon } from "@/components/ui/icon";
+import { PAGE_SIZE_OPTIONS } from "./constants";
 import type { ListMode, StatusFilter, ViewMode } from "./types";
 import { ViewChip } from "./view-chip";
 
@@ -11,6 +12,7 @@ export function InstallmentsToolbar({
   view,
   statusFilter,
   listMode,
+  pageSize,
   listConfigOpen,
   configRef,
   filteredCount,
@@ -19,10 +21,12 @@ export function InstallmentsToolbar({
   onFilterChange,
   onToggleConfig,
   onListModeChange,
+  onPageSizeChange,
 }: {
   view: ViewMode;
   statusFilter: StatusFilter;
   listMode: ListMode;
+  pageSize: number;
   listConfigOpen: boolean;
   configRef: RefObject<HTMLDivElement | null>;
   filteredCount: number;
@@ -31,6 +35,7 @@ export function InstallmentsToolbar({
   onFilterChange: (filter: StatusFilter) => void;
   onToggleConfig: () => void;
   onListModeChange: (mode: ListMode) => void;
+  onPageSizeChange: (size: number) => void;
 }) {
   return (
     <div className="space-y-3">
@@ -62,13 +67,13 @@ export function InstallmentsToolbar({
               Lista
             </button>
             {listConfigOpen ? (
-              <div className="absolute right-0 z-20 mt-2 w-64 space-y-2 rounded-2xl border border-line bg-card p-3 shadow-sheet">
+              <div className="absolute right-0 z-20 mt-2 w-72 space-y-3 rounded-2xl border border-line bg-card p-3 shadow-sheet">
                 <p className="text-xs font-medium text-ink/60">Como mostrar a lista</p>
                 <FancyCheckbox
                   checked={listMode === "paged"}
                   className="w-full"
                   label="Paginada"
-                  tip="Padrão. Mostra de 10 em 10 com páginas."
+                  tip="Mostra por páginas. Você escolhe quantas por página (padrão 5)."
                   onChange={(next) => {
                     if (next) {
                       onListModeChange("paged");
@@ -79,13 +84,35 @@ export function InstallmentsToolbar({
                   checked={listMode === "infinite"}
                   className="w-full"
                   label="Infinita"
-                  tip="Carrega mais parcelas ao descer, sem páginas."
+                  tip="Carrega sozinha ao rolar, com skeleton."
                   onChange={(next) => {
                     if (next) {
                       onListModeChange("infinite");
                     }
                   }}
                 />
+
+                {listMode === "paged" ? (
+                  <div className="space-y-2 border-t border-line pt-2">
+                    <p className="text-xs font-medium text-ink/60">Itens por página</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {PAGE_SIZE_OPTIONS.map((size) => (
+                        <button
+                          className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                            pageSize === size
+                              ? "bg-pine text-white"
+                              : "bg-paper text-ink/70 hover:bg-pine-soft hover:text-pine-dark"
+                          }`}
+                          key={size}
+                          onClick={() => onPageSizeChange(size)}
+                          type="button"
+                        >
+                          {size}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
               </div>
             ) : null}
           </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import {
   DndContext,
   PointerSensor,
@@ -11,8 +12,25 @@ import {
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { AppIcon } from "@/components/ui/icon";
 import { SortableInstallmentCard, StaticInstallmentCard } from "./installment-card";
-import { INFINITE_STEP, PAGE_SIZE } from "./constants";
 import type { InstallmentListItem, ListMode } from "./types";
+
+function InstallmentSkeleton() {
+  return (
+    <li className="sheet animate-pulse space-y-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="space-y-2">
+          <div className="h-4 w-36 rounded-full bg-line/80" />
+          <div className="h-3 w-48 rounded-full bg-line/60" />
+        </div>
+        <div className="h-7 w-20 rounded-xl bg-line/70" />
+      </div>
+      <div className="flex gap-2">
+        <div className="h-8 w-20 rounded-full bg-line/55" />
+        <div className="h-8 w-20 rounded-full bg-line/45" />
+      </div>
+    </li>
+  );
+}
 
 export function InstallmentsListView({
   items,
@@ -27,8 +45,10 @@ export function InstallmentsListView({
   blinkId,
   listMode,
   page,
+  pageSize,
   totalPages,
-  visibleCount,
+  hasMore,
+  loadingMore,
   onPageChange,
   onLoadMore,
   onDragEnd,
@@ -45,13 +65,38 @@ export function InstallmentsListView({
   blinkId: string | null;
   listMode: ListMode;
   page: number;
+  pageSize: number;
   totalPages: number;
-  visibleCount: number;
+  hasMore: boolean;
+  loadingMore: boolean;
   onPageChange: (page: number) => void;
   onLoadMore: () => void;
   onDragEnd: (event: DragEndEvent) => void;
 }) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (listMode !== "infinite" || !hasMore) {
+      return;
+    }
+    const node = sentinelRef.current;
+    if (!node) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          onLoadMore();
+        }
+      },
+      { root: null, rootMargin: "160px 0px", threshold: 0 },
+    );
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [listMode, hasMore, onLoadMore, items.length]);
 
   if (totalCount === 0) {
     return <div className="sheet text-sm text-ink/55">Nenhuma parcela neste filtro.</div>;
@@ -96,10 +141,10 @@ export function InstallmentsListView({
         </ul>
       )}
 
-      {listMode === "paged" && totalCount > PAGE_SIZE ? (
+      {listMode === "paged" && totalCount > pageSize ? (
         <div className="flex flex-wrap items-center justify-center gap-2">
           <button
-            className="btn-ghost px-3 py-2"
+            className="btn-ghost inline-flex items-center gap-1 px-3 py-2"
             disabled={page <= 1}
             onClick={() => onPageChange(Math.max(1, page - 1))}
             type="button"
@@ -111,7 +156,7 @@ export function InstallmentsListView({
             {page} / {totalPages}
           </span>
           <button
-            className="btn-ghost px-3 py-2"
+            className="btn-ghost inline-flex items-center gap-1 px-3 py-2"
             disabled={page >= totalPages}
             onClick={() => onPageChange(Math.min(totalPages, page + 1))}
             type="button"
@@ -122,11 +167,17 @@ export function InstallmentsListView({
         </div>
       ) : null}
 
-      {listMode === "infinite" && visibleCount < totalCount ? (
-        <div className="flex justify-center">
-          <button className="btn-ghost" onClick={onLoadMore} type="button">
-            Carregar mais (+{INFINITE_STEP})
-          </button>
+      {listMode === "infinite" && (hasMore || loadingMore) ? (
+        <div className="space-y-3" ref={sentinelRef}>
+          {(loadingMore || hasMore) && (
+            <ul className="grid gap-3" aria-hidden={!loadingMore}>
+              <InstallmentSkeleton />
+              {loadingMore ? <InstallmentSkeleton /> : null}
+            </ul>
+          )}
+          <p className="text-center text-xs text-ink/40">
+            {loadingMore ? "Carregando mais…" : "Role para carregar mais"}
+          </p>
         </div>
       ) : null}
     </div>

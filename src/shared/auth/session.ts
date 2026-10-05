@@ -36,6 +36,8 @@ export async function requireUser() {
     ...user,
     name: stored.name,
     email: stored.email,
+    phone: stored.phone,
+    avatarUrl: stored.avatarUrl,
     systemRole: stored.systemRole,
   };
 }
