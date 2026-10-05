@@ -6,6 +6,7 @@ import { createDebtAction } from "@/app/actions/debt";
 import type { ActionState } from "@/app/actions/auth";
 import { FormError } from "@/components/forms/auth-forms";
 import { NoteEditor } from "@/components/notes/note-editor";
+import { DatePicker } from "@/components/ui/date-picker";
 import { SearchSelect } from "@/components/ui/search-select";
 import type { DebtKind } from "@/modules/debt/domain/debt";
 import { generateInstallments } from "@/modules/installment/domain/generate-installments";
@@ -394,11 +395,10 @@ export function DebtCreateForm({
                   Aberta
                 </span>
               )}
-              <input
-                className="field py-2 text-sm"
+              <DatePicker
+                compact
                 disabled={busy}
-                onChange={(event) => updateDueDate(index, event.target.value)}
-                type="date"
+                onChange={(next) => updateDueDate(index, next)}
                 value={row.dueDate}
               />
               <input
@@ -570,12 +570,7 @@ export function DebtCreateForm({
           </label>
           <label className="block space-y-1.5">
             <span className="text-sm text-ink/70">Próximo vencimento</span>
-            <input
-              className="field"
-              onChange={(event) => setFirstDueDate(event.target.value)}
-              type="date"
-              value={firstDueDate}
-            />
+            <DatePicker onChange={setFirstDueDate} value={firstDueDate} />
           </label>
         </div>
       )}
@@ -583,12 +578,7 @@ export function DebtCreateForm({
       {kind === "INSTALLMENT" ? (
         <label className="block space-y-1.5">
           <span className="text-sm text-ink/70">Primeiro vencimento</span>
-          <input
-            className="field"
-            onChange={(event) => setFirstDueDate(event.target.value)}
-            type="date"
-            value={firstDueDate}
-          />
+          <DatePicker onChange={setFirstDueDate} value={firstDueDate} />
         </label>
       ) : null}
 
