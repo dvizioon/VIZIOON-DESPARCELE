@@ -6,7 +6,6 @@ import { CountUpMoney } from "@/components/motion/count-up";
 import { FilterPills } from "@/components/motion/filter-pills";
 import { Reveal } from "@/components/motion/reveal";
 import { FancyCheckbox } from "@/components/ui/fancy-checkbox";
-import { AppIcon } from "@/components/ui/icon";
 import { MonthPicker } from "@/components/ui/month-picker";
 import { firstName } from "@/modules/auth/domain/user";
 import type { DashboardView } from "@/modules/debt/application/dashboard-view";
@@ -119,27 +118,24 @@ export function PaidMonth({ data }: { data: DashboardView }) {
           <CountUpMoney cents={monthPaidCents} />
         </p>
         <p className="mt-1 text-sm text-ink/50">
-          {paidItems.length} parcela{paidItems.length === 1 ? "" : "s"} com vencimento neste mês já
-          baixadas · {paidDebtIds.size} dívida{paidDebtIds.size === 1 ? "" : "s"}
+          {paidItems.length} parcela{paidItems.length === 1 ? "" : "s"}
         </p>
       </div>
 
       <section className="grid gap-3 sm:grid-cols-2">
         <StatCard
-          hint={`${paidDebtIds.size} conta${paidDebtIds.size === 1 ? "" : "s"} neste mês`}
-          icon="tabler:circle-check"
+          hint={`${paidDebtIds.size} conta${paidDebtIds.size === 1 ? "" : "s"}`}
           label="Contas baixadas"
           value={String(paidDebtIds.size)}
         />
         <StatCard
           hint={
             payerRanking[0] && payerRanking[0].cents > 0
-              ? `${firstName(payerRanking[0].name)} na frente`
+              ? firstName(payerRanking[0].name)
               : isFutureMonth
-                ? "Mês ainda não chegou"
-                : "Ninguém pagou neste filtro"
+                ? "Mês futuro"
+                : "Sem pagamentos"
           }
-          icon="tabler:trophy"
           label="Quem mais pagou"
           value={
             payerRanking[0] && payerRanking[0].cents > 0 ? (
@@ -181,11 +177,7 @@ export function PaidMonth({ data }: { data: DashboardView }) {
 
       {heaviestDebts.length > 0 ? (
         <section className="sheet" data-reveal>
-          <h3 className="font-display text-2xl">Contas mais puxadas</h3>
-          <p className="mt-1 text-sm text-ink/55">
-            Ranking do que mais pesou no vencimento deste mês (já baixado).
-          </p>
-          <ol className="mt-4 space-y-2">
+          <ol className="space-y-2">
             {heaviestDebts.map((item, index) => (
               <li key={item.debtId}>
                 <Link
@@ -193,7 +185,7 @@ export function PaidMonth({ data }: { data: DashboardView }) {
                   href={`/w/${data.workspaceId}/debts/${item.debtId}`}
                 >
                   <span
-                    className={`flex size-8 shrink-0 items-center justify-center rounded-full font-display text-lg ${
+                    className={`flex size-8 shrink-0 items-center justify-center rounded-full text-sm font-medium ${
                       index === 0
                         ? "bg-pine text-white"
                         : index === 1
@@ -205,9 +197,11 @@ export function PaidMonth({ data }: { data: DashboardView }) {
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium">{item.debtName}</p>
-                    <p className="text-sm text-ink/55">
-                      {item.count} parcela{item.count === 1 ? "" : "s"}
-                    </p>
+                    <div className="mt-1 flex flex-wrap gap-1.5">
+                      <MetaBadge>
+                        {item.count}x
+                      </MetaBadge>
+                    </div>
                   </div>
                   <p className="font-display text-xl">{formatBRL(item.cents)}</p>
                 </Link>
@@ -219,16 +213,14 @@ export function PaidMonth({ data }: { data: DashboardView }) {
 
       {data.shared && payerRanking.length > 0 ? (
         <section className="sheet" data-reveal>
-          <h3 className="font-display text-2xl">Quem pagou mais</h3>
-          <p className="mt-1 text-sm text-ink/55">Total baixado por pessoa neste mês.</p>
-          <ul className="mt-4 space-y-2">
+          <ul className="space-y-2">
             {payerRanking.map((person, index) => (
               <li
                 className="flex items-center gap-3 rounded-2xl bg-white/70 px-3 py-3"
                 key={person.userId}
               >
                 <span
-                  className={`flex size-8 shrink-0 items-center justify-center rounded-full font-display text-lg ${
+                  className={`flex size-8 shrink-0 items-center justify-center rounded-full text-sm font-medium ${
                     index === 0 ? "bg-pine text-white" : "bg-pine-soft text-pine-dark"
                   }`}
                 >
@@ -236,9 +228,11 @@ export function PaidMonth({ data }: { data: DashboardView }) {
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="font-medium">{firstName(person.name)}</p>
-                  <p className="text-sm text-ink/55">
-                    {person.count} parcela{person.count === 1 ? "" : "s"}
-                  </p>
+                  <div className="mt-1 flex flex-wrap gap-1.5">
+                    <MetaBadge>
+                      {person.count}x
+                    </MetaBadge>
+                  </div>
                 </div>
                 <p className="font-display text-xl">{formatBRL(person.cents)}</p>
               </li>
@@ -248,41 +242,34 @@ export function PaidMonth({ data }: { data: DashboardView }) {
       ) : null}
 
       <section className="sheet" data-reveal>
-        <h3 className="font-display text-2xl">Parcelas pagas</h3>
         {paidItems.length === 0 ? (
-          <p className="mt-4 flex items-center gap-2 text-ink/60">
-            <AppIcon name="tabler:calendar-off" className="size-5" />
-            {isFutureMonth
-              ? "Mês futuro — ainda não há pagamentos"
-              : "Nenhuma parcela paga neste filtro"}
+          <p className="text-ink/60">
+            {isFutureMonth ? "Mês futuro" : "Nenhuma parcela neste filtro"}
           </p>
         ) : (
-          <ul className="mt-2 divide-y divide-line">
+          <ul className="divide-y divide-line">
             {paidItems.map((item) => (
               <li key={item.installmentId}>
                 <Link
                   className="flex items-center justify-between gap-3 py-3 transition-colors hover:text-pine"
                   href={`/w/${data.workspaceId}/debts/${item.debtId}`}
                 >
-                  <div>
+                  <div className="min-w-0">
                     <p className="font-medium">{item.debtName}</p>
-                    <p className="text-sm text-ink/55">
-                      Parcela {item.number}
-                      {data.shared ? ` · ${firstName(item.paidByName ?? item.ownerName)}` : ""}
-                      {itemTag(item.autoPay, item.kind)}
-                    </p>
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      <MetaBadge>#{item.number}</MetaBadge>
+                      {data.shared ? (
+                        <MetaBadge>{firstName(item.paidByName ?? item.ownerName)}</MetaBadge>
+                      ) : null}
+                      {kindBadges(item.autoPay, item.kind).map((label) => (
+                        <MetaBadge key={label}>{label}</MetaBadge>
+                      ))}
+                      <MetaBadge>{formatDate(new Date(item.dueDate))}</MetaBadge>
+                    </div>
                   </div>
-                      <div className="text-right">
-                        <p className="font-display text-xl text-pine-dark">
-                          {formatBRL(item.amountCents)}
-                        </p>
-                        <p className="text-sm text-ink/55">
-                          Venceu {formatDate(new Date(item.dueDate))}
-                          {item.paidAt
-                            ? ` · baixa ${formatDate(new Date(item.paidAt))}`
-                            : ""}
-                        </p>
-                      </div>
+                  <p className="shrink-0 font-display text-xl text-pine-dark">
+                    {formatBRL(item.amountCents)}
+                  </p>
                 </Link>
               </li>
             ))}
@@ -344,7 +331,7 @@ function matchesInclude(
   return false;
 }
 
-function itemTag(autoPay: boolean, kind: DebtKind): string {
+function kindBadges(autoPay: boolean, kind: DebtKind): string[] {
   const parts: string[] = [];
   if (autoPay) {
     parts.push("baixa auto");
@@ -355,26 +342,29 @@ function itemTag(autoPay: boolean, kind: DebtKind): string {
   if (kind === "VARIABLE") {
     parts.push("variável");
   }
-  return parts.length ? ` · ${parts.join(" · ")}` : "";
+  return parts;
+}
+
+function MetaBadge({ children }: { children: ReactNode }) {
+  return (
+    <span className="rounded-full bg-line/50 px-2 py-0.5 text-[11px] font-medium text-ink/60">
+      {children}
+    </span>
+  );
 }
 
 function StatCard({
-  icon,
   label,
   value,
   hint,
 }: {
-  icon: string;
   label: string;
   value: ReactNode;
   hint: string;
 }) {
   return (
     <article className="sheet" data-reveal>
-      <p className="flex items-center gap-2 text-sm text-ink/55">
-        <AppIcon name={icon} className="size-4" />
-        {label}
-      </p>
+      <p className="text-sm text-ink/55">{label}</p>
       <p className="mt-3 font-display text-3xl">{value}</p>
       <p className="mt-1 text-sm text-ink/50">{hint}</p>
     </article>

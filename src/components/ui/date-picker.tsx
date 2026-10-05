@@ -8,7 +8,6 @@ import {
   useState,
   type CSSProperties,
 } from "react";
-import { AppIcon } from "@/components/ui/icon";
 import { Portal } from "@/components/ui/portal";
 import {
   calendarDate,
@@ -32,7 +31,7 @@ const MONTHS = [
   "Dezembro",
 ];
 
-const WEEKDAYS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
+const WEEKDAYS = ["S", "T", "Q", "Q", "S", "S", "D"];
 
 type DatePickerProps = {
   /** YYYY-MM-DD */
@@ -41,7 +40,6 @@ type DatePickerProps = {
   disabled?: boolean;
   className?: string;
   compact?: boolean;
-  /** nome do campo hidden em forms nativos */
   name?: string;
   id?: string;
 };
@@ -130,13 +128,14 @@ export function DatePicker({
 
   useEffect(() => {
     if (open && !sheet) {
-      const id = window.setTimeout(() => inputRef.current?.focus(), 30);
-      return () => window.clearTimeout(id);
+      const timer = window.setTimeout(() => inputRef.current?.focus(), 30);
+      return () => window.clearTimeout(timer);
     }
   }, [open, sheet]);
 
   const cells = useMemo(() => buildCalendar(view.year, view.month), [view.year, view.month]);
   const selected = safeParse(value);
+  const label = selected ? formatDateFull(selected) : "Data";
 
   function commitIso(iso: string) {
     onChange(iso);
@@ -158,8 +157,6 @@ export function DatePicker({
     commitIso(toCalendarInputValue(parsed));
   }
 
-  const label = selected ? formatDateFull(selected) : "Escolher data";
-
   const panel = (
     <div
       className={`rounded-2xl border border-line bg-paper p-3 shadow-lg ${
@@ -168,49 +165,46 @@ export function DatePicker({
       ref={menuRef}
       style={sheet ? undefined : menuStyle}
     >
-      <div className="mb-3 flex items-center gap-2">
-        <AppIcon name="tabler:pencil" className="size-4 shrink-0 text-ink/40" />
-        <input
-          aria-label="Digitar data"
-          className="field flex-1 rounded-xl px-3 py-2 text-sm"
-          inputMode="numeric"
-          onBlur={applyDraft}
-          onChange={(event) => setDraft(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              event.preventDefault();
-              applyDraft();
-            }
-          }}
-          placeholder="dd/mm/aaaa"
-          ref={inputRef}
-          value={draft}
-        />
-      </div>
+      <input
+        aria-label="Data"
+        className="field mb-3 w-full rounded-xl px-3 py-2 text-sm"
+        inputMode="numeric"
+        onBlur={applyDraft}
+        onChange={(event) => setDraft(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            applyDraft();
+          }
+        }}
+        placeholder="dd/mm/aaaa"
+        ref={inputRef}
+        value={draft}
+      />
 
       <div className="mb-2 flex items-center justify-between gap-2">
         <button
-          className="rounded-full p-2 text-ink/60 hover:bg-white hover:text-ink"
+          className="rounded-xl px-2.5 py-1.5 text-sm text-ink/60 hover:bg-white hover:text-ink"
           onClick={() => setView((current) => shiftMonth(current, -1))}
           type="button"
         >
-          <AppIcon name="tabler:chevron-left" className="size-5" />
+          Ant
         </button>
-        <p className="font-display text-lg">
+        <p className="text-sm font-medium text-ink">
           {MONTHS[view.month]} {view.year}
         </p>
         <button
-          className="rounded-full p-2 text-ink/60 hover:bg-white hover:text-ink"
+          className="rounded-xl px-2.5 py-1.5 text-sm text-ink/60 hover:bg-white hover:text-ink"
           onClick={() => setView((current) => shiftMonth(current, 1))}
           type="button"
         >
-          <AppIcon name="tabler:chevron-right" className="size-5" />
+          Prox
         </button>
       </div>
 
       <div className="mb-1 grid grid-cols-7 gap-1">
-        {WEEKDAYS.map((day) => (
-          <span className="py-1 text-center text-[11px] font-medium text-ink/45" key={day}>
+        {WEEKDAYS.map((day, index) => (
+          <span className="py-1 text-center text-[11px] text-ink/40" key={`${day}-${index}`}>
             {day}
           </span>
         ))}
@@ -233,7 +227,7 @@ export function DatePicker({
                 active
                   ? "bg-pine font-semibold text-white"
                   : today
-                    ? "bg-pine-soft/80 font-medium text-pine-dark hover:bg-pine-soft"
+                    ? "bg-pine-soft/80 text-pine-dark hover:bg-pine-soft"
                     : "bg-white/70 text-ink/80 hover:bg-pine-soft hover:text-pine-dark"
               }`}
               key={`${cell.year}-${cell.month}-${cell.day}`}
@@ -246,9 +240,9 @@ export function DatePicker({
         })}
       </div>
 
-      <div className="mt-3 flex items-center justify-between gap-2">
+      <div className="mt-3 flex items-center justify-between gap-2 text-sm">
         <button
-          className="text-sm font-medium text-pine-dark hover:underline"
+          className="text-pine-dark hover:underline"
           onClick={() => {
             const now = new Date();
             pickDay(now.getFullYear(), now.getMonth(), now.getDate());
@@ -257,11 +251,7 @@ export function DatePicker({
         >
           Hoje
         </button>
-        <button
-          className="text-sm text-ink/50 hover:text-ink"
-          onClick={() => setOpen(false)}
-          type="button"
-        >
+        <button className="text-ink/45 hover:text-ink" onClick={() => setOpen(false)} type="button">
           Fechar
         </button>
       </div>
@@ -274,8 +264,8 @@ export function DatePicker({
       <button
         className={
           compact
-            ? "field inline-flex w-full items-center justify-between gap-1 py-2 pl-3 pr-2 text-left text-sm"
-            : "field inline-flex w-full items-center justify-between gap-2 text-left"
+            ? "field w-full py-2 pl-3 pr-3 text-left text-sm capitalize"
+            : "field w-full text-left capitalize"
         }
         disabled={disabled}
         onClick={() => {
@@ -285,11 +275,7 @@ export function DatePicker({
         }}
         type="button"
       >
-        <span className="flex min-w-0 items-center gap-2 truncate">
-          <AppIcon name="tabler:calendar" className="size-4 shrink-0 text-ink/45" />
-          <span className="truncate capitalize">{label}</span>
-        </span>
-        <AppIcon name="tabler:chevron-down" className="size-4 shrink-0 text-ink/40" />
+        {label}
       </button>
       {open ? (
         sheet ? (
@@ -349,7 +335,6 @@ function shiftMonth(view: { year: number; month: number }, delta: number) {
 
 function buildCalendar(year: number, month: number) {
   const first = calendarDate(year, month, 1);
-  // Segunda = 0 … Domingo = 6
   const weekday = (first.getUTCDay() + 6) % 7;
   const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
   const cells: Array<{ year: number; month: number; day: number } | null> = [];
@@ -371,7 +356,6 @@ function isToday(year: number, month: number, day: number) {
   return now.getFullYear() === year && now.getMonth() === month && now.getDate() === day;
 }
 
-/** Aceita dd/mm/aaaa, dd/mm/aa, dd-mm-aaaa ou aaaa-mm-dd. */
 function parseTypedDate(raw: string): Date | null {
   const value = raw.trim();
   if (!value) {

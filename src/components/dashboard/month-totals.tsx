@@ -6,7 +6,6 @@ import { CountUpMoney } from "@/components/motion/count-up";
 import { FilterPills } from "@/components/motion/filter-pills";
 import { Reveal } from "@/components/motion/reveal";
 import { FancyCheckbox } from "@/components/ui/fancy-checkbox";
-import { AppIcon } from "@/components/ui/icon";
 import { MonthPicker } from "@/components/ui/month-picker";
 import type { DashboardView } from "@/modules/debt/application/dashboard-view";
 import type { DebtKind } from "@/modules/debt/domain/debt";
@@ -94,21 +93,18 @@ export function MonthTotals({ data }: { data: DashboardView }) {
           <CountUpMoney cents={monthDueCents} />
         </p>
         <p className="mt-1 text-sm text-ink/50">
-          {monthItems.length} parcela{monthItems.length === 1 ? "" : "s"} em aberto ·{" "}
-          {openDebtIds.size} dívida{openDebtIds.size === 1 ? "" : "s"}
+          {monthItems.length} parcela{monthItems.length === 1 ? "" : "s"}
         </p>
       </div>
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <StatCard
           hint={`${openDebtIds.size} com parcela neste mês`}
-          icon="tabler:list-check"
           label="Dívidas no mês"
           value={String(openDebtIds.size)}
         />
         <StatCard
           hint={`${overdueItems.length} parcela${overdueItems.length === 1 ? "" : "s"}`}
-          icon="tabler:alert-circle"
           label="Atrasado"
           value={<CountUpMoney cents={overdueCents} />}
           warn={overdueItems.length > 0}
@@ -117,22 +113,19 @@ export function MonthTotals({ data }: { data: DashboardView }) {
           className="sheet border-pine/20 bg-pine-soft/70 sm:col-span-2 lg:col-span-1"
           data-reveal
         >
-          <p className="flex items-center gap-2 text-sm text-pine-dark">
-            <AppIcon name="tabler:target-arrow" className="size-4" />
-            Pague primeiro
-          </p>
+          <p className="text-sm text-pine-dark">Pague primeiro</p>
           {suggestionVisible && data.suggestion ? (
             <>
               <p className="mt-3 font-display text-2xl leading-tight">{data.suggestion.debtName}</p>
-              <p className="mt-1 text-sm text-ink/65">
-                {data.suggestion.reason} · próxima {formatBRL(data.suggestion.nextAmountCents)}
-              </p>
+              <p className="mt-1 text-sm text-ink/65">{data.suggestion.reason}</p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                <MetaBadge>{formatBRL(data.suggestion.nextAmountCents)}</MetaBadge>
+              </div>
               <Link
-                className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-pine-dark"
+                className="mt-4 inline-block text-sm font-semibold text-pine-dark"
                 href={`/w/${data.workspaceId}/debts/${data.suggestion.debtId}`}
               >
                 Ver dívida
-                <AppIcon name="tabler:chevron-right" className="size-4" />
               </Link>
             </>
           ) : (
@@ -172,35 +165,29 @@ export function MonthTotals({ data }: { data: DashboardView }) {
       </div>
 
       <section className="sheet" data-reveal>
-        <h3 className="font-display text-2xl">Parcelas do mês</h3>
         {monthItems.length === 0 ? (
-          <p className="mt-4 flex items-center gap-2 text-ink/60">
-            <AppIcon name="tabler:calendar-off" className="size-5" />
-            Nenhuma parcela em aberto neste filtro
-          </p>
+          <p className="text-ink/60">Nenhuma parcela neste filtro</p>
         ) : (
-          <ul className="mt-2 divide-y divide-line">
+          <ul className="divide-y divide-line">
             {monthItems.map((item) => (
               <li key={item.installmentId}>
                 <Link
                   className="flex items-center justify-between gap-3 py-3 transition-colors hover:text-pine"
                   href={`/w/${data.workspaceId}/debts/${item.debtId}`}
                 >
-                  <div>
+                  <div className="min-w-0">
                     <p className="font-medium">{item.debtName}</p>
-                    <p className="text-sm text-ink/55">
-                      Parcela {item.number}
-                      {data.shared ? ` · ${item.ownerName}` : ""}
-                      {itemTag(item.autoPay, item.kind)}
-                    </p>
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      <MetaBadge>#{item.number}</MetaBadge>
+                      {data.shared ? <MetaBadge>{item.ownerName}</MetaBadge> : null}
+                      {kindBadges(item.autoPay, item.kind).map((label) => (
+                        <MetaBadge key={label}>{label}</MetaBadge>
+                      ))}
+                      {item.overdue ? <MetaBadge tone="warn">Atrasada</MetaBadge> : null}
+                      <MetaBadge>{formatDate(new Date(item.dueDate))}</MetaBadge>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-display text-xl">{formatBRL(item.amountCents)}</p>
-                    <p className={`text-sm ${item.overdue ? "text-clay" : "text-ink/55"}`}>
-                      {item.overdue ? "Atrasada · " : ""}
-                      {formatDate(new Date(item.dueDate))}
-                    </p>
-                  </div>
+                  <p className="shrink-0 font-display text-xl">{formatBRL(item.amountCents)}</p>
                 </Link>
               </li>
             ))}
@@ -210,29 +197,28 @@ export function MonthTotals({ data }: { data: DashboardView }) {
 
       {overdueItems.length > 0 ? (
         <section className="sheet" data-reveal>
-          <h3 className="font-display text-2xl">Atrasadas</h3>
-          <p className="mt-1 text-sm text-ink/55">
-            Ainda em aberto e já passaram do vencimento (podem ser de meses anteriores).
-          </p>
-          <ul className="mt-2 divide-y divide-line">
+          <ul className="divide-y divide-line">
             {overdueItems.map((item) => (
               <li key={item.installmentId}>
                 <Link
                   className="flex items-center justify-between gap-3 py-3 transition-colors hover:text-pine"
                   href={`/w/${data.workspaceId}/debts/${item.debtId}`}
                 >
-                  <div>
+                  <div className="min-w-0">
                     <p className="font-medium">{item.debtName}</p>
-                    <p className="text-sm text-ink/55">
-                      Parcela {item.number}
-                      {data.shared ? ` · ${item.ownerName}` : ""}
-                      {itemTag(item.autoPay, item.kind)}
-                    </p>
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      <MetaBadge>#{item.number}</MetaBadge>
+                      {data.shared ? <MetaBadge>{item.ownerName}</MetaBadge> : null}
+                      {kindBadges(item.autoPay, item.kind).map((label) => (
+                        <MetaBadge key={label}>{label}</MetaBadge>
+                      ))}
+                      <MetaBadge tone="warn">Atrasada</MetaBadge>
+                      <MetaBadge>{formatDate(new Date(item.dueDate))}</MetaBadge>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-display text-xl text-clay">{formatBRL(item.amountCents)}</p>
-                    <p className="text-sm text-clay">{formatDate(new Date(item.dueDate))}</p>
-                  </div>
+                  <p className="shrink-0 font-display text-xl text-clay">
+                    {formatBRL(item.amountCents)}
+                  </p>
                 </Link>
               </li>
             ))}
@@ -286,7 +272,7 @@ function matchesInclude(
   return false;
 }
 
-function itemTag(autoPay: boolean, kind: DebtKind): string {
+function kindBadges(autoPay: boolean, kind: DebtKind): string[] {
   const parts: string[] = [];
   if (autoPay) {
     parts.push("baixa auto");
@@ -297,17 +283,27 @@ function itemTag(autoPay: boolean, kind: DebtKind): string {
   if (kind === "VARIABLE") {
     parts.push("variável");
   }
-  return parts.length ? ` · ${parts.join(" · ")}` : "";
+  return parts;
+}
+
+function MetaBadge({ children, tone = "plain" }: { children: ReactNode; tone?: "plain" | "warn" }) {
+  return (
+    <span
+      className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
+        tone === "warn" ? "bg-clay/15 text-clay" : "bg-line/50 text-ink/60"
+      }`}
+    >
+      {children}
+    </span>
+  );
 }
 
 function StatCard({
-  icon,
   label,
   value,
   hint,
   warn = false,
 }: {
-  icon: string;
   label: string;
   value: ReactNode;
   hint: string;
@@ -315,10 +311,7 @@ function StatCard({
 }) {
   return (
     <article className="sheet" data-reveal>
-      <p className="flex items-center gap-2 text-sm text-ink/55">
-        <AppIcon name={icon} className="size-4" />
-        {label}
-      </p>
+      <p className="text-sm text-ink/55">{label}</p>
       <p className={`mt-3 font-display text-3xl ${warn ? "text-clay" : ""}`}>{value}</p>
       <p className="mt-1 text-sm text-ink/50">{hint}</p>
     </article>

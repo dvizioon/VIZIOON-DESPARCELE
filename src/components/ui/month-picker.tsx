@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
-import { AppIcon } from "@/components/ui/icon";
 import { Portal } from "@/components/ui/portal";
 
 const MONTHS = [
@@ -116,19 +115,19 @@ export function MonthPicker({ month, year, onChange, className = "" }: MonthPick
     >
       <div className="mb-3 flex items-center justify-between gap-2">
         <button
-          className="rounded-full p-2 text-ink/60 hover:bg-white hover:text-ink"
+          className="rounded-xl px-2.5 py-1.5 text-sm text-ink/60 hover:bg-white hover:text-ink"
           onClick={() => setViewYear((y) => y - 1)}
           type="button"
         >
-          <AppIcon name="tabler:chevron-left" className="size-5" />
+          Ant
         </button>
-        <p className="font-display text-xl">{viewYear}</p>
+        <p className="text-sm font-medium">{viewYear}</p>
         <button
-          className="rounded-full p-2 text-ink/60 hover:bg-white hover:text-ink"
+          className="rounded-xl px-2.5 py-1.5 text-sm text-ink/60 hover:bg-white hover:text-ink"
           onClick={() => setViewYear((y) => y + 1)}
           type="button"
         >
-          <AppIcon name="tabler:chevron-right" className="size-5" />
+          Prox
         </button>
       </div>
       <div className="grid grid-cols-3 gap-1.5">
@@ -156,13 +155,11 @@ export function MonthPicker({ month, year, onChange, className = "" }: MonthPick
   return (
     <div className={`relative ${className}`} ref={rootRef}>
       <button
-        className="inline-flex items-center gap-2 rounded-full border border-line bg-white/70 px-3 py-2 text-sm capitalize text-ink hover:border-pine/40"
+        className="rounded-full border border-line bg-white/70 px-3 py-2 text-sm capitalize text-ink hover:border-pine/40"
         onClick={() => setOpen((value) => !value)}
         type="button"
       >
-        <AppIcon name="tabler:calendar-month" className="size-4 text-ink/50" />
         {label}
-        <AppIcon name="tabler:chevron-down" className="size-4 text-ink/40" />
       </button>
       {open ? (
         sheet ? (
