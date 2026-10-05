@@ -5,6 +5,11 @@ import { useRouter } from "next/navigation";
 import { createDebtAction } from "@/app/actions/debt";
 import type { ActionState } from "@/app/actions/auth";
 import { FormError } from "@/components/forms/auth-forms";
+import {
+  PreviewChargesList,
+  newPreviewRowId,
+  type PreviewChargeRow,
+} from "@/components/forms/preview-charges-list";
 import { NoteEditor } from "@/components/notes/note-editor";
 import { DatePicker } from "@/components/ui/date-picker";
 import { FancyCheckbox } from "@/components/ui/fancy-checkbox";
@@ -23,12 +28,7 @@ export type DebtCreateMember = {
   userEmail?: string;
 };
 
-type PreviewRow = {
-  number: number;
-  amountInput: string;
-  dueDate: string;
-  paid: boolean;
-};
+type PreviewRow = PreviewChargeRow;
 
 function centsToInput(cents: number): string {
   return (cents / 100).toFixed(2).replace(".", ",");
@@ -145,6 +145,7 @@ export function DebtCreateForm({
         const rows: PreviewRow[] = [];
         for (let i = 0; i < paid; i += 1) {
           rows.push({
+            id: newPreviewRowId(),
             number: i + 1,
             amountInput,
             dueDate: toCalendarInputValue(addMonths(nextDue, -(paid - i))),
@@ -152,6 +153,7 @@ export function DebtCreateForm({
           });
         }
         rows.push({
+          id: newPreviewRowId(),
           number: paid + 1,
           amountInput,
           dueDate: toCalendarInputValue(nextDue),
@@ -169,6 +171,7 @@ export function DebtCreateForm({
             break;
           }
           rows.push({
+            id: newPreviewRowId(),
             number: rows.length + 1,
             amountInput,
             dueDate: toCalendarInputValue(addMonths(lastDue, 1)),
@@ -229,12 +232,14 @@ export function DebtCreateForm({
       const due = parseDateInput(firstDueDate);
       const rows = equalParcels
         ? Array.from({ length: count }, (_, index) => ({
+            id: newPreviewRowId(),
             number: index + 1,
             amountInput: centsToInput(perCents!),
             dueDate: toCalendarInputValue(addMonths(due, index)),
             paid: false,
           }))
         : generateInstallments(totalCents, count, due).map((item) => ({
+            id: newPreviewRowId(),
             number: item.number,
             amountInput: centsToInput(item.amountCents),
             dueDate: toCalendarInputValue(item.dueDate),
@@ -287,85 +292,6 @@ export function DebtCreateForm({
     } catch {
       // digitando
     }
-  }
-
-  function updateAmount(index: number, value: string) {
-    setPreview((rows) =>
-      rows.map((row, i) => (i >= index ? { ...row, amountInput: value } : row)),
-    );
-  }
-
-  function updateDueDate(index: number, value: string) {
-    setPreview((rows) => {
-      const next = rows.map((row, i) => (i === index ? { ...row, dueDate: value } : row));
-      if (isMonthly) {
-        return next;
-      }
-      try {
-        const base = parseDateInput(value);
-        for (let i = index + 1; i < next.length; i += 1) {
-          next[i] = {
-            ...next[i]!,
-            dueDate: toCalendarInputValue(addMonths(base, i - index)),
-          };
-        }
-      } catch {
-        // deixa só a linha editada
-      }
-      return next;
-    });
-  }
-
-  function renumber(rows: PreviewRow[]): PreviewRow[] {
-    return rows.map((row, index) => ({ ...row, number: index + 1 }));
-  }
-
-  function addChargeBefore() {
-    setPreview((rows) => {
-      if (rows.length >= 120 || rows.length === 0) {
-        return rows;
-      }
-      try {
-        const first = rows[0]!;
-        const base = parseDateInput(first.dueDate);
-        const row: PreviewRow = {
-          number: 1,
-          amountInput: first.amountInput,
-          dueDate: toCalendarInputValue(addMonths(base, -1)),
-          paid: isMonthly ? true : false,
-        };
-        return renumber([row, ...rows]);
-      } catch {
-        return rows;
-      }
-    });
-  }
-
-  function addChargeAfter() {
-    setPreview((rows) => {
-      if (rows.length >= 120 || rows.length === 0) {
-        return rows;
-      }
-      try {
-        const last = rows[rows.length - 1]!;
-        const base = parseDateInput(last.dueDate);
-        const row: PreviewRow = {
-          number: rows.length + 1,
-          amountInput: last.amountInput,
-          dueDate: toCalendarInputValue(addMonths(base, 1)),
-          paid: false,
-        };
-        return renumber([...rows, row]);
-      } catch {
-        return rows;
-      }
-    });
-  }
-
-  function togglePaid(index: number) {
-    setPreview((rows) =>
-      rows.map((row, i) => (i === index ? { ...row, paid: !row.paid } : row)),
-    );
   }
 
   const amountsHidden = preview
@@ -447,59 +373,13 @@ export function DebtCreateForm({
           </div>
         </div>
 
-        <ul className="max-h-72 space-y-2 overflow-y-auto rounded-2xl border border-line bg-white/50 p-3">
-          {preview.map((row, index) => (
-            <li
-              className="grid grid-cols-[auto_auto_1fr_7rem] items-center gap-2 rounded-xl px-1 py-1.5 sm:grid-cols-[4rem_auto_1fr_8rem]"
-              key={`${row.number}-${row.dueDate}`}
-            >
-              <span className="text-sm font-medium text-ink/70">#{row.number}</span>
-              <button
-                className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
-                  row.paid
-                    ? "bg-pine-soft text-pine-dark"
-                    : "bg-line/60 text-ink/55"
-                }`}
-                disabled={busy}
-                onClick={() => togglePaid(index)}
-                type="button"
-              >
-                {row.paid ? "Paga" : "Aberta"}
-              </button>
-              <DatePicker
-                compact
-                disabled={busy}
-                onChange={(next) => updateDueDate(index, next)}
-                value={row.dueDate}
-              />
-              <input
-                className="field py-2 text-right text-sm"
-                disabled={busy}
-                onChange={(event) => updateAmount(index, event.target.value)}
-                value={row.amountInput}
-              />
-            </li>
-          ))}
-        </ul>
-
-        <div className="flex items-center justify-center gap-2">
-          <button
-            className="btn-ghost px-4 py-2 text-sm"
-            disabled={busy || preview.length >= 120}
-            onClick={addChargeBefore}
-            type="button"
-          >
-            Antes
-          </button>
-          <button
-            className="btn-ghost px-4 py-2 text-sm"
-            disabled={busy || preview.length >= 120}
-            onClick={addChargeAfter}
-            type="button"
-          >
-            Depois
-          </button>
-        </div>
+        <PreviewChargesList
+          addBeforeAsPaid={isMonthly}
+          cascadeOnDateEdit={!isMonthly}
+          disabled={busy}
+          onChange={setPreview}
+          rows={preview}
+        />
 
         {(localError || state.error) ? <FormError message={localError ?? state.error!} /> : null}
 
