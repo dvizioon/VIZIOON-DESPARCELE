@@ -21,7 +21,7 @@ export function PaidMonth({ data }: { data: DashboardView }) {
   const [ownerFilter, setOwnerFilter] = useState<OwnerFilter>("all");
   const [includeLoan, setIncludeLoan] = useState(false);
   const [includeRecurring, setIncludeRecurring] = useState(true);
-  const [includeVariable, setIncludeVariable] = useState(false);
+  const [includeVariable, setIncludeVariable] = useState(true);
   const [month, setMonth] = useState(now.getMonth());
   const [year, setYear] = useState(now.getFullYear());
 
