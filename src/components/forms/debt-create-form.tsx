@@ -7,6 +7,7 @@ import type { ActionState } from "@/app/actions/auth";
 import { FormError } from "@/components/forms/auth-forms";
 import { NoteEditor } from "@/components/notes/note-editor";
 import { DatePicker } from "@/components/ui/date-picker";
+import { LabelWithTip } from "@/components/ui/tip";
 import { SearchSelect } from "@/components/ui/search-select";
 import type { DebtKind } from "@/modules/debt/domain/debt";
 import { generateInstallments } from "@/modules/installment/domain/generate-installments";
@@ -607,12 +608,11 @@ export function DebtCreateForm({
           onChange={(event) => setAutoPay(event.target.checked)}
           type="checkbox"
         />
-        <span>
-          <span className="block text-sm font-medium text-ink">Baixa automática</span>
-          <span className="mt-0.5 block text-xs text-ink/55">
-            Empréstimo / débito. Desligado por padrão. Mensal (recorrente/variável): parcela do cron
-            já nasce paga; parcelada: baixa no vencimento.
-          </span>
+        <span className="pt-0.5 text-sm font-medium text-ink">
+          <LabelWithTip
+            label="Baixa automática"
+            tip="Empréstimo ou débito. Desligado por padrão. Mensal: parcela do cron já nasce paga. Parcelada: baixa no vencimento."
+          />
         </span>
       </label>
 
@@ -623,11 +623,11 @@ export function DebtCreateForm({
           onChange={(event) => setRemindersEnabled(event.target.checked)}
           type="checkbox"
         />
-        <span>
-          <span className="block text-sm font-medium text-ink">Avisar por e-mail</span>
-          <span className="mt-0.5 block text-xs text-ink/55">
-            Antes do vencimento e se atrasar (admin precisa ligar o cron de e-mail).
-          </span>
+        <span className="pt-0.5 text-sm font-medium text-ink">
+          <LabelWithTip
+            label="Avisar por e-mail"
+            tip="Avisa antes do vencimento e se atrasar. O admin precisa ter o cron de e-mail ligado."
+          />
         </span>
       </label>
 

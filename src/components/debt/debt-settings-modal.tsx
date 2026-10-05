@@ -15,6 +15,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { AppIcon } from "@/components/ui/icon";
 import { HiddenScroll } from "@/components/ui/hidden-scroll";
 import { Portal } from "@/components/ui/portal";
+import { LabelWithTip } from "@/components/ui/tip";
 import type { DebtHideMode, DebtKind } from "@/modules/debt/domain/debt";
 
 type MemberOption = {
@@ -228,9 +229,9 @@ function DebtSettingsDialog({
             <div className="mt-6 space-y-3 border-t border-line pt-5">
               <ToggleRow
                 checked={payAuto}
-                description="Empréstimo / débito. Recorrente: parcela do cron já nasce paga. Parcelada: baixa no vencimento."
                 disabled={togglePending}
                 label="Baixa automática"
+                tip="Empréstimo ou débito. Mensal: parcela do cron já nasce paga. Parcelada: baixa no vencimento."
                 onChange={(next) => {
                   setPayAuto(next);
                   setTogglePending(true);
@@ -248,9 +249,9 @@ function DebtSettingsDialog({
               />
               <ToggleRow
                 checked={reminders}
-                description="E-mail antes do vencimento e se atrasar (admin liga o cron)."
                 disabled={togglePending}
                 label="Avisar por e-mail"
+                tip="Avisa antes do vencimento e se atrasar. O admin precisa ter o cron de e-mail ligado."
                 onChange={(next) => {
                   setReminders(next);
                   setTogglePending(true);
@@ -269,9 +270,9 @@ function DebtSettingsDialog({
               {kind === "RECURRING" || kind === "VARIABLE" ? (
                 <ToggleRow
                   checked={paused}
-                  description="Para de gerar a cobrança do mês até você despausar."
                   disabled={togglePending}
                   label={kind === "VARIABLE" ? "Pausar mensal variável" : "Pausar recorrência"}
+                  tip="Para de gerar a cobrança do mês até você despausar."
                   onChange={(next) => {
                     setPaused(next);
                     setTogglePending(true);
@@ -295,10 +296,11 @@ function DebtSettingsDialog({
             {canManageVisibility && shared ? (
               <div className="mt-6 space-y-3 border-t border-line pt-5">
                 <div>
-                  <p className="text-sm font-medium text-ink">Ocultar no workspace</p>
-                  <p className="mt-0.5 text-xs text-ink/55">
-                    Para quem estiver oculto, a dívida some da lista e do índice, como se não existisse.
-                    Admin continua vendo.
+                  <p className="text-sm font-medium text-ink">
+                    <LabelWithTip
+                      label="Ocultar no workspace"
+                      tip="Para quem estiver oculto, a dívida some da lista e do índice. Admin continua vendo."
+                    />
                   </p>
                 </div>
 
@@ -416,13 +418,13 @@ function DebtSettingsDialog({
 function ToggleRow({
   checked,
   label,
-  description,
+  tip,
   disabled,
   onChange,
 }: {
   checked: boolean;
   label: string;
-  description: string;
+  tip: string;
   disabled: boolean;
   onChange: (next: boolean) => void;
 }) {
@@ -435,9 +437,8 @@ function ToggleRow({
         onChange={(event) => onChange(event.target.checked)}
         type="checkbox"
       />
-      <span>
-        <span className="block text-sm font-medium text-ink">{label}</span>
-        <span className="mt-0.5 block text-xs text-ink/55">{description}</span>
+      <span className="pt-0.5 text-sm font-medium text-ink">
+        <LabelWithTip label={label} tip={tip} />
       </span>
     </label>
   );

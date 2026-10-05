@@ -25,6 +25,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@iconify/react": "^5.2.1",
     "@prisma/client": "^6.5.0",
+    "@radix-ui/react-tooltip": "^1.2.16",
     "@tinymce/tinymce-react": "^6.3.0",
     "bcryptjs": "^3.0.2",
     "gsap": "^3.15.0",

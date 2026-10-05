@@ -87,15 +87,24 @@ export function DatePicker({
       }
     }
     function onPointer(event: MouseEvent) {
-      const target = event.target as Node;
-      if (rootRef.current?.contains(target) || menuRef.current?.contains(target)) {
-        return;
+      const path = event.composedPath();
+      for (const node of path) {
+        if (!(node instanceof HTMLElement)) {
+          continue;
+        }
+        if (node.dataset.datePicker === "root" || node.dataset.datePicker === "panel") {
+          return;
+        }
       }
       setOpen(false);
     }
+    // Evita o mesmo clique que abriu já fechar o painel
+    const timer = window.setTimeout(() => {
+      window.addEventListener("mousedown", onPointer);
+    }, 0);
     window.addEventListener("keydown", onKey);
-    window.addEventListener("mousedown", onPointer);
     return () => {
+      window.clearTimeout(timer);
       window.removeEventListener("keydown", onKey);
       window.removeEventListener("mousedown", onPointer);
     };
@@ -127,34 +136,38 @@ export function DatePicker({
   }, [open, sheet]);
 
   useEffect(() => {
-    if (open && !sheet) {
-      const timer = window.setTimeout(() => inputRef.current?.focus(), 30);
-      return () => window.clearTimeout(timer);
+    if (!open) {
+      return;
     }
-  }, [open, sheet]);
+    const timer = window.setTimeout(() => inputRef.current?.focus(), 40);
+    return () => window.clearTimeout(timer);
+  }, [open]);
 
   const cells = useMemo(() => buildCalendar(view.year, view.month), [view.year, view.month]);
   const selected = safeParse(value);
   const label = selected ? formatDateFull(selected) : "Data";
 
-  function commitIso(iso: string) {
+  function commitIso(iso: string, close = true) {
     onChange(iso);
     setDraft(toDisplay(iso));
     setView(viewFromValue(iso));
-    setOpen(false);
+    if (close) {
+      setOpen(false);
+    }
   }
 
   function pickDay(year: number, month: number, day: number) {
-    commitIso(toCalendarInputValue(calendarDate(year, month, day)));
+    commitIso(toCalendarInputValue(calendarDate(year, month, day)), true);
   }
 
-  function applyDraft() {
+  /** Valida o que digitou sem fechar o calendário (blur / Ant / Prox). */
+  function syncDraft(close = false) {
     const parsed = parseTypedDate(draft);
     if (!parsed) {
       setDraft(toDisplay(value));
       return;
     }
-    commitIso(toCalendarInputValue(parsed));
+    commitIso(toCalendarInputValue(parsed), close);
   }
 
   const panel = (
@@ -162,6 +175,7 @@ export function DatePicker({
       className={`rounded-2xl border border-line bg-paper p-3 shadow-lg ${
         sheet ? "mx-auto w-full max-w-sm" : ""
       }`}
+      data-date-picker="panel"
       ref={menuRef}
       style={sheet ? undefined : menuStyle}
     >
@@ -169,12 +183,12 @@ export function DatePicker({
         aria-label="Data"
         className="field mb-3 w-full rounded-xl px-3 py-2 text-sm"
         inputMode="numeric"
-        onBlur={applyDraft}
+        onBlur={() => syncDraft(false)}
         onChange={(event) => setDraft(event.target.value)}
         onKeyDown={(event) => {
           if (event.key === "Enter") {
             event.preventDefault();
-            applyDraft();
+            syncDraft(true);
           }
         }}
         placeholder="dd/mm/aaaa"
@@ -185,6 +199,7 @@ export function DatePicker({
       <div className="mb-2 flex items-center justify-between gap-2">
         <button
           className="rounded-xl px-2.5 py-1.5 text-sm text-ink/60 hover:bg-white hover:text-ink"
+          onMouseDown={(event) => event.preventDefault()}
           onClick={() => setView((current) => shiftMonth(current, -1))}
           type="button"
         >
@@ -195,6 +210,7 @@ export function DatePicker({
         </p>
         <button
           className="rounded-xl px-2.5 py-1.5 text-sm text-ink/60 hover:bg-white hover:text-ink"
+          onMouseDown={(event) => event.preventDefault()}
           onClick={() => setView((current) => shiftMonth(current, 1))}
           type="button"
         >
@@ -231,6 +247,7 @@ export function DatePicker({
                     : "bg-white/70 text-ink/80 hover:bg-pine-soft hover:text-pine-dark"
               }`}
               key={`${cell.year}-${cell.month}-${cell.day}`}
+              onMouseDown={(event) => event.preventDefault()}
               onClick={() => pickDay(cell.year, cell.month, cell.day)}
               type="button"
             >
@@ -243,6 +260,7 @@ export function DatePicker({
       <div className="mt-3 flex items-center justify-between gap-2 text-sm">
         <button
           className="text-pine-dark hover:underline"
+          onMouseDown={(event) => event.preventDefault()}
           onClick={() => {
             const now = new Date();
             pickDay(now.getFullYear(), now.getMonth(), now.getDate());
@@ -259,7 +277,7 @@ export function DatePicker({
   );
 
   return (
-    <div className={`relative ${className}`} id={id} ref={rootRef}>
+    <div className={`relative ${className}`} data-date-picker="root" id={id} ref={rootRef}>
       {name ? <input name={name} type="hidden" value={value} /> : null}
       <button
         className={
