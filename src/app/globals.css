@@ -184,6 +184,28 @@ body {
   animation: installment-blink 0.9s ease-in-out 2;
 }
 
+/* SVAR calendar — parcelas */
+.installments-svar-calendar {
+  --wx-color-primary: #0c6b5c;
+}
+
+.installments-svar-calendar .desparcele-event-paid {
+  background: rgba(12, 107, 92, 0.16) !important;
+  color: #0c6b5c !important;
+  border-color: rgba(12, 107, 92, 0.35) !important;
+}
+
+.installments-svar-calendar .desparcele-event-open {
+  background: rgba(196, 92, 38, 0.14) !important;
+  color: #a34a1f !important;
+  border-color: rgba(196, 92, 38, 0.35) !important;
+}
+
+.installments-svar-calendar .desparcele-event-new {
+  outline: 2px solid #0c6b5c;
+  animation: installment-blink 0.9s ease-in-out 2;
+}
+
 @keyframes dialog-overlay-in {
   from {
     opacity: 0;

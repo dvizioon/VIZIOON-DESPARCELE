@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
@@ -26,6 +27,21 @@ import { MonthBadge } from "@/components/ui/month-badge";
 import { formatBRL } from "@/shared/utils/money";
 import { formatDateFull } from "@/shared/utils/date";
 
+const InstallmentsSvarCalendar = dynamic(
+  () =>
+    import("@/components/debt/installments-svar-calendar").then(
+      (mod) => mod.InstallmentsSvarCalendar,
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-[min(40rem,70vh)] w-full items-center justify-center rounded-3xl border border-line bg-white/60 text-sm text-ink/50">
+        Carregando calendário…
+      </div>
+    ),
+  },
+);
+
 export type InstallmentListItem = {
   id: string;
   number: number;
@@ -41,18 +57,9 @@ export type InstallmentListItem = {
 type ViewMode = "list" | "calendar" | "pipeline";
 
 const VIEW_KEY = "desparcele.installments.view";
-const WEEKDAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
 function parseItemDate(value: string): Date {
   return new Date(value.includes("T") ? value : `${value}T12:00:00.000Z`);
-}
-
-function monthKey(date: Date): string {
-  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
-}
-
-function dayKey(date: Date): string {
-  return `${monthKey(date)}-${String(date.getUTCDate()).padStart(2, "0")}`;
 }
 
 function isOverdue(item: InstallmentListItem, now = new Date()): boolean {
@@ -85,11 +92,6 @@ export function InstallmentsList({
   const [view, setView] = useState<ViewMode>("list");
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const [blinkId, setBlinkId] = useState<string | null>(null);
-  const [calendarCursor, setCalendarCursor] = useState(() => {
-    const firstOpen = installments.find((item) => !item.paid);
-    const base = parseItemDate((firstOpen ?? installments[0])?.dueDate ?? new Date().toISOString());
-    return { year: base.getUTCFullYear(), month: base.getUTCMonth() };
-  });
   const highlightTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const blinkTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -275,13 +277,7 @@ export function InstallmentsList({
       ) : null}
 
       {view === "calendar" ? (
-        <CalendarView
-          blinkId={blinkId}
-          cursor={calendarCursor}
-          highlightId={highlightId}
-          items={items}
-          onCursorChange={setCalendarCursor}
-        />
+        <InstallmentsSvarCalendar highlightId={highlightId} items={items} />
       ) : null}
 
       {view === "pipeline" ? (
@@ -502,143 +498,5 @@ function PipelineColumn({
         )}
       </ul>
     </section>
-  );
-}
-
-function CalendarView({
-  items,
-  cursor,
-  onCursorChange,
-  highlightId,
-  blinkId,
-}: {
-  items: InstallmentListItem[];
-  cursor: { year: number; month: number };
-  onCursorChange: (next: { year: number; month: number }) => void;
-  highlightId: string | null;
-  blinkId: string | null;
-}) {
-  const byDay = useMemo(() => {
-    const map = new Map<string, InstallmentListItem[]>();
-    for (const item of items) {
-      const key = dayKey(parseItemDate(item.dueDate));
-      const list = map.get(key) ?? [];
-      list.push(item);
-      map.set(key, list);
-    }
-    return map;
-  }, [items]);
-
-  const first = new Date(Date.UTC(cursor.year, cursor.month, 1));
-  const startPad = first.getUTCDay();
-  const daysInMonth = new Date(Date.UTC(cursor.year, cursor.month + 1, 0)).getUTCDate();
-  const cells: Array<{ day: number | null; key: string | null }> = [];
-  for (let i = 0; i < startPad; i += 1) {
-    cells.push({ day: null, key: null });
-  }
-  for (let day = 1; day <= daysInMonth; day += 1) {
-    const key = `${cursor.year}-${String(cursor.month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-    cells.push({ day, key });
-  }
-
-  const label = new Intl.DateTimeFormat("pt-BR", {
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(first);
-
-  const monthItems = items.filter((item) => {
-    const due = parseItemDate(item.dueDate);
-    return due.getUTCFullYear() === cursor.year && due.getUTCMonth() === cursor.month;
-  });
-
-  return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between gap-2">
-        <button
-          className="btn-ghost px-3 py-2"
-          onClick={() => {
-            const month = cursor.month - 1;
-            onCursorChange(
-              month < 0 ? { year: cursor.year - 1, month: 11 } : { year: cursor.year, month },
-            );
-          }}
-          type="button"
-        >
-          <AppIcon className="size-4" name="tabler:chevron-left" />
-        </button>
-        <p className="font-display text-xl capitalize">{label}</p>
-        <button
-          className="btn-ghost px-3 py-2"
-          onClick={() => {
-            const month = cursor.month + 1;
-            onCursorChange(
-              month > 11 ? { year: cursor.year + 1, month: 0 } : { year: cursor.year, month },
-            );
-          }}
-          type="button"
-        >
-          <AppIcon className="size-4" name="tabler:chevron-right" />
-        </button>
-      </div>
-
-      <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-medium text-ink/50">
-        {WEEKDAYS.map((day) => (
-          <div key={day}>{day}</div>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-7 gap-1">
-        {cells.map((cell, index) => {
-          if (cell.day == null || !cell.key) {
-            return <div className="min-h-16 rounded-xl bg-transparent" key={`empty-${index}`} />;
-          }
-          const dayItems = byDay.get(cell.key) ?? [];
-          return (
-            <div
-              className="min-h-16 rounded-xl border border-line bg-white/70 p-1.5"
-              key={cell.key}
-            >
-              <p className="text-[11px] font-medium text-ink/55">{cell.day}</p>
-              <div className="mt-1 space-y-0.5">
-                {dayItems.slice(0, 2).map((item) => (
-                  <p
-                    className={`truncate rounded-md px-1 py-0.5 text-[10px] ${
-                      item.paid ? "bg-pine-soft text-pine-dark" : "bg-clay/10 text-clay"
-                    } ${blinkId === item.id ? "installment-blink" : ""}`}
-                    key={item.id}
-                    title={`Parcela ${item.number} · ${formatBRL(item.amountCents)}`}
-                  >
-                    #{item.number}
-                    {highlightId === item.id ? " · nova" : ""}
-                  </p>
-                ))}
-                {dayItems.length > 2 ? (
-                  <p className="text-[10px] text-ink/45">+{dayItems.length - 2}</p>
-                ) : null}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      <ul className="grid gap-2">
-        {monthItems.length === 0 ? (
-          <li className="rounded-2xl border border-dashed border-line px-3 py-4 text-center text-sm text-ink/50">
-            Nenhuma parcela neste mês
-          </li>
-        ) : (
-          monthItems.map((item) => (
-            <li
-              className={`sheet ${blinkId === item.id ? "installment-blink" : ""}`}
-              id={`installment-${item.id}`}
-              key={item.id}
-            >
-              <InstallmentCardBody isNew={highlightId === item.id} item={item} />
-            </li>
-          ))
-        )}
-      </ul>
-    </div>
   );
 }
