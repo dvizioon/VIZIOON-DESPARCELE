@@ -13,6 +13,7 @@ import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { AppIcon } from "@/components/ui/icon";
 import { SortableInstallmentCard, StaticInstallmentCard } from "./installment-card";
 import type { InstallmentListItem, InstallmentMemberOption, ListMode } from "./types";
+import { buildPageItems } from "./utils";
 
 function InstallmentSkeleton() {
   return (
@@ -150,26 +151,44 @@ export function InstallmentsListView({
       )}
 
       {listMode === "paged" && totalCount > pageSize ? (
-        <div className="flex flex-wrap items-center justify-center gap-2">
+        <div className="flex flex-wrap items-center justify-center gap-1.5">
           <button
-            className="btn-ghost inline-flex items-center gap-1 px-3 py-2"
+            aria-label="Página anterior"
+            className="inline-flex size-9 items-center justify-center rounded-full text-ink/60 transition hover:bg-paper hover:text-ink disabled:opacity-35"
             disabled={page <= 1}
             onClick={() => onPageChange(Math.max(1, page - 1))}
             type="button"
           >
             <AppIcon className="size-4" name="tabler:chevron-left" />
-            Anterior
           </button>
-          <span className="text-sm text-ink/60">
-            {page} / {totalPages}
-          </span>
+          {buildPageItems(page, totalPages).map((item, index) =>
+            item === "…" ? (
+              <span className="px-1 text-sm text-ink/35" key={`ellipsis-${index}`}>
+                …
+              </span>
+            ) : (
+              <button
+                aria-current={item === page ? "page" : undefined}
+                className={`inline-flex size-9 items-center justify-center rounded-full text-sm font-medium transition ${
+                  item === page
+                    ? "bg-pine text-white"
+                    : "text-ink/65 hover:bg-paper hover:text-ink"
+                }`}
+                key={item}
+                onClick={() => onPageChange(item)}
+                type="button"
+              >
+                {item}
+              </button>
+            ),
+          )}
           <button
-            className="btn-ghost inline-flex items-center gap-1 px-3 py-2"
+            aria-label="Próxima página"
+            className="inline-flex size-9 items-center justify-center rounded-full text-ink/60 transition hover:bg-paper hover:text-ink disabled:opacity-35"
             disabled={page >= totalPages}
             onClick={() => onPageChange(Math.min(totalPages, page + 1))}
             type="button"
           >
-            Próxima
             <AppIcon className="size-4" name="tabler:chevron-right" />
           </button>
         </div>

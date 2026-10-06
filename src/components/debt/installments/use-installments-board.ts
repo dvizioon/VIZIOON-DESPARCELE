@@ -15,7 +15,7 @@ import {
   VIEW_KEY,
 } from "./constants";
 import type { InstallmentListItem, ListMode, StatusFilter, ViewMode } from "./types";
-import { matchesFilter, splitPipeline } from "./utils";
+import { matchesFilter, findMonthInstallmentIndex, splitPipeline } from "./utils";
 
 function parsePageSize(value: string | null): number {
   const n = Number(value);
@@ -50,6 +50,7 @@ export function useInstallmentsBoard({
   const [loadingMore, setLoadingMore] = useState(false);
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const [blinkId, setBlinkId] = useState<string | null>(null);
+  const [monthPageSeeded, setMonthPageSeeded] = useState(false);
   const highlightTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const blinkTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const loadTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -98,15 +99,25 @@ export function useInstallmentsBoard({
   }, [listConfigOpen]);
 
   useEffect(() => {
-    setPage(1);
     setVisibleCount(INFINITE_STEP);
     setLoadingMore(false);
+    setMonthPageSeeded(false);
   }, [statusFilter, listMode, pageSize]);
 
   const filtered = useMemo(
     () => items.filter((item) => matchesFilter(item, statusFilter)),
     [items, statusFilter],
   );
+
+  // Abre na página da parcela do mês (não sempre na 1)
+  useEffect(() => {
+    if (listMode !== "paged" || view !== "list" || monthPageSeeded || filtered.length === 0) {
+      return;
+    }
+    const index = findMonthInstallmentIndex(filtered);
+    setPage(Math.floor(index / pageSize) + 1);
+    setMonthPageSeeded(true);
+  }, [filtered, listMode, view, pageSize, monthPageSeeded]);
 
   useEffect(() => {
     if (!highlightId) {

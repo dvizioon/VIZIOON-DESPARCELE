@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import type { ReactNode } from "react";
 import { NoteComposer } from "@/components/notes/note-composer";
 import { NoteList } from "@/components/notes/note-list";
 import { DebtSettingsModal } from "@/components/debt/debt-settings-modal";
@@ -56,6 +57,18 @@ export default async function DebtDetailPage({ params }: DebtDetailPageProps) {
   const paidCents = debt.installments
     .filter((item) => item.status === "PAID")
     .reduce((sum, item) => sum + item.amountCents, 0);
+  const now = new Date();
+  const overdueItems = debt.installments.filter((item) => {
+    if (item.status === "PAID") {
+      return false;
+    }
+    const due = item.dueDate;
+    const todayUtc = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+    const dueUtc = Date.UTC(due.getUTCFullYear(), due.getUTCMonth(), due.getUTCDate());
+    return dueUtc < todayUtc;
+  });
+  const overdueCents = overdueItems.reduce((sum, item) => sum + item.amountCents, 0);
+  const overdueCount = overdueItems.length;
   const progress =
     debt.installmentCount > 0 ? Math.round((paidCount / debt.installmentCount) * 100) : 0;
   const members = access.value.members.map((item) => ({
@@ -119,26 +132,39 @@ export default async function DebtDetailPage({ params }: DebtDetailPageProps) {
             </p>
           ) : null}
         </div>
-        <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Metric label="Total" value={formatBRL(debt.totalAmountCents)} />
-          <Metric
-            label="Já pago"
-            value={formatBRL(paidCents)}
-            hint={`${paidCount} parcela${paidCount === 1 ? "" : "s"}`}
-          />
-          <Metric
-            label="Ainda falta"
-            value={formatBRL(remaining)}
-            hint={`${remainingCount} em aberto`}
-          />
-          <Metric label="Progresso" value={`${progress}%`} />
-        </div>
-        <div className="mt-5 h-2 overflow-hidden rounded-full bg-line">
-          <div
-            className="progress-fill h-full rounded-full bg-pine"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" data-reveal>
+        <StatCard hint="Valor total da dívida" label="Total" value={formatBRL(debt.totalAmountCents)} />
+        <StatCard
+          hint={`${paidCount} parcela${paidCount === 1 ? "" : "s"}`}
+          label="Já pago"
+          value={formatBRL(paidCents)}
+        />
+        <StatCard
+          hint={`${remainingCount} em aberto`}
+          label="Ainda falta"
+          value={formatBRL(remaining)}
+        />
+        <StatCard
+          hint={`${overdueCount} parcela${overdueCount === 1 ? "" : "s"}`}
+          label="Atrasadas"
+          value={formatBRL(overdueCents)}
+          warn={overdueCount > 0}
+        />
+        <StatCard
+          className="sm:col-span-2 lg:col-span-2"
+          hint={`${paidCount} de ${debt.installmentCount} parcelas`}
+          label="Progresso"
+          value={`${progress}%`}
+        >
+          <div className="mt-4 h-2 overflow-hidden rounded-full bg-line">
+            <div
+              className="progress-fill h-full rounded-full bg-pine"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        </StatCard>
       </div>
 
       <section className="sheet space-y-4" data-reveal>
@@ -205,20 +231,27 @@ export default async function DebtDetailPage({ params }: DebtDetailPageProps) {
   );
 }
 
-function Metric({
+function StatCard({
   label,
   value,
   hint,
+  warn = false,
+  className = "",
+  children,
 }: {
   label: string;
   value: string;
-  hint?: string;
+  hint: string;
+  warn?: boolean;
+  className?: string;
+  children?: ReactNode;
 }) {
   return (
-    <div>
-      <p className="text-sm text-ink/50">{label}</p>
-      <p className="font-display text-2xl">{value}</p>
-      {hint ? <p className="mt-0.5 text-xs text-ink/45">{hint}</p> : null}
-    </div>
+    <article className={`sheet ${className}`}>
+      <p className="text-sm text-ink/55">{label}</p>
+      <p className={`mt-3 font-display text-3xl ${warn ? "text-clay" : ""}`}>{value}</p>
+      <p className="mt-1 text-sm text-ink/50">{hint}</p>
+      {children}
+    </article>
   );
 }
