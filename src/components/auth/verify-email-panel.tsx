@@ -52,7 +52,7 @@ export function VerifyEmailPanel({
 
       {locked ? (
         <p className="rounded-2xl bg-clay/10 px-3 py-2 text-sm text-clay">
-          Passaram 24 horas sem confirmação. Para continuar, abra o e-mail e confirme — ou peça um
+          Passaram 24 horas sem confirmação. Para continuar, abra o e-mail e confirme, ou peça um
           novo link abaixo.
         </p>
       ) : graceHoursLeft != null ? (

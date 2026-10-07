@@ -78,7 +78,7 @@ export function isVariable(debt: Pick<Debt, "kind">): boolean {
   return debt.kind === "VARIABLE";
 }
 
-/** Recorrente fixa ou mensal variável — entram no cron de geração. */
+/** Recorrente fixa ou mensal variável: entram no cron de geração. */
 export function isMonthlyGenerated(debt: Pick<Debt, "kind">): boolean {
   return debt.kind === "RECURRING" || debt.kind === "VARIABLE";
 }

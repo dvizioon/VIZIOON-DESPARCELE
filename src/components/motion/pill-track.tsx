@@ -34,7 +34,7 @@ export function PillTrack({
         return;
       }
 
-      // offset* é relativo ao wrap (position: relative) — estável com scroll/transform no ancestral
+      // offset* é relativo ao wrap (position: relative), estável com scroll/transform no ancestral
       const width = active.offsetWidth;
       const height = active.offsetHeight;
       if (width < 2 || height < 2) {

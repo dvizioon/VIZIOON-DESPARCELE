@@ -138,7 +138,7 @@ function scrubEmbeddedDataImages(html: string, logoUrl: string): string {
 /** Logo verde some no cabeçalho verde: coloca placa branca atrás. */
 function ensureLogoPlate(html: string, logoUrl: string): string {
   if (!logoUrl || html.includes("background:#ffffff") || html.includes("background:#fff")) {
-    // já tem placa branca no layout novo — só garante img da marca
+    // já tem placa branca no layout novo: só garante img da marca
     if (html.includes(`src="${logoUrl}"`) || html.includes(`src='${logoUrl}'`)) {
       return html;
     }

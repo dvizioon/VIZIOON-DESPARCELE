@@ -35,7 +35,7 @@ export function VerifyEmailBanner({
           Enviamos um link para <span className="font-medium">{email}</span>. Sem confirmar, o
           acesso fica limitado
           {graceHoursLeft != null && graceHoursLeft > 0
-            ? ` — ainda restam cerca de ${graceHoursLeft}h`
+            ? `. Ainda restam cerca de ${graceHoursLeft}h`
             : ""}
           .
         </p>

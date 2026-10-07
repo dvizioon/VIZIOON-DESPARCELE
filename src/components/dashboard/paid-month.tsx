@@ -141,7 +141,7 @@ export function PaidMonth({ data }: { data: DashboardView }) {
             payerRanking[0] && payerRanking[0].cents > 0 ? (
               <CountUpMoney cents={payerRanking[0].cents} />
             ) : (
-              "—"
+              "-"
             )
           }
         />

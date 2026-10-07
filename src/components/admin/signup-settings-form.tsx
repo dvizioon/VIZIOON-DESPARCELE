@@ -7,6 +7,7 @@ import {
   setSignupFieldsAction,
 } from "@/app/actions/admin";
 import { FormError } from "@/components/forms/auth-forms";
+import { LabelWithTip } from "@/components/ui/tip";
 import type { SignupFields } from "@/modules/admin/domain/platform";
 
 export function SignupSettingsForm({
@@ -61,7 +62,16 @@ export function SignupSettingsForm({
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className="font-display text-2xl">Novas contas</h3>
+              <h3 className="font-display text-2xl">
+                <LabelWithTip
+                  label="Novas contas"
+                  tip={
+                    enabled
+                      ? "Qualquer pessoa pode criar uma conta."
+                      : "Só quem já tem conta consegue entrar."
+                  }
+                />
+              </h3>
               <span
                 className={`rounded-full px-2.5 py-1 text-xs font-medium ${
                   enabled ? "bg-pine-soft text-pine-dark" : "bg-clay/10 text-clay"
@@ -70,11 +80,6 @@ export function SignupSettingsForm({
                 {enabled ? "Permitido" : "Bloqueado"}
               </span>
             </div>
-            <p className="mt-2 max-w-md text-sm text-ink/60">
-              {enabled
-                ? "Qualquer pessoa pode criar uma conta."
-                : "Só quem já tem conta consegue entrar."}
-            </p>
           </div>
 
           <button
@@ -97,42 +102,42 @@ export function SignupSettingsForm({
       </div>
 
       <div className="sheet space-y-4">
-        <div>
-          <h3 className="font-display text-2xl">Campos do cadastro</h3>
-          <p className="mt-2 max-w-md text-sm text-ink/60">
-            Escolha o que aparece na tela de criar conta. E-mail e senha ficam sempre ligados.
-          </p>
-        </div>
+        <h3 className="font-display text-2xl">
+          <LabelWithTip
+            label="Campos do cadastro"
+            tip="Escolha o que aparece na tela de criar conta. E-mail e senha ficam sempre ligados."
+          />
+        </h3>
 
         <ul className="divide-y divide-ink/10">
           <FieldToggle
-            description="Nome e sobrenome no formulário."
             disabled={pending}
             enabled={fields.name}
             label="Nome completo"
+            tip="Pede nome e sobrenome no formulário de criar conta."
             onToggle={(next) => toggleField("name", next)}
           />
           <FieldToggle
-            description="Necessário para entrar — não dá para desligar."
             disabled
             enabled={fields.email}
             label="E-mail"
             locked
+            tip="Obrigatório para entrar. Não dá para desligar."
             onToggle={() => undefined}
           />
           <FieldToggle
-            description="Telefone opcional no cadastro."
             disabled={pending}
             enabled={fields.phone}
             label="Telefone"
+            tip="Mostra o campo de telefone no cadastro."
             onToggle={(next) => toggleField("phone", next)}
           />
           <FieldToggle
-            description="Necessário para entrar — não dá para desligar."
             disabled
             enabled={fields.password}
             label="Senha"
             locked
+            tip="Obrigatória para entrar. Não dá para desligar."
             onToggle={() => undefined}
           />
         </ul>
@@ -145,14 +150,14 @@ export function SignupSettingsForm({
 
 function FieldToggle({
   label,
-  description,
+  tip,
   enabled,
   disabled,
   locked,
   onToggle,
 }: {
   label: string;
-  description: string;
+  tip: string;
   enabled: boolean;
   disabled?: boolean;
   locked?: boolean;
@@ -162,10 +167,9 @@ function FieldToggle({
     <li className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0">
       <div className="min-w-0">
         <p className="font-medium text-ink">
-          {label}
+          <LabelWithTip label={label} tip={tip} />
           {locked ? <span className="ml-2 text-xs font-normal text-ink/45">sempre on</span> : null}
         </p>
-        <p className="mt-0.5 text-sm text-ink/55">{description}</p>
       </div>
       <button
         aria-pressed={enabled}

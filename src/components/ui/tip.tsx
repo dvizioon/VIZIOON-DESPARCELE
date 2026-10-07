@@ -9,7 +9,7 @@ type TipProps = {
   side?: "top" | "right" | "bottom" | "left";
 };
 
-/** `?` ao lado do rótulo — explica sem poluir a tela. */
+/** `?` ao lado do rótulo: explica sem poluir a tela. */
 export function Tip({ content, children, side = "top" }: TipProps) {
   const [open, setOpen] = useState(false);
 

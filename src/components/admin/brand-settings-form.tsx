@@ -10,6 +10,7 @@ import {
 } from "@/app/actions/admin";
 import { FormError } from "@/components/forms/auth-forms";
 import { AppIcon } from "@/components/ui/icon";
+import { LabelWithTip } from "@/components/ui/tip";
 
 export function BrandSettingsForm({
   hasCustomLogo,
@@ -81,10 +82,10 @@ export function BrandSettingsForm({
     <div className="space-y-4">
       <AssetCard
         bust={logoKey}
-        description="Aparece nos e-mails. URL pública: /api/brand/logo"
         hasCustom={hasCustomLogo}
         imageSrc={`/api/brand/logo?v=${logoKey}`}
         label="Logo"
+        tip="Aparece nos e-mails. URL pública: /api/brand/logo"
         onClear={() => clear("logo", clearBrandLogoAction)}
         onPick={() => logoInput.current?.click()}
         pending={pending}
@@ -104,10 +105,10 @@ export function BrandSettingsForm({
 
       <AssetCard
         bust={faviconKey}
-        description="Ícone da aba do navegador. URL pública: /api/brand/favicon"
         hasCustom={hasCustomFavicon}
         imageSrc={`/api/brand/favicon?v=${faviconKey}`}
         label="Favicon"
+        tip="Ícone da aba do navegador. URL pública: /api/brand/favicon"
         onClear={() => clear("favicon", clearBrandFaviconAction)}
         onPick={() => faviconInput.current?.click()}
         pending={pending}
@@ -133,7 +134,7 @@ export function BrandSettingsForm({
 
 function AssetCard({
   label,
-  description,
+  tip,
   imageSrc,
   previewClassName,
   hasCustom,
@@ -143,7 +144,7 @@ function AssetCard({
   children,
 }: {
   label: string;
-  description: string;
+  tip: string;
   imageSrc: string;
   previewClassName: string;
   hasCustom: boolean;
@@ -164,12 +165,13 @@ function AssetCard({
         />
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <h3 className="font-display text-2xl">{label}</h3>
+            <h3 className="font-display text-2xl">
+              <LabelWithTip label={label} tip={tip} />
+            </h3>
             <span className="rounded-full bg-ink/5 px-2.5 py-1 text-xs text-ink/55">
               {hasCustom ? "Personalizada" : "Padrão"}
             </span>
           </div>
-          <p className="mt-1 text-sm text-ink/60">{description}</p>
         </div>
       </div>
 
