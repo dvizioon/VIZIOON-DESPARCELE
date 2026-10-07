@@ -1,21 +1,17 @@
-import { readFile } from "fs/promises";
-import path from "path";
-import { getAppOrigin } from "@/shared/config/app-origin";
-import { createFileStorage } from "@/shared/storage/create-file-storage";
-import { prisma } from "@/shared/infrastructure/prisma";
+import "server-only";
 
-export type BrandAssetKind = "logo" | "favicon";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+import { prisma } from "@/shared/infrastructure/prisma";
+import { createFileStorage } from "@/shared/storage/create-file-storage";
+import type { BrandAssetKind } from "./brand-url";
+
+export type { BrandAssetKind } from "./brand-url";
 
 export type BrandAssetPayload = {
   buffer: Buffer;
   mimeType: string;
 };
-
-/** URL pública mascarada — usada nos e-mails e no `<link rel="icon">`. */
-export async function publicBrandAssetUrl(kind: BrandAssetKind): Promise<string> {
-  const origin = await getAppOrigin();
-  return `${origin}/api/brand/${kind}`;
-}
 
 export async function loadBrandAsset(kind: BrandAssetKind): Promise<BrandAssetPayload | null> {
   const row = await prisma.systemConfig.findUnique({ where: { id: "default" } });

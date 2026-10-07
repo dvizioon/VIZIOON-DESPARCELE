@@ -1,5 +1,5 @@
 import { fail, ok, type Result } from "@/shared/types/result";
-import { publicBrandAssetUrl } from "@/shared/brand/resolve-brand-asset";
+import { publicBrandAssetUrl } from "@/shared/brand/brand-url";
 import { getAppOrigin, withPublicOrigin } from "@/shared/config/app-origin";
 import { applyEmailTemplate, findEmailPurpose } from "../domain/purposes";
 import { toSmtpConfig } from "../domain/mail";
