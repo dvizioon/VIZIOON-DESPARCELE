@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 import { InviteForm } from "@/components/forms/invite-form";
 import { Reveal } from "@/components/motion/reveal";
 import { UserAvatar } from "@/components/ui/user-avatar";
-import { DeleteWorkspaceButton } from "@/components/workspace/delete-workspace-button";
 import { MemberRoleForm } from "@/components/workspace/member-role-form";
 import { PendingInvitesAdmin } from "@/components/workspace/pending-invites-admin";
 import { RemoveMemberButton } from "@/components/workspace/remove-member-button";
@@ -31,11 +30,8 @@ export default async function MembersPage({ params }: MembersPageProps) {
 
   return (
     <Reveal className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3" data-reveal>
+      <div data-reveal>
         <h2 className="font-display text-3xl">Pessoas</h2>
-        {admin ? (
-          <DeleteWorkspaceButton workspaceId={workspaceId} workspaceName={workspace.name} />
-        ) : null}
       </div>
       <ul className="grid gap-3">
         {members.map((item) => (
