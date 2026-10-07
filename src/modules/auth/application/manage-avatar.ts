@@ -48,6 +48,7 @@ export async function setUserAvatarVariant(
   variant: string,
   users: UserRepository,
   storage: FileStorage,
+  seed?: string | null,
 ): Promise<Result<PublicUser>> {
   const user = await users.findById(userId);
   if (!user) {
@@ -59,7 +60,9 @@ export async function setUserAvatarVariant(
     await storage.remove(user.avatarUrl);
   }
 
-  const updated = await users.updateAvatarVariant(userId, next);
+  const nextSeed =
+    seed === undefined ? undefined : seed?.trim() ? seed.trim().slice(0, 64) : null;
+  const updated = await users.updateAvatarVariant(userId, next, nextSeed);
   return ok(toPublicUser(updated));
 }
 

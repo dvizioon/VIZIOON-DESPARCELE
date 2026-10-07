@@ -12,6 +12,7 @@ import { FormError } from "@/components/forms/auth-forms";
 import { AvatarPickerModal } from "@/components/profile/avatar-picker-modal";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { AppIcon } from "@/components/ui/icon";
+import { Tip } from "@/components/ui/tip";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { formatPhoneDisplay, type AvatarVariant } from "@/modules/auth/domain/user";
 
@@ -23,12 +24,14 @@ export function ProfileForm({
   phone,
   avatarUrl,
   avatarVariant,
+  avatarSeed,
 }: {
   name: string;
   email: string;
   phone: string | null;
   avatarUrl: string | null;
   avatarVariant: AvatarVariant;
+  avatarSeed: string | null;
 }) {
   const router = useRouter();
   const [profileState, profileAction, profilePending] = useActionState(updateProfileAction, empty);
@@ -58,21 +61,28 @@ export function ProfileForm({
     <div className="space-y-5">
       <section className="sheet space-y-4" data-reveal>
         <div className="flex flex-wrap items-center gap-4">
-          <button
-            aria-label="Alterar avatar"
-            className="group relative shrink-0 rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pine"
-            onClick={() => setAvatarOpen(true)}
-            type="button"
-          >
-            <UserAvatar avatarUrl={avatarUrl} name={name} size={72} variant={avatarVariant} />
-            <span className="absolute inset-0 flex items-center justify-center rounded-full bg-ink/45 opacity-0 transition group-hover:opacity-100">
-              <AppIcon className="size-5 text-white" name="tabler:camera" />
-            </span>
-          </button>
+          <Tip content="Toque no avatar para mudar" side="right">
+            <button
+              aria-label="Alterar avatar"
+              className="group relative size-[72px] shrink-0 overflow-hidden rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pine"
+              onClick={() => setAvatarOpen(true)}
+              type="button"
+            >
+              <UserAvatar
+                avatarSeed={avatarSeed}
+                avatarUrl={avatarUrl}
+                name={name}
+                size={72}
+                variant={avatarVariant}
+              />
+              <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-ink/45 opacity-0 transition group-hover:opacity-100 group-focus-visible:opacity-100">
+                <AppIcon className="size-5 text-white" name="tabler:camera" />
+              </span>
+            </button>
+          </Tip>
           <div className="min-w-0 flex-1">
             <p className="font-display text-2xl">{name}</p>
             <p className="text-sm text-ink/55">{email}</p>
-            <p className="mt-1 text-xs text-ink/45">Toque no avatar para mudar.</p>
           </div>
         </div>
       </section>
@@ -146,6 +156,7 @@ export function ProfileForm({
       </section>
 
       <AvatarPickerModal
+        avatarSeed={avatarSeed}
         avatarUrl={avatarUrl}
         name={name}
         open={avatarOpen}

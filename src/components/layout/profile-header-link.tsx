@@ -7,11 +7,13 @@ export function ProfileHeaderLink({
   name,
   avatarUrl,
   avatarVariant = "beam",
+  avatarSeed = null,
   showName = true,
 }: {
   name: string;
   avatarUrl?: string | null;
   avatarVariant?: string;
+  avatarSeed?: string | null;
   showName?: boolean;
 }) {
   return (
@@ -20,7 +22,13 @@ export function ProfileHeaderLink({
       href="/perfil"
       title="Meu perfil"
     >
-      <UserAvatar avatarUrl={avatarUrl} name={name} size={32} variant={avatarVariant} />
+      <UserAvatar
+        avatarSeed={avatarSeed}
+        avatarUrl={avatarUrl}
+        name={name}
+        size={32}
+        variant={avatarVariant}
+      />
       {showName ? (
         <span className="hidden truncate text-sm text-ink/55 md:inline">{name}</span>
       ) : null}

@@ -20,6 +20,7 @@ export default async function ProfilePage() {
         <p className="mt-1 text-sm text-ink/55">Telefone, senha e encerrar conta.</p>
       </div>
       <ProfileForm
+        avatarSeed={user.avatarSeed}
         avatarUrl={user.avatarUrl}
         avatarVariant={user.avatarVariant}
         email={user.email}

@@ -72,6 +72,7 @@ model User {
   phone           String?
   avatarUrl       String?
   avatarVariant   String    @default("beam")
+  avatarSeed      String?
   emailVerifiedAt DateTime?
   systemRole      SystemRole @default(MEMBER)
   disabledAt      DateTime?

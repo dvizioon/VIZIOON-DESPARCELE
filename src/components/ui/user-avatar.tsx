@@ -1,7 +1,7 @@
 "use client";
 
 import Avatar from "boring-avatars";
-import type { AvatarVariant } from "@/modules/auth/domain/user";
+import { avatarRenderSeed, type AvatarVariant } from "@/modules/auth/domain/user";
 
 /** Paleta alinhada ao Desparcele (pine / clay / paper). */
 export const DESPARCELE_AVATAR_COLORS = [
@@ -15,12 +15,14 @@ export const DESPARCELE_AVATAR_COLORS = [
 export function UserAvatar({
   name,
   avatarUrl,
+  avatarSeed,
   variant = "beam",
   size = 36,
   className = "",
 }: {
   name: string;
   avatarUrl?: string | null;
+  avatarSeed?: string | null;
   variant?: AvatarVariant | string;
   size?: number;
   className?: string;
@@ -30,7 +32,7 @@ export function UserAvatar({
       // eslint-disable-next-line @next/next/no-img-element
       <img
         alt={name}
-        className={`shrink-0 rounded-full object-cover ${className}`}
+        className={`block shrink-0 rounded-full object-cover ${className}`}
         height={size}
         src={avatarUrl}
         style={{ width: size, height: size }}
@@ -41,12 +43,12 @@ export function UserAvatar({
 
   return (
     <span
-      className={`inline-flex shrink-0 overflow-hidden rounded-full ${className}`}
+      className={`relative block shrink-0 overflow-hidden rounded-full leading-none ${className}`}
       style={{ width: size, height: size }}
     >
       <Avatar
         colors={DESPARCELE_AVATAR_COLORS}
-        name={name || "pessoa"}
+        name={avatarRenderSeed({ name, avatarSeed })}
         size={size}
         variant={(variant as AvatarVariant) || "beam"}
       />

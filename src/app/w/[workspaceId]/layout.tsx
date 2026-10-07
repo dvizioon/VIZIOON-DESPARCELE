@@ -79,6 +79,7 @@ export default async function WorkspaceLayout({ children, params }: WorkspaceLay
           {isSystemAdmin(user.systemRole) ? <AdminLink /> : null}
           <CreateWorkspaceModal triggerClassName="btn-ghost" triggerLabel="Novo" />
           <ProfileHeaderLink
+            avatarSeed={user.avatarSeed}
             avatarUrl={user.avatarUrl}
             avatarVariant={user.avatarVariant}
             name={user.name}

@@ -242,11 +242,13 @@ export async function setAvatarVariantAction(
   const user = await requireUser();
   const { users, storage } = getRepositories();
   const { setUserAvatarVariant } = await import("@/modules/auth/application/manage-avatar");
+  const rawSeed = String(formData.get("seed") ?? "").trim();
   const result = await setUserAvatarVariant(
     user.id,
     String(formData.get("variant") ?? "beam"),
     users,
     storage,
+    rawSeed || null,
   );
   if (!result.ok) {
     return { error: result.error.message };

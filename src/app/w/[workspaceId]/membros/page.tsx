@@ -46,6 +46,7 @@ export default async function MembersPage({ params }: MembersPageProps) {
           >
             <div className="flex min-w-0 items-center gap-3">
               <UserAvatar
+                avatarSeed={item.userAvatarSeed}
                 avatarUrl={item.userAvatarUrl}
                 name={item.userName}
                 size={40}

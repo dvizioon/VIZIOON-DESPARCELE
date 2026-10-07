@@ -29,6 +29,7 @@ export interface User {
   phone: string | null;
   avatarUrl: string | null;
   avatarVariant: AvatarVariant;
+  avatarSeed: string | null;
   emailVerifiedAt: Date | null;
   createdAt: Date;
   systemRole: SystemRole;
@@ -42,6 +43,7 @@ export interface PublicUser {
   phone: string | null;
   avatarUrl: string | null;
   avatarVariant: AvatarVariant;
+  avatarSeed: string | null;
   emailVerifiedAt: Date | null;
   createdAt: Date;
   systemRole: SystemRole;
@@ -55,10 +57,23 @@ export function toPublicUser(user: User): PublicUser {
     phone: user.phone,
     avatarUrl: user.avatarUrl,
     avatarVariant: user.avatarVariant,
+    avatarSeed: user.avatarSeed,
     emailVerifiedAt: user.emailVerifiedAt,
     createdAt: user.createdAt,
     systemRole: user.systemRole,
   };
+}
+
+/** Seed visual do boring-avatars (nome da pessoa ou seed aleatório). */
+export function avatarRenderSeed(user: {
+  name: string;
+  avatarSeed?: string | null;
+}): string {
+  return user.avatarSeed?.trim() || user.name || "pessoa";
+}
+
+export function newAvatarSeed(): string {
+  return `av-${Math.random().toString(36).slice(2, 10)}-${Date.now().toString(36)}`;
 }
 
 /** Sem verificação e já passou da janela de 24h → só entra depois de verificar. */

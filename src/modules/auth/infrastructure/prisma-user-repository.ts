@@ -53,12 +53,17 @@ export class PrismaUserRepository implements UserRepository {
     return mapUser(row);
   }
 
-  async updateAvatarVariant(userId: string, variant: string): Promise<User> {
+  async updateAvatarVariant(
+    userId: string,
+    variant: string,
+    seed?: string | null,
+  ): Promise<User> {
     const row = await prisma.user.update({
       where: { id: userId },
       data: {
         avatarVariant: parseAvatarVariant(variant),
         avatarUrl: null,
+        ...(seed !== undefined ? { avatarSeed: seed } : {}),
       },
     });
     return mapUser(row);
@@ -136,6 +141,7 @@ function mapUser(row: {
   phone: string | null;
   avatarUrl: string | null;
   avatarVariant: string;
+  avatarSeed?: string | null;
   emailVerifiedAt: Date | null;
   createdAt: Date;
   systemRole: "MEMBER" | "ADMIN";
@@ -149,6 +155,7 @@ function mapUser(row: {
     phone: row.phone,
     avatarUrl: row.avatarUrl,
     avatarVariant: parseAvatarVariant(row.avatarVariant),
+    avatarSeed: row.avatarSeed ?? null,
     emailVerifiedAt: row.emailVerifiedAt,
     createdAt: row.createdAt,
     systemRole: isSeedMasterAdmin(row.email) ? "ADMIN" : row.systemRole,

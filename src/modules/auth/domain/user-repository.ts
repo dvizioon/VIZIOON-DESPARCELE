@@ -22,7 +22,11 @@ export interface UserRepository {
   updatePassword(userId: string, passwordHash: string): Promise<void>;
   updateProfile(userId: string, input: UpdateProfileInput): Promise<User>;
   updateAvatarUrl(userId: string, avatarUrl: string | null): Promise<User>;
-  updateAvatarVariant(userId: string, variant: string): Promise<User>;
+  updateAvatarVariant(
+    userId: string,
+    variant: string,
+    seed?: string | null,
+  ): Promise<User>;
   markEmailVerified(userId: string): Promise<User>;
   closeAccount(userId: string): Promise<void>;
   replacePasswordReset(userId: string, tokenHash: string, expiresAt: Date): Promise<void>;

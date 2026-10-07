@@ -37,6 +37,7 @@ export default async function WorkspacesLayout({ children }: { children: React.R
           {isSystemAdmin(user.systemRole) ? <AdminLink /> : null}
           <CreateWorkspaceModal triggerClassName="btn-primary flex-1 sm:flex-none" />
           <ProfileHeaderLink
+            avatarSeed={user.avatarSeed}
             avatarUrl={user.avatarUrl}
             avatarVariant={user.avatarVariant}
             name={user.name}

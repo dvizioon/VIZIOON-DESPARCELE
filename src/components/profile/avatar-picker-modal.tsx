@@ -11,6 +11,7 @@ import { Portal } from "@/components/ui/portal";
 import { DESPARCELE_AVATAR_COLORS, UserAvatar } from "@/components/ui/user-avatar";
 import {
   AVATAR_VARIANTS,
+  newAvatarSeed,
   type AvatarVariant,
 } from "@/modules/auth/domain/user";
 import Avatar from "boring-avatars";
@@ -28,6 +29,7 @@ export function AvatarPickerModal({
   open,
   name,
   avatarUrl,
+  avatarSeed,
   variant,
   onClose,
   onSaved,
@@ -35,12 +37,14 @@ export function AvatarPickerModal({
   open: boolean;
   name: string;
   avatarUrl: string | null;
+  avatarSeed: string | null;
   variant: AvatarVariant;
   onClose: () => void;
   onSaved: () => void;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [draftVariant, setDraftVariant] = useState<AvatarVariant>(variant);
+  const [draftSeed, setDraftSeed] = useState<string | null>(avatarSeed);
   const [draftPhoto, setDraftPhoto] = useState<File | null>(null);
   const [draftPreview, setDraftPreview] = useState<string | null>(null);
   const [mode, setMode] = useState<"variant" | "photo">(avatarUrl ? "photo" : "variant");
@@ -52,12 +56,13 @@ export function AvatarPickerModal({
       return;
     }
     setDraftVariant(variant);
+    setDraftSeed(avatarSeed);
     setDraftPhoto(null);
     setDraftPreview(null);
     setMode(avatarUrl ? "photo" : "variant");
     setError(null);
     setPending(false);
-  }, [open, variant, avatarUrl]);
+  }, [open, variant, avatarUrl, avatarSeed]);
 
   useEffect(() => {
     return () => {
@@ -85,6 +90,12 @@ export function AvatarPickerModal({
     setMode("photo");
   }
 
+  function randomize() {
+    setMode("variant");
+    pickPhoto(null);
+    setDraftSeed(newAvatarSeed());
+  }
+
   async function save() {
     setPending(true);
     setError(null);
@@ -103,7 +114,6 @@ export function AvatarPickerModal({
       return;
     }
 
-    // Foto atual sem troca, ou variante escolhida
     if (mode === "photo" && avatarUrl && !draftPhoto) {
       setPending(false);
       onClose();
@@ -112,6 +122,7 @@ export function AvatarPickerModal({
 
     const formData = new FormData();
     formData.set("variant", draftVariant);
+    formData.set("seed", draftSeed ?? "");
     const result = await setAvatarVariantAction(null, formData);
     setPending(false);
     if (result.error) {
@@ -123,6 +134,7 @@ export function AvatarPickerModal({
   }
 
   const previewUrl = mode === "photo" ? (draftPreview ?? avatarUrl) : null;
+  const styleSeed = draftSeed || name || "pessoa";
 
   return (
     <Portal>
@@ -136,7 +148,7 @@ export function AvatarPickerModal({
           <header className="flex items-center justify-between gap-3 border-b border-line px-5 py-4">
             <div>
               <p className="font-display text-2xl">Avatar</p>
-              <p className="text-sm text-ink/55">Escolha um estilo ou envie uma foto.</p>
+              <p className="text-sm text-ink/55">Escolha um estilo, gere outro ou envie uma foto.</p>
             </div>
             <button
               aria-label="Fechar"
@@ -151,6 +163,7 @@ export function AvatarPickerModal({
           <div className="space-y-5 overflow-y-auto px-5 py-4">
             <div className="flex justify-center">
               <UserAvatar
+                avatarSeed={draftSeed}
                 avatarUrl={previewUrl}
                 name={name}
                 size={96}
@@ -159,7 +172,17 @@ export function AvatarPickerModal({
             </div>
 
             <div>
-              <p className="mb-2 text-sm font-medium text-ink/70">Estilos</p>
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <p className="text-sm font-medium text-ink/70">Estilos</p>
+                <button
+                  className="inline-flex items-center gap-1.5 text-sm font-medium text-pine hover:text-pine-dark"
+                  onClick={randomize}
+                  type="button"
+                >
+                  <AppIcon className="size-4" name="tabler:dice" />
+                  Gerar aleatório
+                </button>
+              </div>
               <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
                 {AVATAR_VARIANTS.map((item) => {
                   const active = mode === "variant" && draftVariant === item && !previewUrl;
@@ -178,10 +201,10 @@ export function AvatarPickerModal({
                       }}
                       type="button"
                     >
-                      <span className="overflow-hidden rounded-full">
+                      <span className="relative block size-11 overflow-hidden rounded-full leading-none">
                         <Avatar
                           colors={DESPARCELE_AVATAR_COLORS}
-                          name={name || "pessoa"}
+                          name={styleSeed}
                           size={44}
                           variant={item}
                         />
