@@ -54,7 +54,13 @@ export function mailLayout(input: MailLayoutInput): string {
             <table role="presentation" cellpadding="0" cellspacing="0">
               <tr>
                 <td style="vertical-align:middle;padding-right:12px;">
-                  <img src="{{logo}}" width="48" height="48" alt="Desparcele" style="display:block;border:0;outline:none;width:48px;height:48px;border-radius:10px;" />
+                  <table role="presentation" cellpadding="0" cellspacing="0" style="background:${WHITE};border-radius:12px;">
+                    <tr>
+                      <td style="padding:6px;line-height:0;">
+                        <img src="{{logo}}" width="40" height="40" alt="Desparcele" style="display:block;border:0;outline:none;width:40px;height:40px;border-radius:8px;" />
+                      </td>
+                    </tr>
+                  </table>
                 </td>
                 <td style="vertical-align:middle;">
                   <p style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:22px;line-height:1;color:${WHITE};">Desparcele</p>
@@ -104,7 +110,7 @@ export const WELCOME_MAIL_HTML = mailLayout({
 });
 
 export const EMAIL_VERIFICATION_MAIL_HTML = mailLayout({
-  preheader: "Confirme seu e-mail no Desparcele — vale 48 horas.",
+  preheader: "Confirme seu e-mail no Desparcele. Vale 48 horas.",
   eyebrow: "Verificação",
   title: "Confirme seu e-mail",
   paragraphs: [
@@ -118,12 +124,12 @@ export const EMAIL_VERIFICATION_MAIL_HTML = mailLayout({
 });
 
 export const PASSWORD_RESET_MAIL_HTML = mailLayout({
-  preheader: "Pedido de senha nova no Desparcele — só você usa este link.",
+  preheader: "Pedido de senha nova no Desparcele. Só você usa este link.",
   eyebrow: "Senha",
   title: "Criar uma senha nova",
   paragraphs: [
     "Recebemos um pedido para redefinir a senha da conta <strong>{{email}}</strong>.",
-    "O botão vale por 1 hora. Se você não pediu, ignore este e-mail — sua senha continua a mesma.",
+    "O botão vale por 1 hora. Se você não pediu, ignore este e-mail. Sua senha continua a mesma.",
   ],
   ctaLabel: "Criar senha nova",
   ctaHref: "{{link}}",
@@ -131,7 +137,7 @@ export const PASSWORD_RESET_MAIL_HTML = mailLayout({
 });
 
 export const WORKSPACE_INVITE_MAIL_HTML = mailLayout({
-  preheader: "Convite para o espaço {{workspace}} — você decide se entra.",
+  preheader: "Convite para o espaço {{workspace}}. Você decide se entra.",
   eyebrow: "Convite",
   title: "Convite para {{workspace}}",
   paragraphs: [
@@ -151,7 +157,7 @@ export const WORKSPACE_INVITE_MAIL_HTML = mailLayout({
 export const INSTALLMENT_REMINDER_MAIL_HTML = mailLayout({
   preheader: "Parcela {{parcela}} de {{divida}}: {{motivo}} ({{vencimento}}).",
   eyebrow: "Parcela",
-  title: "{{divida}} — {{motivo}}",
+  title: "{{divida}}: {{motivo}}",
   paragraphs: ["Confira a parcela no Desparcele. Se já pagou, marque como paga para parar os avisos."],
   facts: [
     { label: "Espaço", value: "{{workspace}}" },

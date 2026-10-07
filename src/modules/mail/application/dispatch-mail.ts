@@ -44,8 +44,9 @@ export async function dispatchMail(
   const provider = providerId ? await mail.findProvider(providerId) : await mail.findDefaultProvider();
 
   const vars = await withMailVars(variables);
-  const subject = applyEmailTemplate(subjectTemplate, vars);
-  const body = scrubEmbeddedDataImages(applyEmailTemplate(bodyTemplate, vars), vars.logo ?? "");
+  const logoUrl = vars.logo ?? "";
+  const subject = scrubEmDash(applyEmailTemplate(subjectTemplate, vars));
+  const body = polishMailHtml(applyEmailTemplate(bodyTemplate, vars), logoUrl);
   const text = stripHtml(body);
 
   const item = await mail.createOutbox({
@@ -119,7 +120,48 @@ export function stripHtml(value: string): string {
     .trim();
 }
 
+function polishMailHtml(html: string, logoUrl: string): string {
+  let next = scrubEmbeddedDataImages(html, logoUrl);
+  next = ensureLogoPlate(next, logoUrl);
+  return scrubEmDash(next);
+}
+
+function scrubEmDash(value: string): string {
+  return value.replace(/ — /g, ". ").replace(/—/g, ": ");
+}
+
 /** Modelos antigos embutiam data-URI; clientes (Gmail) bloqueiam. Troca pela URL pública. */
 function scrubEmbeddedDataImages(html: string, logoUrl: string): string {
   return html.replace(/src=(["'])data:image\/[^"']+\1/gi, `src=$1${logoUrl}$1`);
+}
+
+/** Logo verde some no cabeçalho verde: coloca placa branca atrás. */
+function ensureLogoPlate(html: string, logoUrl: string): string {
+  if (!logoUrl || html.includes("background:#ffffff") || html.includes("background:#fff")) {
+    // já tem placa branca no layout novo — só garante img da marca
+    if (html.includes(`src="${logoUrl}"`) || html.includes(`src='${logoUrl}'`)) {
+      return html;
+    }
+  }
+
+  const plate = `<table role="presentation" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;"><tr><td style="padding:6px;line-height:0;"><img src="${logoUrl}" width="40" height="40" alt="Desparcele" style="display:block;border:0;outline:none;width:40px;height:40px;border-radius:8px;" /></td></tr></table>`;
+
+  const replaced = html.replace(
+    /<img\b[^>]*\balt=(["'])Desparcele\1[^>]*>/gi,
+    plate,
+  );
+
+  if (replaced !== html) {
+    return replaced;
+  }
+
+  // fallback: qualquer img do logo por src
+  return html.replace(
+    new RegExp(`<img\\b[^>]*\\bsrc=(["'])${escapeRegExp(logoUrl)}\\1[^>]*>`, "gi"),
+    plate,
+  );
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
