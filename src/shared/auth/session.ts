@@ -42,6 +42,7 @@ export async function requireUser(options?: { allowUnverified?: boolean }) {
     email: stored.email,
     phone: stored.phone,
     avatarUrl: stored.avatarUrl,
+    avatarVariant: stored.avatarVariant,
     emailVerifiedAt: stored.emailVerifiedAt,
     createdAt: stored.createdAt,
     systemRole: stored.systemRole,

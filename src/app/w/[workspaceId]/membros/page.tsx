@@ -45,7 +45,12 @@ export default async function MembersPage({ params }: MembersPageProps) {
             key={item.userId}
           >
             <div className="flex min-w-0 items-center gap-3">
-              <UserAvatar avatarUrl={item.userAvatarUrl} name={item.userName} size={40} />
+              <UserAvatar
+                avatarUrl={item.userAvatarUrl}
+                name={item.userName}
+                size={40}
+                variant={item.userAvatarVariant}
+              />
               <div className="min-w-0">
                 <p className="truncate font-medium">{item.userName}</p>
                 <p className="truncate text-sm text-ink/55">{item.userEmail}</p>

@@ -32,7 +32,12 @@ export default async function WorkspacesLayout({ children }: { children: React.R
         <div className="flex items-center gap-2">
           {isSystemAdmin(user.systemRole) ? <AdminLink /> : null}
           <CreateWorkspaceModal triggerClassName="btn-primary flex-1 sm:flex-none" />
-          <ProfileHeaderLink avatarUrl={user.avatarUrl} name={user.name} showName={false} />
+          <ProfileHeaderLink
+            avatarUrl={user.avatarUrl}
+            avatarVariant={user.avatarVariant}
+            name={user.name}
+            showName={false}
+          />
           <SignOutButton />
         </div>
       </header>

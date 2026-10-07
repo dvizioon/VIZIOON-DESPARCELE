@@ -3,6 +3,24 @@ export type SystemRole = "MEMBER" | "ADMIN";
 export const EMAIL_VERIFY_GRACE_MS = 24 * 60 * 60 * 1000;
 export const EMAIL_VERIFY_TOKEN_TTL_MS = 48 * 60 * 60 * 1000;
 
+export const AVATAR_VARIANTS = [
+  "beam",
+  "marble",
+  "pixel",
+  "sunset",
+  "ring",
+  "bauhaus",
+] as const;
+
+export type AvatarVariant = (typeof AVATAR_VARIANTS)[number];
+
+export function parseAvatarVariant(value: string | null | undefined): AvatarVariant {
+  if (value && (AVATAR_VARIANTS as readonly string[]).includes(value)) {
+    return value as AvatarVariant;
+  }
+  return "beam";
+}
+
 export interface User {
   id: string;
   name: string;
@@ -10,6 +28,7 @@ export interface User {
   passwordHash: string;
   phone: string | null;
   avatarUrl: string | null;
+  avatarVariant: AvatarVariant;
   emailVerifiedAt: Date | null;
   createdAt: Date;
   systemRole: SystemRole;
@@ -22,6 +41,7 @@ export interface PublicUser {
   email: string;
   phone: string | null;
   avatarUrl: string | null;
+  avatarVariant: AvatarVariant;
   emailVerifiedAt: Date | null;
   createdAt: Date;
   systemRole: SystemRole;
@@ -34,6 +54,7 @@ export function toPublicUser(user: User): PublicUser {
     email: user.email,
     phone: user.phone,
     avatarUrl: user.avatarUrl,
+    avatarVariant: user.avatarVariant,
     emailVerifiedAt: user.emailVerifiedAt,
     createdAt: user.createdAt,
     systemRole: user.systemRole,

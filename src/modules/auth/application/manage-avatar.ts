@@ -1,6 +1,11 @@
 import { fail, ok, type Result } from "@/shared/types/result";
 import type { FileStorage } from "@/shared/storage/file-storage";
-import { toPublicUser, type PublicUser } from "../domain/user";
+import {
+  parseAvatarVariant,
+  toPublicUser,
+  type AvatarVariant,
+  type PublicUser,
+} from "../domain/user";
 import type { UserRepository } from "../domain/user-repository";
 
 const AVATAR_MIME = ["image/jpeg", "image/png", "image/webp"] as const;
@@ -35,6 +40,26 @@ export async function uploadUserAvatar(
 
   const avatarUrl = await storage.save(file, "avatars");
   const updated = await users.updateAvatarUrl(userId, avatarUrl);
+  return ok(toPublicUser(updated));
+}
+
+export async function setUserAvatarVariant(
+  userId: string,
+  variant: string,
+  users: UserRepository,
+  storage: FileStorage,
+): Promise<Result<PublicUser>> {
+  const user = await users.findById(userId);
+  if (!user) {
+    return fail("NOT_FOUND", "Conta nao encontrada");
+  }
+
+  const next: AvatarVariant = parseAvatarVariant(variant);
+  if (user.avatarUrl) {
+    await storage.remove(user.avatarUrl);
+  }
+
+  const updated = await users.updateAvatarVariant(userId, next);
   return ok(toPublicUser(updated));
 }
 

@@ -20,6 +20,7 @@ export interface WorkspaceMember {
   userName: string;
   userEmail: string;
   userAvatarUrl: string | null;
+  userAvatarVariant: string;
 }
 
 export interface WorkspaceInvite {

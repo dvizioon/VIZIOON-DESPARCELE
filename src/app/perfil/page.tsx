@@ -17,10 +17,11 @@ export default async function ProfilePage() {
       </div>
       <div data-reveal>
         <h1 className="font-display text-4xl">Meu perfil</h1>
-        <p className="mt-1 text-sm text-ink/55">Foto, telefone, senha e encerrar conta.</p>
+        <p className="mt-1 text-sm text-ink/55">Telefone, senha e encerrar conta.</p>
       </div>
       <ProfileForm
         avatarUrl={user.avatarUrl}
+        avatarVariant={user.avatarVariant}
         email={user.email}
         name={user.name}
         phone={user.phone}

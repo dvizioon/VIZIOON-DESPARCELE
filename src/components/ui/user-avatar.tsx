@@ -1,6 +1,7 @@
 "use client";
 
 import Avatar from "boring-avatars";
+import type { AvatarVariant } from "@/modules/auth/domain/user";
 
 /** Paleta alinhada ao Desparcele (pine / clay / paper). */
 export const DESPARCELE_AVATAR_COLORS = [
@@ -14,11 +15,13 @@ export const DESPARCELE_AVATAR_COLORS = [
 export function UserAvatar({
   name,
   avatarUrl,
+  variant = "beam",
   size = 36,
   className = "",
 }: {
   name: string;
   avatarUrl?: string | null;
+  variant?: AvatarVariant | string;
   size?: number;
   className?: string;
 }) {
@@ -45,7 +48,7 @@ export function UserAvatar({
         colors={DESPARCELE_AVATAR_COLORS}
         name={name || "pessoa"}
         size={size}
-        variant="beam"
+        variant={(variant as AvatarVariant) || "beam"}
       />
     </span>
   );

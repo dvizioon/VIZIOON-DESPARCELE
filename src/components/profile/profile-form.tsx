@@ -1,19 +1,19 @@
 "use client";
 
-import { useActionState, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useActionState, useState } from "react";
 import {
   closeAccountAction,
-  removeAvatarAction,
   requestProfilePasswordResetAction,
   updateProfileAction,
-  uploadAvatarAction,
   type ActionState,
 } from "@/app/actions/auth";
 import { FormError } from "@/components/forms/auth-forms";
+import { AvatarPickerModal } from "@/components/profile/avatar-picker-modal";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { AppIcon } from "@/components/ui/icon";
 import { UserAvatar } from "@/components/ui/user-avatar";
-import { formatPhoneDisplay } from "@/modules/auth/domain/user";
+import { formatPhoneDisplay, type AvatarVariant } from "@/modules/auth/domain/user";
 
 const empty: ActionState = { error: null };
 
@@ -22,15 +22,16 @@ export function ProfileForm({
   email,
   phone,
   avatarUrl,
+  avatarVariant,
 }: {
   name: string;
   email: string;
   phone: string | null;
   avatarUrl: string | null;
+  avatarVariant: AvatarVariant;
 }) {
+  const router = useRouter();
   const [profileState, profileAction, profilePending] = useActionState(updateProfileAction, empty);
-  const [avatarState, avatarAction, avatarPending] = useActionState(uploadAvatarAction, empty);
-  const [removeState, removeAction, removePending] = useActionState(removeAvatarAction, empty);
   const [passwordState, passwordAction, passwordPending] = useActionState(
     requestProfilePasswordResetAction,
     empty,
@@ -38,7 +39,7 @@ export function ProfileForm({
   const [closePending, setClosePending] = useState(false);
   const [closeError, setCloseError] = useState<string | null>(null);
   const [confirmClose, setConfirmClose] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
+  const [avatarOpen, setAvatarOpen] = useState(false);
 
   async function confirmCloseAccount() {
     setClosePending(true);
@@ -57,50 +58,23 @@ export function ProfileForm({
     <div className="space-y-5">
       <section className="sheet space-y-4" data-reveal>
         <div className="flex flex-wrap items-center gap-4">
-          <UserAvatar avatarUrl={avatarUrl} name={name} size={72} />
+          <button
+            aria-label="Alterar avatar"
+            className="group relative shrink-0 rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pine"
+            onClick={() => setAvatarOpen(true)}
+            type="button"
+          >
+            <UserAvatar avatarUrl={avatarUrl} name={name} size={72} variant={avatarVariant} />
+            <span className="absolute inset-0 flex items-center justify-center rounded-full bg-ink/45 opacity-0 transition group-hover:opacity-100">
+              <AppIcon className="size-5 text-white" name="tabler:camera" />
+            </span>
+          </button>
           <div className="min-w-0 flex-1">
             <p className="font-display text-2xl">{name}</p>
             <p className="text-sm text-ink/55">{email}</p>
+            <p className="mt-1 text-xs text-ink/45">Toque no avatar para mudar.</p>
           </div>
         </div>
-
-        <div className="flex flex-wrap gap-2">
-          <form action={avatarAction}>
-            <input
-              accept="image/jpeg,image/png,image/webp"
-              className="hidden"
-              name="avatar"
-              onChange={(event) => {
-                if (event.currentTarget.files?.[0]) {
-                  event.currentTarget.form?.requestSubmit();
-                }
-              }}
-              ref={fileRef}
-              type="file"
-            />
-            <button
-              className="btn-ghost inline-flex items-center gap-2"
-              disabled={avatarPending}
-              onClick={() => fileRef.current?.click()}
-              type="button"
-            >
-              <AppIcon className="size-4" name="tabler:camera" />
-              {avatarPending ? "Enviando..." : "Enviar foto"}
-            </button>
-          </form>
-          {avatarUrl ? (
-            <form action={removeAction}>
-              <button className="btn-ghost" disabled={removePending} type="submit">
-                {removePending ? "Removendo..." : "Usar avatar gerado"}
-              </button>
-            </form>
-          ) : null}
-        </div>
-        {avatarState.error ? <FormError message={avatarState.error} /> : null}
-        {removeState.error ? <FormError message={removeState.error} /> : null}
-        {avatarState.ok && !avatarState.error ? (
-          <p className="text-sm text-moss">{avatarState.message ?? "Foto atualizada."}</p>
-        ) : null}
       </section>
 
       <section className="sheet space-y-3" data-reveal>
@@ -138,7 +112,11 @@ export function ProfileForm({
         <h2 className="font-display text-2xl">Senha</h2>
         <p className="text-sm text-ink/60">Enviamos um e-mail com o link para redefinir a senha.</p>
         <form action={passwordAction}>
-          <button className="btn-ghost inline-flex items-center gap-2" disabled={passwordPending} type="submit">
+          <button
+            className="btn-ghost inline-flex items-center gap-2"
+            disabled={passwordPending}
+            type="submit"
+          >
             <AppIcon className="size-4" name="tabler:mail" />
             {passwordPending ? "Enviando..." : "Enviar e-mail para mudar senha"}
           </button>
@@ -166,6 +144,15 @@ export function ProfileForm({
           Encerrar minha conta
         </button>
       </section>
+
+      <AvatarPickerModal
+        avatarUrl={avatarUrl}
+        name={name}
+        open={avatarOpen}
+        variant={avatarVariant}
+        onClose={() => setAvatarOpen(false)}
+        onSaved={() => router.refresh()}
+      />
 
       <ConfirmDialog
         confirmLabel="Encerrar conta"

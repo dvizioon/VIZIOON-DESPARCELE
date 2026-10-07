@@ -199,7 +199,7 @@ export async function updateProfileAction(
 }
 
 export async function uploadAvatarAction(
-  _prev: ActionState,
+  _prev: ActionState | null,
   formData: FormData,
 ): Promise<ActionState> {
   const user = await requireUser();
@@ -224,6 +224,28 @@ export async function uploadAvatarAction(
   revalidatePath("/perfil");
   revalidatePath("/workspaces");
   return { error: null, ok: true, message: "Foto atualizada." };
+}
+
+export async function setAvatarVariantAction(
+  _prev: ActionState | null,
+  formData: FormData,
+): Promise<ActionState> {
+  const user = await requireUser();
+  const { users, storage } = getRepositories();
+  const { setUserAvatarVariant } = await import("@/modules/auth/application/manage-avatar");
+  const result = await setUserAvatarVariant(
+    user.id,
+    String(formData.get("variant") ?? "beam"),
+    users,
+    storage,
+  );
+  if (!result.ok) {
+    return { error: result.error.message };
+  }
+
+  revalidatePath("/perfil");
+  revalidatePath("/workspaces");
+  return { error: null, ok: true, message: "Avatar atualizado." };
 }
 
 export async function removeAvatarAction(

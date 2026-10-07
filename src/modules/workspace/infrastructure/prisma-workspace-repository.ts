@@ -387,7 +387,7 @@ function mapMember(row: {
   workspaceId: string;
   userId: string;
   role: WorkspaceRole;
-  user: { name: string; email: string; avatarUrl: string | null };
+  user: { name: string; email: string; avatarUrl: string | null; avatarVariant: string };
 }): WorkspaceMember {
   return {
     workspaceId: row.workspaceId,
@@ -396,6 +396,7 @@ function mapMember(row: {
     userName: row.user.name,
     userEmail: row.user.email,
     userAvatarUrl: row.user.avatarUrl,
+    userAvatarVariant: row.user.avatarVariant,
   };
 }
 

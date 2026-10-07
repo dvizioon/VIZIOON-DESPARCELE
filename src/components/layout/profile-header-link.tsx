@@ -6,10 +6,12 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 export function ProfileHeaderLink({
   name,
   avatarUrl,
+  avatarVariant = "beam",
   showName = true,
 }: {
   name: string;
   avatarUrl?: string | null;
+  avatarVariant?: string;
   showName?: boolean;
 }) {
   return (
@@ -18,7 +20,7 @@ export function ProfileHeaderLink({
       href="/perfil"
       title="Meu perfil"
     >
-      <UserAvatar avatarUrl={avatarUrl} name={name} size={32} />
+      <UserAvatar avatarUrl={avatarUrl} name={name} size={32} variant={avatarVariant} />
       {showName ? (
         <span className="hidden truncate text-sm text-ink/55 md:inline">{name}</span>
       ) : null}

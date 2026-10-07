@@ -76,7 +76,11 @@ export default async function WorkspaceLayout({ children, params }: WorkspaceLay
         <div className="flex items-center gap-2 sm:justify-end">
           {isSystemAdmin(user.systemRole) ? <AdminLink /> : null}
           <CreateWorkspaceModal triggerClassName="btn-ghost" triggerLabel="Novo" />
-          <ProfileHeaderLink avatarUrl={user.avatarUrl} name={user.name} />
+          <ProfileHeaderLink
+            avatarUrl={user.avatarUrl}
+            avatarVariant={user.avatarVariant}
+            name={user.name}
+          />
           <SignOutButton />
         </div>
       </header>

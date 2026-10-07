@@ -1,6 +1,6 @@
 import { prisma } from "@/shared/infrastructure/prisma";
 import type { CreateUserInput, UpdateProfileInput, UserRepository } from "../domain/user-repository";
-import { isSeedMasterAdmin, type User } from "../domain/user";
+import { isSeedMasterAdmin, parseAvatarVariant, type User } from "../domain/user";
 
 export class PrismaUserRepository implements UserRepository {
   async findById(id: string): Promise<User | null> {
@@ -48,6 +48,17 @@ export class PrismaUserRepository implements UserRepository {
     const row = await prisma.user.update({
       where: { id: userId },
       data: { avatarUrl },
+    });
+    return mapUser(row);
+  }
+
+  async updateAvatarVariant(userId: string, variant: string): Promise<User> {
+    const row = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        avatarVariant: parseAvatarVariant(variant),
+        avatarUrl: null,
+      },
     });
     return mapUser(row);
   }
@@ -123,6 +134,7 @@ function mapUser(row: {
   passwordHash: string;
   phone: string | null;
   avatarUrl: string | null;
+  avatarVariant: string;
   emailVerifiedAt: Date | null;
   createdAt: Date;
   systemRole: "MEMBER" | "ADMIN";
@@ -135,6 +147,7 @@ function mapUser(row: {
     passwordHash: row.passwordHash,
     phone: row.phone,
     avatarUrl: row.avatarUrl,
+    avatarVariant: parseAvatarVariant(row.avatarVariant),
     emailVerifiedAt: row.emailVerifiedAt,
     createdAt: row.createdAt,
     systemRole: isSeedMasterAdmin(row.email) ? "ADMIN" : row.systemRole,

@@ -71,6 +71,7 @@ model User {
   passwordHash    String
   phone           String?
   avatarUrl       String?
+  avatarVariant   String    @default("beam")
   emailVerifiedAt DateTime?
   systemRole      SystemRole @default(MEMBER)
   disabledAt      DateTime?
