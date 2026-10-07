@@ -318,6 +318,10 @@ model EmailOutbox {
 model SystemConfig {
   id                   String   @id @default("default")
   allowPublicSignup    Boolean  @default(true)
+  signupFieldName      Boolean  @default(true)
+  signupFieldEmail     Boolean  @default(true)
+  signupFieldPhone     Boolean  @default(false)
+  signupFieldPassword  Boolean  @default(true)
   loanCronEnabled      Boolean  @default(true)
   loanCronHour         Int      @default(6)
   reminderCronEnabled  Boolean  @default(false)

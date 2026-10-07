@@ -17,7 +17,16 @@ export default auth((request) => {
     return Response.redirect(login);
   }
 
-  if (isLoggedIn && (pathname === "/login" || pathname === "/register" || pathname === "/recuperar-senha" || pathname === "/redefinir-senha")) {
+  if (isLoggedIn && pathname === "/redefinir-senha") {
+    const token = request.nextUrl.searchParams.get("token")?.trim();
+    const target = new URL("/workspaces", origin);
+    if (token) {
+      target.searchParams.set("redefinir", token);
+    }
+    return Response.redirect(target);
+  }
+
+  if (isLoggedIn && (pathname === "/login" || pathname === "/register" || pathname === "/recuperar-senha")) {
     return Response.redirect(new URL("/workspaces", origin));
   }
 

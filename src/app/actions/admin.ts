@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { createUserByAdmin } from "@/modules/admin/application/create-user";
 import { setAllowPublicSignup } from "@/modules/admin/application/set-allow-public-signup";
+import { setSignupFields } from "@/modules/admin/application/set-signup-fields";
+import type { SignupFields } from "@/modules/admin/domain/platform";
 import { setUserDisabled } from "@/modules/admin/application/set-user-disabled";
 import { setUserPassword } from "@/modules/admin/application/set-user-password";
 import { setUserRole } from "@/modules/admin/application/set-user-role";
@@ -61,6 +63,26 @@ function refreshSignupSettings() {
 export async function setAllowPublicSignupAction(enabled: boolean): Promise<ActionState> {
   await requireSystemAdmin();
   const result = await setAllowPublicSignup(enabled, getRepositories().admin);
+
+  if (!result.ok) {
+    return { error: result.error.message };
+  }
+
+  refreshSignupSettings();
+  return { error: null, ok: true };
+}
+
+export async function setSignupFieldsAction(fields: SignupFields): Promise<ActionState> {
+  await requireSystemAdmin();
+  const result = await setSignupFields(
+    {
+      name: Boolean(fields.name),
+      email: true,
+      phone: Boolean(fields.phone),
+      password: true,
+    },
+    getRepositories().admin,
+  );
 
   if (!result.ok) {
     return { error: result.error.message };

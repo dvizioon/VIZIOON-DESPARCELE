@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { VerifyEmailBanner } from "@/components/auth/verify-email-banner";
 import { AdminLink } from "@/components/layout/admin-link";
 import { LogoMark } from "@/components/brand/logo";
 import { CreateDebtModal } from "@/components/forms/create-debt-modal";
@@ -14,8 +15,9 @@ import { WorkspaceSettingsModal } from "@/components/workspace/workspace-setting
 import { requireWorkspaceAccess } from "@/modules/workspace/application/require-workspace-access";
 import { canEditContent, isAdmin, isArchived } from "@/modules/workspace/domain/workspace";
 import { PrismaWorkspaceRepository } from "@/modules/workspace/infrastructure/prisma-workspace-repository";
+import { graceHoursLeft } from "@/shared/auth/verify-email-grace";
 import { requireUser } from "@/shared/auth/session";
-import { isSystemAdmin } from "@/modules/auth/domain/user";
+import { isEmailVerified, isSystemAdmin } from "@/modules/auth/domain/user";
 import { addMonths, toDateInputValue } from "@/shared/utils/date";
 
 type WorkspaceLayoutProps = {
@@ -84,6 +86,10 @@ export default async function WorkspaceLayout({ children, params }: WorkspaceLay
           <SignOutButton />
         </div>
       </header>
+
+      {!isEmailVerified(user) ? (
+        <VerifyEmailBanner email={user.email} graceHoursLeft={graceHoursLeft(user)} />
+      ) : null}
 
       <div>
         <WorkspaceNav

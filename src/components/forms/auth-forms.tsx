@@ -141,7 +141,11 @@ export function LoginForm({
   );
 }
 
-export function RegisterForm() {
+export function RegisterForm({
+  fields = { name: true, email: true, phone: false, password: true },
+}: {
+  fields?: { name: boolean; email: boolean; phone: boolean; password: boolean };
+}) {
   const [state, action, pending] = useActionState(registerAction, initial);
 
   return (
@@ -151,18 +155,20 @@ export function RegisterForm() {
       subtitle="Cria a conta. Depois entra a primeira dívida. O resto o Desparcele organiza."
     >
       <form action={action} className="space-y-4">
-        <label className="block space-y-1.5">
-          <span className="text-sm text-ink/70">Nome completo</span>
-          <input
-            autoComplete="name"
-            className="field"
-            minLength={5}
-            name="name"
-            placeholder="Nome e sobrenome"
-            required
-          />
-          <span className="block text-xs text-ink/50">Escreve nome e sobrenome, como você assina.</span>
-        </label>
+        {fields.name ? (
+          <label className="block space-y-1.5">
+            <span className="text-sm text-ink/70">Nome completo</span>
+            <input
+              autoComplete="name"
+              className="field"
+              minLength={5}
+              name="name"
+              placeholder="Nome e sobrenome"
+              required
+            />
+            <span className="block text-xs text-ink/50">Escreve nome e sobrenome, como você assina.</span>
+          </label>
+        ) : null}
         <label className="block space-y-1.5">
           <span className="text-sm text-ink/70">E-mail</span>
           <input
@@ -174,6 +180,19 @@ export function RegisterForm() {
             type="email"
           />
         </label>
+        {fields.phone ? (
+          <label className="block space-y-1.5">
+            <span className="text-sm text-ink/70">Telefone</span>
+            <input
+              autoComplete="tel"
+              className="field"
+              name="phone"
+              placeholder="(11) 99999-9999"
+              required
+              type="tel"
+            />
+          </label>
+        ) : null}
         <PasswordField autoComplete="new-password" label="Senha" minLength={6} name="password" placeholder="Mínimo 6 caracteres" />
         <PasswordField
           autoComplete="new-password"

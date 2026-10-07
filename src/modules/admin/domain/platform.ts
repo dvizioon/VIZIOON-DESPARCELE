@@ -57,7 +57,22 @@ export type SmtpSummary = {
   defaultHost: string | null;
 };
 
+export type SignupFields = {
+  name: boolean;
+  email: boolean;
+  phone: boolean;
+  password: boolean;
+};
+
 export type SystemSettings = {
   allowPublicSignup: boolean;
+  signupFields: SignupFields;
   updatedAt: Date | null;
+};
+
+export const DEFAULT_SIGNUP_FIELDS: SignupFields = {
+  name: true,
+  email: true,
+  phone: false,
+  password: true,
 };

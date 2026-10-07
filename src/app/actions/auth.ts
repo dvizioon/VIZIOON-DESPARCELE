@@ -3,7 +3,7 @@
 import { AuthError } from "next-auth";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { signIn, signOut } from "@/auth";
+import { auth, signIn, signOut } from "@/auth";
 import { authenticateUser } from "@/modules/auth/application/authenticate-user";
 import { registerUser } from "@/modules/auth/application/register-user";
 import { requestPasswordReset, resetPassword } from "@/modules/auth/application/reset-password";
@@ -60,12 +60,16 @@ export async function registerAction(
     return { error: "Neste momento nao e possivel criar conta." };
   }
 
+  const fields = settings.signupFields;
   const result = await registerUser(
     {
       name: String(formData.get("name") ?? ""),
       email: String(formData.get("email") ?? ""),
+      phone: String(formData.get("phone") ?? ""),
       password: String(formData.get("password") ?? ""),
       confirmPassword: String(formData.get("confirmPassword") ?? ""),
+      requireName: fields.name,
+      requirePhone: fields.phone,
     },
     users,
   );
@@ -163,6 +167,11 @@ export async function resetPasswordAction(
 
   if (!result.ok) {
     return { error: result.error.message };
+  }
+
+  const session = await auth();
+  if (session?.user) {
+    redirect("/workspaces?senhaOk=1");
   }
 
   redirect("/login?redefinida=1");

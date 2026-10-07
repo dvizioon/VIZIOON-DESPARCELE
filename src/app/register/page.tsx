@@ -6,15 +6,14 @@ import { getRepositories } from "@/shared/infrastructure/container";
 export const dynamic = "force-dynamic";
 
 export default async function RegisterPage() {
-  const { allowPublicSignup } = await getRepositories().admin.getSystemSettings();
-  if (!allowPublicSignup) {
-    // Mesmo comportamento do middleware em rota inexistente: manda pro login.
+  const settings = await getRepositories().admin.getSystemSettings();
+  if (!settings.allowPublicSignup) {
     redirect("/login?callbackUrl=%2Fregister");
   }
 
   return (
     <AuthStage variant="register">
-      <RegisterForm />
+      <RegisterForm fields={settings.signupFields} />
     </AuthStage>
   );
 }

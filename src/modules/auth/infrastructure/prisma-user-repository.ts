@@ -19,6 +19,7 @@ export class PrismaUserRepository implements UserRepository {
         name: input.name,
         email: input.email,
         passwordHash: input.passwordHash,
+        phone: input.phone ?? null,
         systemRole: input.systemRole ?? "MEMBER",
         emailVerifiedAt: input.emailVerified ? new Date() : null,
       },

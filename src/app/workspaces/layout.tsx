@@ -1,4 +1,6 @@
 import { Suspense } from "react";
+import { ResetPasswordFromQuery } from "@/components/auth/reset-password-modal";
+import { VerifyEmailBanner } from "@/components/auth/verify-email-banner";
 import { AdminLink } from "@/components/layout/admin-link";
 import { CreateWorkspaceModal } from "@/components/forms/create-workspace-modal";
 import { ProfileHeaderLink } from "@/components/layout/profile-header-link";
@@ -7,9 +9,10 @@ import { LogoMark } from "@/components/brand/logo";
 import { PageMotion } from "@/components/motion/page-motion";
 import { QueryTabStage } from "@/components/motion/tab-stage";
 import { WorkspaceViewTabs } from "@/components/workspace/workspace-view-tabs";
-import { firstName, isSystemAdmin } from "@/modules/auth/domain/user";
+import { firstName, isEmailVerified, isSystemAdmin } from "@/modules/auth/domain/user";
 import { workspaceListBucket } from "@/modules/workspace/domain/workspace";
 import { PrismaWorkspaceRepository } from "@/modules/workspace/infrastructure/prisma-workspace-repository";
+import { graceHoursLeft } from "@/shared/auth/verify-email-grace";
 import { requireUser } from "@/shared/auth/session";
 
 export default async function WorkspacesLayout({ children }: { children: React.ReactNode }) {
@@ -18,6 +21,7 @@ export default async function WorkspacesLayout({ children }: { children: React.R
   const todos = workspaces.filter((item) => workspaceListBucket(item) === "todos").length;
   const arquivados = workspaces.filter((item) => workspaceListBucket(item) === "arquivados").length;
   const lixeira = workspaces.filter((item) => workspaceListBucket(item) === "lixeira").length;
+  const needsVerify = !isEmailVerified(user);
 
   return (
     <PageMotion className="mx-auto min-h-screen w-full max-w-3xl px-4 py-6 sm:px-5 sm:py-10">
@@ -42,6 +46,10 @@ export default async function WorkspacesLayout({ children }: { children: React.R
         </div>
       </header>
 
+      {needsVerify ? (
+        <VerifyEmailBanner email={user.email} graceHoursLeft={graceHoursLeft(user)} />
+      ) : null}
+
       <div>
         <Suspense fallback={<div className="mb-5 h-11 rounded-full bg-white/80" />}>
           <WorkspaceViewTabs counts={{ todos, arquivados, lixeira }} />
@@ -50,6 +58,10 @@ export default async function WorkspacesLayout({ children }: { children: React.R
 
       <Suspense fallback={children}>
         <QueryTabStage items={["todos", "arquivados", "lixeira"]}>{children}</QueryTabStage>
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <ResetPasswordFromQuery />
       </Suspense>
     </PageMotion>
   );

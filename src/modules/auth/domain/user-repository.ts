@@ -4,6 +4,7 @@ export interface CreateUserInput {
   name: string;
   email: string;
   passwordHash: string;
+  phone?: string | null;
   systemRole?: SystemRole;
   /** Se true, marca como verificado na criação (ex.: admin). */
   emailVerified?: boolean;

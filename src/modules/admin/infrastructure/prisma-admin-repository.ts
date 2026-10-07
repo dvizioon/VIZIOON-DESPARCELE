@@ -6,9 +6,11 @@ import type {
   PlatformOverview,
   PlatformUser,
   PlatformWorkspace,
+  SignupFields,
   SmtpSummary,
   SystemSettings,
 } from "../domain/platform";
+import { DEFAULT_SIGNUP_FIELDS } from "../domain/platform";
 
 export class PrismaAdminRepository implements AdminRepository {
   async overview(): Promise<PlatformOverview> {
@@ -91,10 +93,7 @@ export class PrismaAdminRepository implements AdminRepository {
       update: {},
     });
 
-    return {
-      allowPublicSignup: row.allowPublicSignup,
-      updatedAt: row.updatedAt,
-    };
+    return mapSystemSettings(row);
   }
 
   async setAllowPublicSignup(enabled: boolean): Promise<SystemSettings> {
@@ -104,10 +103,29 @@ export class PrismaAdminRepository implements AdminRepository {
       update: { allowPublicSignup: enabled },
     });
 
-    return {
-      allowPublicSignup: row.allowPublicSignup,
-      updatedAt: row.updatedAt,
-    };
+    return mapSystemSettings(row);
+  }
+
+  async setSignupFields(fields: SignupFields): Promise<SystemSettings> {
+    const row = await prisma.systemConfig.upsert({
+      where: { id: "default" },
+      create: {
+        id: "default",
+        allowPublicSignup: true,
+        signupFieldName: fields.name,
+        signupFieldEmail: true,
+        signupFieldPhone: fields.phone,
+        signupFieldPassword: true,
+      },
+      update: {
+        signupFieldName: fields.name,
+        signupFieldEmail: true,
+        signupFieldPhone: fields.phone,
+        signupFieldPassword: true,
+      },
+    });
+
+    return mapSystemSettings(row);
   }
 
   async listUsers(): Promise<PlatformUser[]> {
@@ -197,5 +215,25 @@ function mapUser(row: {
     disabledAt: row.disabledAt,
     createdAt: row.createdAt,
     ownedWorkspaceCount: row._count.ownedWorkspaces,
+  };
+}
+
+function mapSystemSettings(row: {
+  allowPublicSignup: boolean;
+  signupFieldName?: boolean;
+  signupFieldEmail?: boolean;
+  signupFieldPhone?: boolean;
+  signupFieldPassword?: boolean;
+  updatedAt: Date;
+}): SystemSettings {
+  return {
+    allowPublicSignup: row.allowPublicSignup,
+    signupFields: {
+      name: row.signupFieldName ?? DEFAULT_SIGNUP_FIELDS.name,
+      email: row.signupFieldEmail ?? DEFAULT_SIGNUP_FIELDS.email,
+      phone: row.signupFieldPhone ?? DEFAULT_SIGNUP_FIELDS.phone,
+      password: row.signupFieldPassword ?? DEFAULT_SIGNUP_FIELDS.password,
+    },
+    updatedAt: row.updatedAt,
   };
 }

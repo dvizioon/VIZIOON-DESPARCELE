@@ -3,6 +3,7 @@ import type {
   PlatformOverview,
   PlatformUser,
   PlatformWorkspace,
+  SignupFields,
   SmtpSummary,
   SystemSettings,
 } from "./platform";
@@ -12,6 +13,7 @@ export interface AdminRepository {
   smtpSummary(): Promise<SmtpSummary>;
   getSystemSettings(): Promise<SystemSettings>;
   setAllowPublicSignup(enabled: boolean): Promise<SystemSettings>;
+  setSignupFields(fields: SignupFields): Promise<SystemSettings>;
   listUsers(): Promise<PlatformUser[]>;
   findUser(id: string): Promise<PlatformUser | null>;
   countActiveAdmins(): Promise<number>;

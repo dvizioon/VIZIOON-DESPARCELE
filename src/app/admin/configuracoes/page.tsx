@@ -28,7 +28,14 @@ export default async function AdminSettingsPage() {
           title="Cadastro"
           text={
             settings.allowPublicSignup
-              ? "Novas contas permitidas."
+              ? `Novas contas permitidas · campos: ${[
+                  settings.signupFields.name ? "nome" : null,
+                  "e-mail",
+                  settings.signupFields.phone ? "telefone" : null,
+                  "senha",
+                ]
+                  .filter(Boolean)
+                  .join(", ")}.`
               : "Novas contas bloqueadas."
           }
         />
