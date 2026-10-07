@@ -1,6 +1,6 @@
-import { randomUUID } from "crypto";
-import { mkdir, readFile, unlink, writeFile } from "fs/promises";
-import path from "path";
+import { randomUUID } from "node:crypto";
+import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
+import path from "node:path";
 import type { FileStorage, StoredFile, StoredFileRead } from "./file-storage";
 
 export class LocalFileStorage implements FileStorage {

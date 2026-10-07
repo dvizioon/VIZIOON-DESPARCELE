@@ -1,5 +1,5 @@
-import { randomUUID } from "crypto";
-import path from "path";
+import { randomUUID } from "node:crypto";
+import path from "node:path";
 import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import type { FileStorage, StoredFile, StoredFileRead } from "./file-storage";
 
