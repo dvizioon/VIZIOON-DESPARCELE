@@ -33,7 +33,7 @@ export type EmailPurposeDefinition = {
 const LOGO: EmailPlaceholder = {
   key: "logo",
   label: "Logo",
-  description: "Marca Desparcele em base64, já no próprio e-mail",
+  description: "URL pública da marca",
 };
 
 export const EMAIL_PURPOSES: EmailPurposeDefinition[] = [

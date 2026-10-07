@@ -2,6 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { createUserByAdmin } from "@/modules/admin/application/create-user";
+import {
+  clearBrandFavicon,
+  clearBrandLogo,
+  uploadBrandFavicon,
+  uploadBrandLogo,
+} from "@/modules/admin/application/manage-brand";
 import { setAllowPublicSignup } from "@/modules/admin/application/set-allow-public-signup";
 import { setSignupFields } from "@/modules/admin/application/set-signup-fields";
 import type { SignupFields } from "@/modules/admin/domain/platform";
@@ -90,6 +96,70 @@ export async function setSignupFieldsAction(fields: SignupFields): Promise<Actio
 
   refreshSignupSettings();
   return { error: null, ok: true };
+}
+
+function refreshBrandSettings() {
+  revalidatePath("/admin");
+  revalidatePath("/admin/configuracoes");
+  revalidatePath("/admin/configuracoes/marca");
+  revalidatePath("/api/brand/logo");
+  revalidatePath("/api/brand/favicon");
+}
+
+async function readUploadFile(formData: FormData) {
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) {
+    return null;
+  }
+  return {
+    buffer: Buffer.from(await file.arrayBuffer()),
+    filename: file.name || "upload.png",
+    mimeType: file.type || "application/octet-stream",
+  };
+}
+
+export async function uploadBrandLogoAction(formData: FormData): Promise<ActionState> {
+  await requireSystemAdmin();
+  const { admin, storage } = getRepositories();
+  const result = await uploadBrandLogo(await readUploadFile(formData), admin, storage);
+  if (!result.ok) {
+    return { error: result.error.message };
+  }
+  refreshBrandSettings();
+  return { error: null, ok: true, message: "Logo atualizada." };
+}
+
+export async function uploadBrandFaviconAction(formData: FormData): Promise<ActionState> {
+  await requireSystemAdmin();
+  const { admin, storage } = getRepositories();
+  const result = await uploadBrandFavicon(await readUploadFile(formData), admin, storage);
+  if (!result.ok) {
+    return { error: result.error.message };
+  }
+  refreshBrandSettings();
+  return { error: null, ok: true, message: "Favicon atualizado." };
+}
+
+export async function clearBrandLogoAction(): Promise<ActionState> {
+  await requireSystemAdmin();
+  const { admin, storage } = getRepositories();
+  const result = await clearBrandLogo(admin, storage);
+  if (!result.ok) {
+    return { error: result.error.message };
+  }
+  refreshBrandSettings();
+  return { error: null, ok: true, message: "Logo voltou ao padrão." };
+}
+
+export async function clearBrandFaviconAction(): Promise<ActionState> {
+  await requireSystemAdmin();
+  const { admin, storage } = getRepositories();
+  const result = await clearBrandFavicon(admin, storage);
+  if (!result.ok) {
+    return { error: result.error.message };
+  }
+  refreshBrandSettings();
+  return { error: null, ok: true, message: "Favicon voltou ao padrão." };
 }
 
 export async function setUserDisabledAction(formData: FormData): Promise<ActionState> {

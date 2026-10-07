@@ -40,6 +40,16 @@ export default async function AdminSettingsPage() {
           }
         />
         <SettingsCard
+          href="/admin/configuracoes/marca"
+          icon="tabler:photo"
+          title="Marca"
+          text={
+            settings.brandLogoUrl || settings.brandFaviconUrl
+              ? "Logo e favicon personalizados para e-mails e aba."
+              : "Usando logo padrão. Envie a marca para os e-mails."
+          }
+        />
+        <SettingsCard
           href="/admin/configuracoes/smtp"
           icon="tabler:server"
           title="SMTP"

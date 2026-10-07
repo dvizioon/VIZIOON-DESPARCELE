@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
-import { mkdir, unlink, writeFile } from "fs/promises";
+import { mkdir, readFile, unlink, writeFile } from "fs/promises";
 import path from "path";
-import type { FileStorage, StoredFile } from "./file-storage";
+import type { FileStorage, StoredFile, StoredFileRead } from "./file-storage";
 
 export class LocalFileStorage implements FileStorage {
   constructor(private readonly rootPath: string) {}
@@ -18,8 +18,8 @@ export class LocalFileStorage implements FileStorage {
   }
 
   async remove(storedUrl: string): Promise<void> {
-    const relative = storedUrl.replace(/^\/api\/files\//, "");
-    if (!relative || relative.includes("..")) {
+    const relative = this.toRelative(storedUrl);
+    if (!relative) {
       return;
     }
 
@@ -35,6 +35,35 @@ export class LocalFileStorage implements FileStorage {
       return;
     }
   }
+
+  async read(storedUrl: string): Promise<StoredFileRead | null> {
+    const relative = this.toRelative(storedUrl);
+    if (!relative) {
+      return null;
+    }
+
+    const absolute = path.resolve(this.rootPath, relative);
+    const root = path.resolve(this.rootPath);
+    if (!absolute.startsWith(root)) {
+      return null;
+    }
+
+    try {
+      const buffer = await readFile(absolute);
+      const extension = path.extname(absolute).toLowerCase();
+      return { buffer, mimeType: extensionToMime(extension) };
+    } catch {
+      return null;
+    }
+  }
+
+  private toRelative(storedUrl: string): string | null {
+    const relative = storedUrl.replace(/^\/api\/files\//, "").replace(/^\//, "");
+    if (!relative || relative.includes("..") || path.isAbsolute(relative)) {
+      return null;
+    }
+    return relative;
+  }
 }
 
 function mimeToExtension(mimeType: string): string {
@@ -45,9 +74,32 @@ function mimeToExtension(mimeType: string): string {
       return ".png";
     case "image/webp":
       return ".webp";
+    case "image/x-icon":
+    case "image/vnd.microsoft.icon":
+      return ".ico";
     case "application/pdf":
       return ".pdf";
     default:
       return "";
+  }
+}
+
+function extensionToMime(extension: string): string {
+  switch (extension) {
+    case ".jpg":
+    case ".jpeg":
+      return "image/jpeg";
+    case ".png":
+      return "image/png";
+    case ".webp":
+      return "image/webp";
+    case ".ico":
+      return "image/x-icon";
+    case ".svg":
+      return "image/svg+xml";
+    case ".pdf":
+      return "application/pdf";
+    default:
+      return "application/octet-stream";
   }
 }

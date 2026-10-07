@@ -1,5 +1,3 @@
-import { MAIL_LOGO_DATA_URI } from "./mail-logo";
-
 const PINE = "#0c6b5c";
 const PINE_DARK = "#08483e";
 const PAPER = "#f4efe6";
@@ -56,7 +54,7 @@ export function mailLayout(input: MailLayoutInput): string {
             <table role="presentation" cellpadding="0" cellspacing="0">
               <tr>
                 <td style="vertical-align:middle;padding-right:12px;">
-                  <img src="${MAIL_LOGO_DATA_URI}" width="48" height="48" alt="Desparcele" style="display:block;border:0;outline:none;width:48px;height:48px;border-radius:10px;" />
+                  <img src="{{logo}}" width="48" height="48" alt="Desparcele" style="display:block;border:0;outline:none;width:48px;height:48px;border-radius:10px;" />
                 </td>
                 <td style="vertical-align:middle;">
                   <p style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:22px;line-height:1;color:${WHITE};">Desparcele</p>

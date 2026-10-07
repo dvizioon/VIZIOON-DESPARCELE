@@ -14,6 +14,10 @@ export interface AdminRepository {
   getSystemSettings(): Promise<SystemSettings>;
   setAllowPublicSignup(enabled: boolean): Promise<SystemSettings>;
   setSignupFields(fields: SignupFields): Promise<SystemSettings>;
+  setBrandAssets(input: {
+    brandLogoUrl?: string | null;
+    brandFaviconUrl?: string | null;
+  }): Promise<SystemSettings>;
   listUsers(): Promise<PlatformUser[]>;
   findUser(id: string): Promise<PlatformUser | null>;
   countActiveAdmins(): Promise<number>;

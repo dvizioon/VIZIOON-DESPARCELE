@@ -128,6 +128,27 @@ export class PrismaAdminRepository implements AdminRepository {
     return mapSystemSettings(row);
   }
 
+  async setBrandAssets(input: {
+    brandLogoUrl?: string | null;
+    brandFaviconUrl?: string | null;
+  }): Promise<SystemSettings> {
+    const data: { brandLogoUrl?: string | null; brandFaviconUrl?: string | null } = {};
+    if ("brandLogoUrl" in input) {
+      data.brandLogoUrl = input.brandLogoUrl ?? null;
+    }
+    if ("brandFaviconUrl" in input) {
+      data.brandFaviconUrl = input.brandFaviconUrl ?? null;
+    }
+
+    const row = await prisma.systemConfig.upsert({
+      where: { id: "default" },
+      create: { id: "default", allowPublicSignup: true, ...data },
+      update: data,
+    });
+
+    return mapSystemSettings(row);
+  }
+
   async listUsers(): Promise<PlatformUser[]> {
     const rows = await prisma.user.findMany({
       include: { _count: { select: { ownedWorkspaces: true } } },
@@ -224,6 +245,8 @@ function mapSystemSettings(row: {
   signupFieldEmail?: boolean;
   signupFieldPhone?: boolean;
   signupFieldPassword?: boolean;
+  brandLogoUrl?: string | null;
+  brandFaviconUrl?: string | null;
   updatedAt: Date;
 }): SystemSettings {
   return {
@@ -234,6 +257,8 @@ function mapSystemSettings(row: {
       phone: row.signupFieldPhone ?? DEFAULT_SIGNUP_FIELDS.phone,
       password: row.signupFieldPassword ?? DEFAULT_SIGNUP_FIELDS.password,
     },
+    brandLogoUrl: row.brandLogoUrl ?? null,
+    brandFaviconUrl: row.brandFaviconUrl ?? null,
     updatedAt: row.updatedAt,
   };
 }

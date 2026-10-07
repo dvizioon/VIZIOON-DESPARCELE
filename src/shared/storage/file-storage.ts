@@ -4,9 +4,15 @@ export interface StoredFile {
   mimeType: string;
 }
 
+export interface StoredFileRead {
+  buffer: Buffer;
+  mimeType: string;
+}
+
 export interface FileStorage {
   save(file: StoredFile, folder: string): Promise<string>;
   remove(storedUrl: string): Promise<void>;
+  read(storedUrl: string): Promise<StoredFileRead | null>;
 }
 
 export const RECEIPT_MIME_TYPES = [

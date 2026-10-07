@@ -1,7 +1,7 @@
 import { fail, ok, type Result } from "@/shared/types/result";
+import { publicBrandAssetUrl } from "@/shared/brand/resolve-brand-asset";
 import { getAppOrigin } from "@/shared/config/app-origin";
 import { SMTP_TEST_MAIL_HTML } from "../domain/email-layout";
-import { MAIL_LOGO_DATA_URI } from "../domain/mail-logo";
 import { toPublicProvider, toSmtpConfig, type EmailProviderPublic } from "../domain/mail";
 import type { MailRepository, SaveProviderInput, SavePurposeInput } from "../domain/mail-repository";
 import { applyEmailTemplate, findEmailPurpose } from "../domain/purposes";
@@ -60,13 +60,14 @@ export async function testSmtpProvider(
   const origin = await getAppOrigin();
   const custom = message.trim();
   const text = custom || "Este é um e-mail de teste do Desparcele.";
+  const logo = await publicBrandAssetUrl("logo");
   const html =
     format === "HTML"
       ? applyEmailTemplate(SMTP_TEST_MAIL_HTML, {
-          logo: MAIL_LOGO_DATA_URI,
+          logo,
           link: `${origin}/login`,
           mensagem: custom || "Se você está lendo isto, o envio saiu.",
-        })
+        }).replace(/src=(["'])data:image\/[^"']+\1/gi, `src=$1${logo}$1`)
       : undefined;
   const body = html ?? text;
 

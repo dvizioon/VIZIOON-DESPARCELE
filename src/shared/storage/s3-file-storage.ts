@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
 import path from "path";
-import { DeleteObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
-import type { FileStorage, StoredFile } from "./file-storage";
+import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import type { FileStorage, StoredFile, StoredFileRead } from "./file-storage";
 
 type S3Config = {
   endpoint: string;
@@ -58,6 +58,32 @@ export class S3FileStorage implements FileStorage {
         Key: key,
       }),
     );
+  }
+
+  async read(storedUrl: string): Promise<StoredFileRead | null> {
+    const key = storedUrl.replace(/^\/api\/files\//, "");
+    if (!key || key.includes("..")) {
+      return null;
+    }
+
+    try {
+      const result = await this.client.send(
+        new GetObjectCommand({
+          Bucket: this.config.bucket,
+          Key: key,
+        }),
+      );
+      const bytes = await result.Body?.transformToByteArray();
+      if (!bytes) {
+        return null;
+      }
+      return {
+        buffer: Buffer.from(bytes),
+        mimeType: result.ContentType || "application/octet-stream",
+      };
+    } catch {
+      return null;
+    }
   }
 }
 

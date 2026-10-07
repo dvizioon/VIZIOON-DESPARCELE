@@ -16,6 +16,10 @@ const fraunces = Fraunces({
 export const metadata: Metadata = {
   title: "Desparcele",
   description: "Controle de dividas parceladas para casais e pessoas",
+  icons: {
+    icon: [{ url: "/api/brand/favicon", type: "image/png" }],
+    apple: [{ url: "/api/brand/logo" }],
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

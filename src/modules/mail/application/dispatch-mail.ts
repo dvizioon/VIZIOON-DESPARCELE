@@ -1,6 +1,6 @@
 import { fail, ok, type Result } from "@/shared/types/result";
+import { publicBrandAssetUrl } from "@/shared/brand/resolve-brand-asset";
 import { getAppOrigin, withPublicOrigin } from "@/shared/config/app-origin";
-import { MAIL_LOGO_DATA_URI } from "../domain/mail-logo";
 import { applyEmailTemplate, findEmailPurpose } from "../domain/purposes";
 import { toSmtpConfig } from "../domain/mail";
 import type { MailRepository } from "../domain/mail-repository";
@@ -15,7 +15,7 @@ async function withMailVars(variables: Record<string, string>): Promise<Record<s
 
   return {
     ...next,
-    logo: next.logo || MAIL_LOGO_DATA_URI,
+    logo: next.logo || (await publicBrandAssetUrl("logo")),
     link: next.link || `${origin}/login`,
   };
 }
@@ -45,7 +45,7 @@ export async function dispatchMail(
 
   const vars = await withMailVars(variables);
   const subject = applyEmailTemplate(subjectTemplate, vars);
-  const body = applyEmailTemplate(bodyTemplate, vars);
+  const body = scrubEmbeddedDataImages(applyEmailTemplate(bodyTemplate, vars), vars.logo ?? "");
   const text = stripHtml(body);
 
   const item = await mail.createOutbox({
@@ -117,4 +117,9 @@ export function stripHtml(value: string): string {
     .replace(/<[^>]+>/g, "")
     .replace(/&nbsp;/g, " ")
     .trim();
+}
+
+/** Modelos antigos embutiam data-URI; clientes (Gmail) bloqueiam. Troca pela URL pública. */
+function scrubEmbeddedDataImages(html: string, logoUrl: string): string {
+  return html.replace(/src=(["'])data:image\/[^"']+\1/gi, `src=$1${logoUrl}$1`);
 }

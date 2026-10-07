@@ -322,6 +322,8 @@ model SystemConfig {
   signupFieldEmail     Boolean  @default(true)
   signupFieldPhone     Boolean  @default(false)
   signupFieldPassword  Boolean  @default(true)
+  brandLogoUrl         String?
+  brandFaviconUrl      String?
   loanCronEnabled      Boolean  @default(true)
   loanCronHour         Int      @default(6)
   reminderCronEnabled  Boolean  @default(false)

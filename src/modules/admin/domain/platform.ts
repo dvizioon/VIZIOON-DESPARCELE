@@ -67,6 +67,8 @@ export type SignupFields = {
 export type SystemSettings = {
   allowPublicSignup: boolean;
   signupFields: SignupFields;
+  brandLogoUrl: string | null;
+  brandFaviconUrl: string | null;
   updatedAt: Date | null;
 };
 
